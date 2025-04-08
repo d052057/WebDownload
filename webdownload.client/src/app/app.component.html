@@ -1,0 +1,99 @@
+<div class="container">
+  <h1>YouTube Downloader</h1>
+
+  <div class="form-group">
+    <label for="url">Video URL:</label>
+    <input type="text"
+           id="url"
+           class="form-control"
+           [(ngModel)]="url"
+           placeholder="Enter YouTube URL"
+           [disabled]="isDownloading">
+  </div>
+  <div class="form-group">
+    <label for="options">Custom Options (one per line):</label>
+    <textarea id="options"
+              class="form-control"
+              [(ngModel)]="options"
+              rows="3"
+              placeholder="Enter custom options"
+              [disabled]="isDownloading"></textarea>
+  </div>
+  <div class="form-group">
+    <label class="checkbox-container">
+      <input type="checkbox"
+             [(ngModel)]="audioOnly"
+             [disabled]="isDownloading">
+      <span class="checkbox-label">Audio Only (MP3)</span>
+    </label>
+  </div>
+  <div class="form-group">
+    <label class="checkbox-container">
+      <input type="checkbox"
+             [(ngModel)]="subTitle"
+             [disabled]="isDownloading">
+      <span class="checkbox-label">Include Sub-Title</span>
+    </label>
+  </div>
+  <div class="row form-group">
+    <mat-form-field appearance="outline">
+      <mat-label>Designated Path</mat-label>
+      <input type="text" [(ngModel)]="outputFolder" matInput required />
+      <mat-hint>Directory in Medias such as videos\test..., movies\test..., musics\test...</mat-hint>
+      <!--<div *ngIf="submitted && f.updatePath.errors" class="invalid-feedback">
+        <div *ngIf="f.outputFolder.errors.required">Designated path is required</div>
+      </div>-->
+    </mat-form-field>
+  </div>
+  <div class="button-group">
+    <button class="btn btn-primary"
+            (click)="startDownload()"
+            [disabled]="!url || isDownloading">
+      Download
+    </button>
+  </div>
+  <div class="row">
+    <p>[hlsnative] Total fragments:{{ TotalFragments }}</p>
+  </div>
+  <div class="container">
+    <div class="progress">
+      <div class="progress-bar bg-danger" role="progressbar" [style.width]="progress + '%'" aria-valuenow="1" aria-valuemin="0" aria-valuemax="100"></div>
+    </div>
+    <table class="table" width="80%">
+      <thead>
+        <tr>
+          <th width="20%">Size</th>
+          <th width="20%">Speed</th>
+          <th width="20%">ETA</th>
+          <th width="40%">File</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>{{ ReceiveTotalSize }}</td>
+          <td>{{ ReceiveSpeed }}</td>
+          <td>{{ ReceiveETA }}</td>
+          <td>{{ ReceiveFileName }}</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="progress">
+      Error: {{ error }}
+    </div>
+    <div class="progress">
+      Finish: {{ finish }}
+    </div>
+    <div class="progress">
+      Status: {{ ReceiveState }}
+    </div>
+  </div>
+  <div class="form-group">
+    <label for="output">Text Processing:</label>
+    <textarea id="output"
+              class="form-control"
+              [(ngModel)]="output"
+              rows="3"
+              [disabled]="isDownloading"></textarea>
+  </div>
+</div>
+
