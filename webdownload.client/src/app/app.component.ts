@@ -1,12 +1,11 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { SignalrService } from './signalr.service';
 import { FormsModule } from '@angular/forms'
-import { MatInputModule } from '@angular/material/input';
 
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
-  imports: [MatInputModule, FormsModule],
+  imports: [FormsModule],
   styleUrl: './app.component.scss'
 })
 export class AppComponent {

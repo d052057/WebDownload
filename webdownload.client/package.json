@@ -25,6 +25,7 @@
     "@angular/router": "^19.2.5",
     "@microsoft/signalr": "^8.0.7",
     "bootstrap": "^5.3.5",
+    "bootstrap-icons": "^1.11.3",
     "jest-editor-support": "*",
     "material-icons": "^1.13.14",
     "run-script-os": "*",

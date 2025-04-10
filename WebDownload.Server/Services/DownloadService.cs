@@ -1,6 +1,7 @@
 ﻿using WebDownload.Server.Models;
 using System.Text;
 using System.Diagnostics;
+using System.Collections.Generic;
 namespace WebDownload.Server.Services
 {
     public interface IDownloadService
@@ -16,6 +17,7 @@ namespace WebDownload.Server.Services
 
         public async Task StartDownloadAsync(DownloadRequest request, Func<string, Task> callback)
         {
+            //--list-subs  --skip-download --get-title
             sb.Clear();
             sb.AppendFormat(" -P {0}", request.OutputFolder); // output to a folder
             sb.AppendFormat(" {0} -o \"{1}\"", "--progress", OutputFileTemplate);

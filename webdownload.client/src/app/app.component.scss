@@ -1,0 +1,9 @@
+.jumbotron {
+  padding: 2rem 1rem;
+  margin-bottom: 2rem;
+  background-color: #e9ecef;
+  border-radius: .3rem;
+}
+progress.empty-progress::-webkit-progress-value {
+  background-color: #0d6efd; /* Bootstrap's primary color */
+}
