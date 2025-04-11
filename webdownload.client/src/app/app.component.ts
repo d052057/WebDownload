@@ -14,7 +14,7 @@ export class AppComponent {
   registeredEvents: string[] = this.signalRService.registeredEvents;
   url: string = 'https://www.youtube.com/watch?v=X_fNyURresc';
   isDownloading: boolean = false;
-  options: string = '';
+  options: string = '-- progress "%(title)s [%(id)s].%(ext)s"\n--no-warnings\n-P movies\\9\n--sub-langs "en"\n--write-subs\n--write-auto-subs "en.*,km"';
   audioOnly: boolean = false;
   subTitle: boolean = true;
   output: string[] = [];
@@ -30,6 +30,7 @@ export class AppComponent {
   ReceiveFileName: string = '';
   ReceiveState: string = '';
   outputFolder: string = "movies\\9";
+  connectionId!: string;
   ngOnInit(): void {
     // Initialize SignalR connection
     this.signalRService.startConnection();
@@ -85,15 +86,24 @@ export class AppComponent {
     });
 
   }
+  getTitle(): void {
+    if (!this.connectionId) {
+      this.connectionId = this.signalRService.getConnectionId();
+      const payload = {
+        downloadId: this.connectionId,
+        url: this.url,
+      };
+      this.signalRService.invokeMethod('HubGetTitleServiceAsync', payload);
+    }
+  }
   startDownload(): void {
     // Retrieve SignalR connection ID
-    const connectionId = this.signalRService.getConnectionId();
-    if (!connectionId) {
-      alert('Connection to SignalR not established yet. Please wait...');
-      return;
+    this.connectionId = this.signalRService.getConnectionId();
+    if (!this.connectionId) {
+      this.connectionId = this.signalRService.getConnectionId();
     }
     const payload = {
-      downloadId: connectionId,
+      downloadId: this.connectionId,
       url: this.url,
       options: this.options,
       audioOnly: this.audioOnly,

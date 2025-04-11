@@ -1,6 +1,6 @@
 <div class="container">
   <h1>Web Video Downloader (yt-dlp.exe)</h1>
-
+  
   <div class="jumbotron">
     <div class="form-group">
       <label for="url">Video URL:</label>
@@ -9,16 +9,15 @@
              class="form-control"
              [(ngModel)]="url"
              placeholder="Enter YouTube URL"
+             (change)="getTitle()"
              [disabled]="isDownloading">
     </div>
 
     <label for="options">Custom Options (one per line):</label>
     <textarea id="options"
-              class="form-control"
-              [(ngModel)]="options"
-              rows="3"
-              placeholder="Enter custom options"
-              [disabled]="isDownloading"></textarea>
+              class="form-control viewOnly"
+              rows="6"
+              >{{ options }}</textarea>
 
     <div class="form-group">
       <label class="checkbox-container">
@@ -58,7 +57,7 @@
       <caption class="m-3" style="caption-side: top">
         <label>Download Progress:</label>
         <div class="progress">
-          <div class="progress-bar" role="progressbar" [style.width]="progress + '%'" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+          <div class="progress-bar progress-bar-orange" role="progressbar" [style.width]="progress + '%'" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
         </div>
       </caption>
       <thead>
@@ -92,10 +91,7 @@
     </table>
 
     <label for="output">Output Text Processing:</label>
-    <textarea id="output"
-              class="form-control"
-              [(ngModel)]="output"
-              rows="3"
-              [disabled]="isDownloading"></textarea>
+    <textarea id="output" class="form-control viewOnly" rows="3"> {{ output }}</textarea>
   </div>
 </div>
+

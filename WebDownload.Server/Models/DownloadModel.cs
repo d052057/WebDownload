@@ -10,6 +10,10 @@
         public required string DownloadId { get; set; }
         public required string OutputFolder { get; set; }
     }
-    
+    public class DownloadTitleRequest
+    {
+        public required string Url { get; set; }
+        public required string DownloadId { get; set; }
+    }
 }
 

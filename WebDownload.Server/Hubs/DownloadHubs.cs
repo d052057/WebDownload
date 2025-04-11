@@ -29,6 +29,31 @@ namespace WebDownload.Server.Hubs
 
         public string GetConnectionId() => Context.ConnectionId;
 
+
+        public async Task HubGetTitleServiceAsync(DownloadTitleRequest request)
+        {
+            string conn = request.DownloadId;
+            try
+            {
+                Func<string, Task> callback = async p =>
+                {
+                    await Clients.Client(conn).SendAsync("ReceiveFileName", p);
+                };
+                await _downloadService.StartDownloadTitleAsync(request, callback);
+            }
+            catch (UriFormatException)
+            {
+                await Clients.Client(conn).SendAsync("ReceiveError", "Hub The URL format is invalid.");
+            }
+            catch (IOException)
+            {
+                await Clients.Client(conn).SendAsync("ReceiveError", "Hub An error occurred while accessing the file system.");
+            }
+            catch (Exception ex)
+            {
+                await Clients.Client(conn).SendAsync("ReceiveError", $"Hub Error during download: {ex.Message}");
+            }
+        }
         public async Task HubStartDownloadServiceAsync(DownloadRequest request)
         {
             request.OutputFolder = _appSettings.Value.MediaDrive + @"\" + request.OutputFolder;
