@@ -1,28 +1,26 @@
 ﻿using WebDownload.Server.Models;
 using System.Text;
 using System.Diagnostics;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
 namespace WebDownload.Server.Services
 {
 
     public interface IDownloadService
     {
-        Task StartDownloadAsync(DownloadRequest request, Func<string, Task> callback);
-        Task StartDownloadTitleAsync(DownloadTitleRequest request, Func<string, Task> callback);
+        Task StartDownloadAsync(DownloadRequest request, Func<DownloadInfo, Task> callback);
+        Task StartDownloadTitleAsync(DownloadTitleRequest request, Func<DownloadInfo, Task> callback);
     };
-    
+
     public class DownloadService : IDownloadService
     {
         private string OutputFileTemplate = @"%(title)s [%(id)s].%(ext)s";
 
         private string ytDlpPath = @"yt-dlp.exe";
         private StringBuilder sb = new StringBuilder();
-        public async Task StartDownloadTitleAsync(DownloadTitleRequest request, Func<string, Task> callback)
+        public async Task StartDownloadTitleAsync(DownloadTitleRequest request, Func<DownloadInfo, Task> callback)
         {
             sb.Clear();
             sb.AppendFormat(" {0} -o \"{1}\"", "--progress", OutputFileTemplate);
-            sb.AppendFormat(" {0} {1} {2}", "--no-warnings","--print filename", "--skip-download");
+            sb.AppendFormat(" {0} {1} {2}", "--no-warnings", "--print filename", "--skip-download");
             sb.AppendFormat(" {0}", request.Url);
             try
             {
@@ -46,10 +44,10 @@ namespace WebDownload.Server.Services
                     while (!process.StandardOutput.EndOfStream)
                     {
                         var progressLine = await process.StandardOutput.ReadLineAsync();
-                        Console.WriteLine($"ProgressLine: {progressLine}");
                         if (!string.IsNullOrWhiteSpace(progressLine))
                         {
-                            await callback(progressLine);
+                            DownloadInfo info = new() { Output = progressLine };
+                            await callback(info);
                         }
                     }
                 }
@@ -62,7 +60,8 @@ namespace WebDownload.Server.Services
                 {
                     var errorLine = await process.StandardError.ReadLineAsync();
                     Console.WriteLine($"ErrorLine: {errorLine}");
-                    await callback(error);
+                    DownloadInfo info = new() { Error = errorLine };
+                    await callback(info);
                 }
                 await process.WaitForExitAsync();
 
@@ -73,22 +72,30 @@ namespace WebDownload.Server.Services
                 throw;
             }
         }
-        public async Task StartDownloadAsync(DownloadRequest request, Func<string, Task> callback)
+        public async Task StartDownloadAsync(DownloadRequest request, Func<DownloadInfo, Task> callback)
         {
             //--list-subs  --skip-download --get-title
             sb.Clear();
             sb.AppendFormat(" -P {0}", request.OutputFolder); // output to a folder
             sb.AppendFormat(" {0} -o \"{1}\"", "--progress", OutputFileTemplate);
-
-            // inlude subtitles
-            if (request.SubTitle)
+            if (request.AudioOnly)
             {
-                //sb.Append(" --sub-langs \"en,km\" --write-subs --write-auto-subs");
-                sb.AppendFormat(" --sub-langs \"{0}\" --write-subs --write-auto-subs", "en.*,km");
+                sb.AppendFormat(" -f {0} ", "bestaudio");
+                sb.AppendFormat(" -x {0} {1}", "--audio-format flac", "--split-chapters");
+            }
+            else
+            {
+                // inlude subtitles
+                if (request.SubTitle)
+                {
+                    //sb.Append(" --sub-langs \"en,km\" --write-subs --write-auto-subs");
+                    sb.AppendFormat(" --sub-langs \"{0}\" --write-subs --write-auto-subs", "en.*,km");
+                }
             }
             ;
             sb.AppendFormat(" {0}", "--no-warnings");
             sb.AppendFormat(" {0}", request.Url);
+            Console.WriteLine(sb.ToString());
             try
             {
                 var process = new Process
@@ -111,10 +118,11 @@ namespace WebDownload.Server.Services
                     while (!process.StandardOutput.EndOfStream)
                     {
                         var progressLine = await process.StandardOutput.ReadLineAsync();
-                        Console.WriteLine($"ProgressLine: {progressLine}");
+                        
                         if (!string.IsNullOrWhiteSpace(progressLine))
                         {
-                            await callback(progressLine);
+                            DownloadInfo info = new() { Output = progressLine };
+                            await callback(info);
                         }
                     }
                 }
@@ -127,7 +135,8 @@ namespace WebDownload.Server.Services
                 {
                     var errorLine = await process.StandardError.ReadLineAsync();
                     Console.WriteLine($"ErrorLine: {errorLine}");
-                    await callback(error);
+                    DownloadInfo info = new() { Error = errorLine };
+                    await callback(info);
                 }
                 await process.WaitForExitAsync();
 

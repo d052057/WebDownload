@@ -10,8 +10,15 @@ export class SignalrService {
   private connectionId: string = '';
   url!: string;
   registeredEvents: string[] = [
-    'ReceiveTotalFragment', 'ReceiveProgress', 'ReceiveSpeed', 'ReceiveETA', "ReceiveFileName",
-    'ReceiveTotalSize', 'ReceiveError', 'DownloadFinished', 'ReceiveOutput', "ReceiveState"
+    'ReceiveFileName',
+    'ReceiveError',
+    'ReceiveDownloadInfo',
+    'ReceiveDownloadFinished',
+    'ReceiveState',
+    'ReceiveOutput',
+    'ReceiveChapterFileName',
+    'ReceiveTotalFragment',
+    'ReceiveLastDownloadInfo'
   ];
   constructor() {
     this.url = environment.appUrl;

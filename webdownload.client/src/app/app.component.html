@@ -1,6 +1,6 @@
 <div class="container">
   <h1>Web Video Downloader (yt-dlp.exe)</h1>
-  
+
   <div class="jumbotron">
     <div class="form-group">
       <label for="url">Video URL:</label>
@@ -16,8 +16,7 @@
     <label for="options">Custom Options (one per line):</label>
     <textarea id="options"
               class="form-control viewOnly"
-              rows="6"
-              >{{ options }}</textarea>
+              rows="6">{{ options }}</textarea>
 
     <div class="form-group">
       <label class="checkbox-container">
@@ -77,21 +76,33 @@
           <td>{{ ReceiveETA || "-"}}</td>
           <td>{{ ReceiveFileName || "-"}}</td>
           <td>{{ TotalFragments || "-"}}</td>
-
         </tr>
       </tbody>
       <tfoot>
         <tr>
-          <td>Status:{{ ReceiveState || "-"}}</td>
-          <td>Error:{{ error || "-"}}</td>
-          <td colspan="3">Output:{{ finish || "-"}}</td>
-
+          <td colspan="5">Status:{{ ReceiveState || "-"}}</td>
+        </tr>
+        <tr>
+          <td colspan="5">Error:{{ error || "-"}}</td>
+        </tr>
+        <tr>
+          <td colspan="5">Output:{{ finish || "-"}}</td>
         </tr>
       </tfoot>
     </table>
-
+    <table class="table table-striped text-center" width="50%">
+      <tbody>
+        <tr *ngFor="let item of chapter ; let i = index">
+          <td>{{ item }}  </td>
+        </tr>
+      </tbody>
+    </table>
     <label for="output">Output Text Processing:</label>
-    <textarea id="output" class="form-control viewOnly" rows="3"> {{ output }}</textarea>
+    <section>
+      <p *ngFor="let line of output ; let i = index">
+        {{ line }}
+      </p>
+    </section>
   </div>
 </div>
 

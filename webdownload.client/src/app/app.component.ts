@@ -1,23 +1,25 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { SignalrService } from './signalr.service';
 import { FormsModule } from '@angular/forms'
-
+import { AsyncPipe, NgFor, NgIf } from '@angular/common';
+import { downloadInfo } from './webdownload.model'
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
-  imports: [FormsModule],
+  imports: [FormsModule, NgFor, AsyncPipe],
   styleUrl: './app.component.scss'
 })
 export class AppComponent {
   title = 'webdownload.client';
   signalRService = inject(SignalrService);
   registeredEvents: string[] = this.signalRService.registeredEvents;
-  url: string = 'https://www.youtube.com/watch?v=X_fNyURresc';
+  url: string = '';
   isDownloading: boolean = false;
   options: string = '-- progress "%(title)s [%(id)s].%(ext)s"\n--no-warnings\n-P movies\\9\n--sub-langs "en"\n--write-subs\n--write-auto-subs "en.*,km"';
   audioOnly: boolean = false;
   subTitle: boolean = true;
   output: string[] = [];
+  chapter: string[] = [];
   progress: string = '';
   error: string = '';
   ReceiveSpeed: string = '';
@@ -35,46 +37,49 @@ export class AppComponent {
     // Initialize SignalR connection
     this.signalRService.startConnection();
 
-    // Subscribe to progress messages
-    this.signalRService.addHandler('ReceiveProgress', (progress: string) => {
-      this.progress = `${progress}`;
+    this.signalRService.addHandler('ReceiveTotalFragment', (info: downloadInfo) => {
+      this.TotalFragments = `${info.frag}`;
+    });
+    this.signalRService.addHandler('ReceiveOutput', (info: downloadInfo) => {
+      this.output = [...this.output, `${info.output}`];
+    });
+    this.signalRService.addHandler('ReceiveLastDownloadInfo', (info: downloadInfo) => {
+      this.progress = info.progress;
+      this.ReceiveSpeed = info.speed;
+      this.ReceiveETA = info.eta;
+      this.ReceiveTotalSize = info.size;
+      this.ReceiveState = info.state;
     });
 
+    this.signalRService.addHandler('ReceiveDownloadInfo', (info: downloadInfo) => {
+      this.progress = info.progress;
+      this.ReceiveSpeed = info.speed;
+      this.ReceiveETA = info.eta;
+      this.ReceiveTotalSize = info.size;
+      this.TotalFragments = info.frag;
+      this.ReceiveState = info.state;
+    });
     // Subscribe to error messages
-    this.signalRService.addHandler('ReceiveError', (error: string) => {
-      this.error += `${error}` + "\n\n";
+    this.signalRService.addHandler('ReceiveError', (info: downloadInfo) => {
+      this.error += `${info.error}` + "\n\n";
     });
 
     // Subscribe to download finished
-    this.signalRService.addHandler('DownloadFinished', (message: string) => {
+    this.signalRService.addHandler('ReceiveDownloadFinished', (info: downloadInfo) => {
       this.isDownloading = false;
-      this.finish = `${message}`;
+      this.finish = `${info.finishOutput}`;
     });
-    this.signalRService.addHandler('ReceiveState', (message: string) => {
-      this.ReceiveState = `${message}`;
-      if (message == 'Success') {
-      }
-    });
-    this.signalRService.addHandler('ReceiveSpeed', (message: string) => {
-      this.ReceiveSpeed = `${message}`;
-    });
-    this.signalRService.addHandler('ReceiveETA', (message: string) => {
-      this.ReceiveETA = `${message}`;
-    });
-    this.signalRService.addHandler('ReceiveTotalSize', (message: string) => {
-      this.ReceiveTotalSize = `${message}`;
+    this.signalRService.addHandler('ReceiveState', (info: downloadInfo) => {
+      this.ReceiveState = `${info.state}`;
     });
 
-    this.signalRService.addHandler('ReceiveTotalFragment', (message: string) => {
-      this.TotalFragments = `${message}`;
-    });
-    this.signalRService.addHandler('ReceiveFileName', (message: string) => {
-      this.ReceiveFileName = `${message}`;
-    });
-    this.signalRService.addHandler('ReceiveOutput', (message: string) => {
-      this.output = [...this.output, `${message}`];
+    this.signalRService.addHandler('ReceiveFileName', (info: downloadInfo) => {
+      this.ReceiveFileName = `${info.fileName}`;
     });
 
+    this.signalRService.addHandler('ReceiveChapterFileName', (info: downloadInfo) => {
+      this.chapter = [...this.chapter, `${info.chapter}`];
+    });
   }
   ngOnDestroy(): void {
     // Stop SignalR connection
