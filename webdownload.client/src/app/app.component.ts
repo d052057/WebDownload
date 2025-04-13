@@ -1,12 +1,12 @@
 import { Component, inject, OnInit } from '@angular/core';
-import { SignalrService } from './signalr.service';
+import { SignalrService } from './services/signalr.service';
 import { FormsModule } from '@angular/forms'
 import { AsyncPipe, NgIf } from '@angular/common';
-import { downloadInfo } from './webdownload.model';
+import { downloadInfo } from './models/webdownload.model';
 import { BehaviorSubject } from 'rxjs';
-import { LinebreakPipe } from './linebreak.pipe';
+import { LinebreakPipe } from './pipes/linebreak.pipe';
 import { signal, effect } from '@angular/core';
-import { fadeInOut } from './animations';
+import { fadeInOut } from './services/animations';
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
@@ -24,12 +24,12 @@ export class AppComponent {
 
   url: string = '';
   isDownloading: boolean = false;
-  options: string = '-- progress "%(title)s [%(id)s].%(ext)s"\n--no-warnings\n-P movies\\9\n--sub-langs "en"\n--write-subs\n--write-auto-subs "en.*,km"';
+  options: string = '-- progress -o "%(title)s [%(id)s].%(ext)s" "--restrict-filenames"\n--no-warnings\n-P movies\\9\n--sub-langs "en"\n--write-subs\n--write-auto-subs "en.*,km"';
   chkAudio: boolean = false;
   checkAudioChapter: boolean = true;
   selectedAudioFormat: string = 'flac';
   selectedLangFormat: string = 'en.*,km';
-
+  selectedMenuValue: string = "MOVIES";
   chkVideo: boolean = true;
   chKSubTitleInclude: boolean = true;
   chapter = signal<string[]>([]);
@@ -45,7 +45,7 @@ export class AppComponent {
   finish: string = '';
   ReceiveFileName: string = '';
   ReceiveState: string = '';
-  outputFolder: string = "movies\\9";
+  outputFolder: string = "9";
   connectionId!: string;
   ngOnInit(): void {
     // Initialize SignalR connection
@@ -143,7 +143,7 @@ export class AppComponent {
       videoOnly: this.chkVideo,
       subTitle: this.chKSubTitleInclude,
       subTitleLang: this.selectedLangFormat,
-      outputFolder: this.outputFolder  // Send the user-provided output folder.
+      outputFolder: `${this.selectedMenuValue}\\${this.outputFolder}`  // Send the user-provided output folder.
     };
     this.isDownloading = true;
     this.signalRService.invokeMethod('HubStartDownloadServiceAsync', payload);

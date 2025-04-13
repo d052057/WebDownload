@@ -1,7 +1,7 @@
 
 <h1>Web Video Downloader (yt-dlp.exe)</h1>
 
-<div class="jumbotron"  [@fadeInOut]>
+<div class="jumbotron" [@fadeInOut]>
   <div class="form-group">
     <label for="url">Video URL:</label>
     <input type="text"
@@ -18,7 +18,7 @@
             class="form-control viewOnly"
             rows="6">{{ options }}</textarea>
 
-  <div class="form-check form-check-inline"  [@fadeInOut]>
+  <div class="form-check form-check-inline" [@fadeInOut]>
     <label class="checkbox-container">
       <input type="checkbox" class="form-check-input"
              [(ngModel)]="chkAudio"
@@ -28,7 +28,7 @@
     </label>
 
 
-    <div *ngIf="chkAudio"  [@fadeInOut]>
+    <div *ngIf="chkAudio" [@fadeInOut]>
       <label style="margin-left: 2rem; margin-right: 1rem">Choose Audio Format:</label>
 
       <div class="form-check form-check-inline">
@@ -75,7 +75,7 @@
     </div>
   </div>
 
-  <div class="form-check"  [@fadeInOut]>
+  <div class="form-check" [@fadeInOut]>
     <label class="checkbox-container">
       <input type="checkbox" class="form-check-input"
              [(ngModel)]="chkVideo"
@@ -84,7 +84,7 @@
       <span class="form-check-label">Video checkbox</span>
     </label>
 
-    <div *ngIf="chkVideo"  [@fadeInOut]>
+    <div *ngIf="chkVideo" [@fadeInOut]>
 
       <label class="checkbox-container" style="margin-left: 2rem; margin-right: 1rem">
         <input type="checkbox" class="form-check-input"
@@ -167,6 +167,13 @@
         <span class="input-group-text">Output To Server medias</span>
         <span class="input-group-text"> <i class="bi bi-folder-fill"></i> </span>
         <span class="input-group-text"> medias\</span>
+        <div class="input-group-prepend">
+          <select class="form-select" [(ngModel)]="selectedMenuValue">
+            <option value="MOVIES" selected>Movies\</option>
+            <option value="VIDEOS">Videos\</option>
+            <option value="MUSICS">Musics\</option>
+          </select>
+        </div>
         <input type="text" class="form-control" [(ngModel)]="outputFolder" aria-label="output" aria-describedby="output" required>
       </div>
       <small id="telephoneHelp" class="form-text text-muted">Directory in Medias such as videos\test..., movies\test..., musics\test...</small>

@@ -19,7 +19,7 @@ namespace WebDownload.Server.Services
         public async Task StartDownloadTitleAsync(DownloadTitleRequest request, Func<DownloadInfo, Task> callback)
         {
             sb.Clear();
-            sb.AppendFormat(" {0} -o \"{1}\"", "--progress", OutputFileTemplate);
+            sb.AppendFormat(" {0} -o \"{1}\" {2}", "--progress", OutputFileTemplate, "--restrict-filenames");
             sb.AppendFormat(" {0} {1} {2}", "--no-warnings", "--print filename", "--skip-download");
             sb.AppendFormat(" {0}", request.Url);
             try
