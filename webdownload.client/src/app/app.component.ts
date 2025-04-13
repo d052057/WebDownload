@@ -99,6 +99,7 @@ export class AppComponent {
   }
   ngOnDestroy(): void {
     // Stop SignalR connection
+    this.outputSubject.complete();
     this.signalRService
     this.registeredEvents.forEach(eventName => this.signalRService.hubConnection.off(eventName));
 
