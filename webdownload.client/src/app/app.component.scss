@@ -21,3 +21,8 @@
   -webkit-box-shadow: none;
   box-shadow: none;
 }
+article {
+  max-height: 300px; /* or whatever height you want */
+  overflow-y: auto;
+  white-space: pre-wrap; /* Helps with formatting and spacing */
+}

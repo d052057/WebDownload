@@ -5,11 +5,16 @@
     {
         public required string Url { get; set; }
         public bool AudioOnly { get; set; }
+        public string AudioFormat { get; set; } = string.Empty;
+        public bool AudioChapter { get; set; }
+        public bool VideoOnly { get; set; }
         public bool SubTitle { get; set; }
+        public string SubTitleLang { get; set; } = string.Empty;  
         public string Options { get; set; } = string.Empty;
         public required string DownloadId { get; set; }
         public required string OutputFolder { get; set; }
     }
+   
     public class DownloadTitleRequest
     {
         public required string Url { get; set; }

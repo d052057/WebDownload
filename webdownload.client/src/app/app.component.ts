@@ -1,25 +1,39 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { SignalrService } from './signalr.service';
 import { FormsModule } from '@angular/forms'
-import { AsyncPipe, NgFor, NgIf } from '@angular/common';
-import { downloadInfo } from './webdownload.model'
+import { AsyncPipe, NgIf } from '@angular/common';
+import { downloadInfo } from './webdownload.model';
+import { BehaviorSubject } from 'rxjs';
+import { LinebreakPipe } from './linebreak.pipe';
+import { signal, effect } from '@angular/core';
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
-  imports: [FormsModule, NgFor, AsyncPipe],
+  imports: [FormsModule, NgIf, LinebreakPipe, AsyncPipe],
   styleUrl: './app.component.scss'
 })
 export class AppComponent {
   title = 'webdownload.client';
   signalRService = inject(SignalrService);
   registeredEvents: string[] = this.signalRService.registeredEvents;
+
+  private outputSubject = new BehaviorSubject<string[]>([]);
+  output$ = this.outputSubject.asObservable();
+
+
+
   url: string = '';
   isDownloading: boolean = false;
   options: string = '-- progress "%(title)s [%(id)s].%(ext)s"\n--no-warnings\n-P movies\\9\n--sub-langs "en"\n--write-subs\n--write-auto-subs "en.*,km"';
-  audioOnly: boolean = false;
-  subTitle: boolean = true;
-  output: string[] = [];
-  chapter: string[] = [];
+  chkAudio: boolean = false;
+  checkAudioChapter: boolean = true;
+  selectedAudioFormat: string = 'flac';
+  selectedLangFormat: string = 'en.*,km';
+
+  chkVideo: boolean = true;
+  chKSubTitleInclude: boolean = true;
+  chapter = signal<string[]>([]);
+
   progress: string = '';
   error: string = '';
   ReceiveSpeed: string = '';
@@ -41,7 +55,13 @@ export class AppComponent {
       this.TotalFragments = `${info.frag}`;
     });
     this.signalRService.addHandler('ReceiveOutput', (info: downloadInfo) => {
-      this.output = [...this.output, `${info.output}`];
+      //this.output = [...this.output, `${info.output}`];
+
+      const currentOutput = this.outputSubject.value;
+      const updatedOutput = [...currentOutput, `${info.output}`];
+      this.outputSubject.next(updatedOutput);
+
+
     });
     this.signalRService.addHandler('ReceiveLastDownloadInfo', (info: downloadInfo) => {
       this.progress = info.progress;
@@ -78,7 +98,7 @@ export class AppComponent {
     });
 
     this.signalRService.addHandler('ReceiveChapterFileName', (info: downloadInfo) => {
-      this.chapter = [...this.chapter, `${info.chapter}`];
+      this.chapter.update(current => [...current, `${info.chapter}`]);
     });
   }
   ngOnDestroy(): void {
@@ -91,6 +111,16 @@ export class AppComponent {
     });
 
   }
+
+  onCheckboxChange(changedCheckbox: string) {
+    if (changedCheckbox === 'chkAudio') {
+      this.chkVideo = !this.chkAudio;
+     
+    } else if (changedCheckbox === 'chkVideo') {
+      this.chkAudio = !this.chkVideo;
+    }
+  }
+
   getTitle(): void {
     if (!this.connectionId) {
       this.connectionId = this.signalRService.getConnectionId();
@@ -111,10 +141,16 @@ export class AppComponent {
       downloadId: this.connectionId,
       url: this.url,
       options: this.options,
-      audioOnly: this.audioOnly,
-      subTitle: this.subTitle,
+      audioOnly: this.chkAudio,
+      audioFormat: this.selectedAudioFormat,
+      audioChapter: this.checkAudioChapter,
+      videoOnly: this.chkVideo,
+      subTitle: this.chKSubTitleInclude,
+      subTitleLang: this.selectedLangFormat,
       outputFolder: this.outputFolder  // Send the user-provided output folder.
     };
+    //alert(JSON.stringify(payload));
+    //return
     this.isDownloading = true;
     this.signalRService.invokeMethod('HubStartDownloadServiceAsync', payload);
   }

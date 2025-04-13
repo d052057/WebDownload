@@ -81,7 +81,15 @@ namespace WebDownload.Server.Services
             if (request.AudioOnly)
             {
                 sb.AppendFormat(" -f {0} ", "bestaudio");
-                sb.AppendFormat(" -x {0} {1}", "--audio-format flac", "--split-chapters");
+                if (request.AudioFormat.Length > 0)
+                {
+                    sb.AppendFormat(" -x {0} {1}", "--audio-format", request.AudioFormat);
+                }
+                if (request.AudioChapter)
+                {
+                    sb.AppendFormat(" {0} ", "--split-chapters");
+                }
+               
             }
             else
             {
@@ -89,7 +97,7 @@ namespace WebDownload.Server.Services
                 if (request.SubTitle)
                 {
                     //sb.Append(" --sub-langs \"en,km\" --write-subs --write-auto-subs");
-                    sb.AppendFormat(" --sub-langs \"{0}\" --write-subs --write-auto-subs", "en.*,km");
+                    sb.AppendFormat(" --sub-langs \"{0}\" --write-subs --write-auto-subs", request.SubTitleLang);
                 }
             }
             ;
