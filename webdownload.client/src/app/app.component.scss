@@ -26,3 +26,7 @@ article {
   overflow-y: auto;
   white-space: pre-wrap; /* Helps with formatting and spacing */
 }
+label {
+    color: var(--bs-primary);
+}
+

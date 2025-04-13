@@ -6,10 +6,12 @@ import { downloadInfo } from './webdownload.model';
 import { BehaviorSubject } from 'rxjs';
 import { LinebreakPipe } from './linebreak.pipe';
 import { signal, effect } from '@angular/core';
+import { fadeInOut } from './animations';
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
   imports: [FormsModule, NgIf, LinebreakPipe, AsyncPipe],
+  animations: [fadeInOut],
   styleUrl: './app.component.scss'
 })
 export class AppComponent {
@@ -19,8 +21,6 @@ export class AppComponent {
 
   private outputSubject = new BehaviorSubject<string[]>([]);
   output$ = this.outputSubject.asObservable();
-
-
 
   url: string = '';
   isDownloading: boolean = false;
@@ -55,13 +55,9 @@ export class AppComponent {
       this.TotalFragments = `${info.frag}`;
     });
     this.signalRService.addHandler('ReceiveOutput', (info: downloadInfo) => {
-      //this.output = [...this.output, `${info.output}`];
-
       const currentOutput = this.outputSubject.value;
       const updatedOutput = [...currentOutput, `${info.output}`];
       this.outputSubject.next(updatedOutput);
-
-
     });
     this.signalRService.addHandler('ReceiveLastDownloadInfo', (info: downloadInfo) => {
       this.progress = info.progress;
@@ -149,8 +145,6 @@ export class AppComponent {
       subTitleLang: this.selectedLangFormat,
       outputFolder: this.outputFolder  // Send the user-provided output folder.
     };
-    //alert(JSON.stringify(payload));
-    //return
     this.isDownloading = true;
     this.signalRService.invokeMethod('HubStartDownloadServiceAsync', payload);
   }
