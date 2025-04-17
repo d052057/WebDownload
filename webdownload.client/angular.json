@@ -24,6 +24,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:application",
           "options": {
+            "baseHref": "/webdownload/",
             "outputPath": "dist/webdownload.client",
             "index": "src/index.html",
             "browser": "src/main.ts",

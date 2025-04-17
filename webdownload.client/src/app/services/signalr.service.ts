@@ -28,12 +28,13 @@ export class SignalrService {
   }
   startConnection(): void {
     let intervalId: any;
-      const hubUrl = `${window.location.origin}/downloadHub`;
-/*    const hubUrl = this.url + "/downloadHub";*/
+      const hubUrl = `${window.location.origin}/webdownload/downloadHub`;
+    //const hubUrl = this.url + "/webdownload/downloadHub";
     console.log(`Connecting to SignalR hub at: ${hubUrl}`);
     // Initialize the SignalR connection
     this.hubConnection = new signalR.HubConnectionBuilder()
-      .withUrl(hubUrl, { withCredentials: true }) // Update URL if needed
+      .withUrl(hubUrl, { transport: signalR.HttpTransportType.WebSockets, withCredentials: false }) // Update URL if needed
+   
       .configureLogging(signalR.LogLevel.Information)
       .withAutomaticReconnect()
       .build();
