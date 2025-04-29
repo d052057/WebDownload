@@ -17,7 +17,6 @@ import { fadeInOut } from './services/animations';
 export class AppComponent {
   title = 'webdownload.client';
   signalRService = inject(SignalrService);
-  registeredEvents: string[] = this.signalRService.registeredEvents;
 
   private outputSubject = new BehaviorSubject<string[]>([]);
   output$ = this.outputSubject.asObservable();
@@ -100,13 +99,10 @@ export class AppComponent {
   ngOnDestroy(): void {
     // Stop SignalR connection
     this.outputSubject.complete();
-    this.signalRService
-    this.registeredEvents.forEach(eventName => this.signalRService.hubConnection.off(eventName));
-
+    this.signalRService.unregisterHandlers();
     this.signalRService.hubConnection.stop().then(() => {
       console.log('HubConnection stopped and listeners cleaned up.');
     });
-
   }
 
   onCheckboxChange(changedCheckbox: string) {

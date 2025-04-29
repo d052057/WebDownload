@@ -8,18 +8,19 @@ import { environment } from '../../environments/environment';
 export class SignalrService {
   public hubConnection!: signalR.HubConnection;
   private connectionId: string = '';
+  private handlers = new Map<string, EventListenerOrEventListenerObject>();
   url!: string;
-  registeredEvents: string[] = [
-    'ReceiveFileName',
-    'ReceiveError',
-    'ReceiveDownloadInfo',
-    'ReceiveDownloadFinished',
-    'ReceiveState',
-    'ReceiveOutput',
-    'ReceiveChapterFileName',
-    'ReceiveTotalFragment',
-    'ReceiveLastDownloadInfo'
-  ];
+  //registeredEvents: string[] = [
+  //  'ReceiveFileName',
+  //  'ReceiveError',
+  //  'ReceiveDownloadInfo',
+  //  'ReceiveDownloadFinished',
+  //  'ReceiveState',
+  //  'ReceiveOutput',
+  //  'ReceiveChapterFileName',
+  //  'ReceiveTotalFragment',
+  //  'ReceiveLastDownloadInfo'
+  //];
   constructor() {
     this.url = environment.appUrl;
 }
@@ -60,11 +61,6 @@ export class SignalrService {
           , 2000); // Retry after 2 seconds
       });
 
-    // Debugging: Log connection lifecycle events
-    //this.hubConnection.onclose((error) => {
-    //  console.error('SignalR connection closed:', error);
-    //});
-
     this.hubConnection.onreconnecting((error) => {
       console.warn('SignalR reconnecting:', error);
     });
@@ -72,11 +68,6 @@ export class SignalrService {
     this.hubConnection.onreconnected(() => {
       console.log('SignalR reconnected successfully.');
     });
-
-    /*  Periodic connection state logging*/
-    //setInterval(() => {
-    //  console.log(`SignalR connection state: ${this.hubConnection.state}`);
-    //}, 1000);
   }
 
   
@@ -89,9 +80,16 @@ export class SignalrService {
       throw err;
     }
   }
-
   addHandler(eventName: string, callback: (...args: any[]) => void): void {
     this.hubConnection.on(eventName, callback);
+    this.handlers.set(eventName, callback);
     console.log(`Handler added for event: ${eventName}`);
+  }
+  unregisterHandlers(): void {
+    this.handlers.forEach((callback, eventName) => {
+      this.hubConnection.off(eventName);
+      console.log(`Handler removed for event: ${eventName}`);
+    });
+    this.handlers.clear();
   }
 }
