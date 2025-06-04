@@ -231,7 +231,7 @@
       <article [innerHTML]="chapter().join('<br />')" class="text-start"></article>
     </section>
     <label for="output">Output Text Processing:</label>
-    <section>
+    <section #sectionOutput>
       <article [innerHTML]="output$ | async | linebreak"></article>
     </section>
   </div>
