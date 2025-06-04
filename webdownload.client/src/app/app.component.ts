@@ -1,16 +1,16 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { SignalrService } from './services/signalr.service';
 import { FormsModule } from '@angular/forms'
-import { AsyncPipe, NgIf } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 import { downloadInfo } from './models/webdownload.model';
 import { BehaviorSubject } from 'rxjs';
 import { LinebreakPipe } from './pipes/linebreak.pipe';
-import { signal, effect } from '@angular/core';
+import { signal } from '@angular/core';
 import { fadeInOut } from './services/animations';
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
-  imports: [FormsModule, NgIf, LinebreakPipe, AsyncPipe],
+  imports: [FormsModule, LinebreakPipe, AsyncPipe],
   animations: [fadeInOut],
   styleUrl: './app.component.scss'
 })
