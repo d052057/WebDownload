@@ -5,238 +5,238 @@
   <div class="form-group">
     <label for="url">Video URL:</label>
     <input type="text"
-      id="url"
-      class="form-control"
-      [(ngModel)]="url"
-      placeholder="Enter YouTube URL"
-      (change)="getTitle()"
-      [disabled]="isDownloading">
+           id="url"
+           class="form-control"
+           [(ngModel)]="url"
+           placeholder="Enter YouTube URL"
+           (change)="getTitle()"
+           [disabled]="isDownloading">
+  </div>
+
+  <label for="options">Custom Options (one per line):</label>
+  <textarea id="options"
+            class="form-control viewOnly"
+            rows="6">{{ options }}</textarea>
+
+  <div class="form-check form-check-inline" [@fadeInOut]>
+    <label class="checkbox-container">
+      <input type="checkbox" class="form-check-input"
+             [(ngModel)]="chkAudio"
+             (change)="onCheckboxChange('chkAudio')"
+             [disabled]="isDownloading">
+      <span class="form-check-label">Audio Only</span>
+    </label>
+
+
+    @if (chkAudio) {
+    <div [@fadeInOut]>
+      <label style="margin-left: 2rem; margin-right: 1rem">Choose Audio Format:</label>
+      <div class="form-check form-check-inline">
+        <input mdbRadio
+               class="form-check-input"
+               type="radio"
+               name="rdoFlac"
+               id="flacRadioId"
+               (change)="selectedAudioFormat = 'flac'"
+               [(ngModel)]="selectedAudioFormat"
+               value="flac" />
+        <label class="form-check-label" for="flacRadioId">Flac</label>
+      </div>
+      <div class="form-check form-check-inline">
+        <input mdbRadio
+               class="form-check-input"
+               type="radio"
+               name="rdoWav"
+               id="wavRadioId"
+               (change)="selectedAudioFormat = 'wav'"
+               [(ngModel)]="selectedAudioFormat"
+               value="wav" />
+        <label class="form-check-label" for="wavRadioId">Wav</label>
+      </div>
+      <div class="form-check form-check-inline">
+        <input mdbRadio
+               class="form-check-input"
+               type="radio"
+               name="rdoMp3"
+               id="mp3RadioId"
+               (change)="selectedAudioFormat = 'mp3'"
+               [(ngModel)]="selectedAudioFormat"
+               value="mp3" />
+        <label class="form-check-label" for="mp3RadioId">MP3</label>
+      </div>
+      <div class="form-check" style="margin-left: 2rem">
+        <label class="checkbox-container">
+          <input type="checkbox" class="form-check-input"
+                 [(ngModel)]="checkAudioChapter" />
+          <span class="form-check-label">Separate Chapter, if any</span>
+        </label>
+      </div>
+    </div>
+    }
+  </div>
+
+  <div class="form-check" [@fadeInOut]>
+    <label class="checkbox-container">
+      <input type="checkbox" class="form-check-input"
+             [(ngModel)]="chkVideo"
+             (change)="onCheckboxChange('chkVideo')"
+             [disabled]="isDownloading">
+      <span class="form-check-label">Video checkbox</span>
+    </label>
+
+    @if (chkVideo) {
+    <div [@fadeInOut]>
+      <label class="checkbox-container" style="margin-left: 2rem; margin-right: 1rem">
+        <input type="checkbox" class="form-check-input"
+               [(ngModel)]="chKSubTitleInclude"
+               [disabled]="isDownloading">
+        <span class="form-check-label">Sub Titles or ClosedCaption</span>
+      </label>
+      @if (chKSubTitleInclude) {
+      <div style="margin-left: 4rem;">
+        <div class="form-check">
+          <input mdbRadio
+                 class="form-check-input"
+                 type="radio"
+                 name="rdoEnKm"
+                 id="langEnKmId"
+                 (change)="selectedLangFormat = 'en.*,km'"
+                 [(ngModel)]="selectedLangFormat"
+                 value="en.*,km" />
+          <label class="form-check-label" for="langEnKmId">Khmer translated from English</label>
+        </div>
+        <div class="form-check">
+          <input mdbRadio
+                 class="form-check-input"
+                 type="radio"
+                 name="rdoThaiKm"
+                 id="langThaiKmId"
+                 (change)="selectedLangFormat = 'th,km'"
+                 [(ngModel)]="selectedLangFormat"
+                 value="th,km" />
+          <label class="form-check-label" for="langThaiKmId">Khmer translated from Thai</label>
+        </div>
+        <div class="form-check">
+          <input mdbRadio
+                 class="form-check-input"
+                 type="radio"
+                 name="rdoChinaKm"
+                 id="langChinaKmId"
+                 (change)="selectedLangFormat = 'zh-Hans,km'"
+                 [(ngModel)]="selectedLangFormat"
+                 value="zh-Hans,km" />
+          <label class="form-check-label" for="langChinaKmId">Khmer translated from Chinese</label>
+        </div>
+        <div class="form-check">
+          <input mdbRadio
+                 class="form-check-input"
+                 type="radio"
+                 name="rdoVietKm"
+                 id="langVietKmId"
+                 (change)="selectedLangFormat = 'vi,km'"
+                 [(ngModel)]="selectedLangFormat"
+                 value="vi,km" />
+          <label class="form-check-label" for="langVietKmId">Khmer translated from Vietnamese</label>
+        </div>
+        <div class="form-check">
+          <input mdbRadio
+                 class="form-check-input"
+                 type="radio"
+                 name="rdoLaoKm"
+                 id="langLaoKmId"
+                 (change)="selectedLangFormat = 'lo,km'"
+                 [(ngModel)]="selectedLangFormat"
+                 value="lo,km" />
+          <label class="form-check-label" for="langLaoKmId">Khmer translated from Lao</label>
+        </div>
+        <div class="form-check">
+          <input mdbRadio
+                 class="form-check-input"
+                 type="radio"
+                 name="rdoEn"
+                 id="langEn"
+                 (change)="selectedLangFormat = 'en.*'"
+                 [(ngModel)]="selectedLangFormat"
+                 value="end.*" />
+          <label class="form-check-label" for="langEn">English</label>
+        </div>
+      </div>
+      }
+    </div>
+    }
+
+    <div class="mt-3 mb-3">
+      <div class="input-group mb-0">
+        <span class="input-group-text">Output To Server medias</span>
+        <span class="input-group-text"> <i class="bi bi-folder-fill"></i> </span>
+        <span class="input-group-text"> medias\</span>
+        <div class="input-group-prepend">
+          <select class="form-select" [(ngModel)]="selectedMenuValue">
+            <option value="MOVIES" selected>Movies\</option>
+            <option value="VIDEOS">Videos\</option>
+            <option value="MUSICS">Musics\</option>
+          </select>
+        </div>
+        <input type="text" class="form-control" [(ngModel)]="outputFolder" aria-label="output" aria-describedby="output" required>
+      </div>
+      <small id="telephoneHelp" class="form-text text-muted">Directory in Medias such as videos\test..., movies\test..., musics\test...</small>
+    </div>
+    <div class="button-group mb-3">
+      <button class="btn btn-primary"
+              (click)="startDownload()"
+              [disabled]="!url || isDownloading">
+        Download
+      </button>
     </div>
 
-    <label for="options">Custom Options (one per line):</label>
-    <textarea id="options"
-      class="form-control viewOnly"
-    rows="6">{{ options }}</textarea>
+    <table class="table table-striped" width="80%">
+      <caption class="m-3" style="caption-side: top">
+        <label>Download Progress:</label>
+        <div class="progress">
+          <div class="progress-bar progress-bar-orange" role="progressbar" [style.width]="progress + '%'" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+      </caption>
+      <thead>
+        <tr>
+          <th width="5%">Size</th>
+          <th width="5%">Speed</th>
+          <th width="5%">ETA</th>
+          <th width="75%">File</th>
+          <th width="10%">#-Frags</th>
 
-    <div class="form-check form-check-inline" [@fadeInOut]>
-      <label class="checkbox-container">
-        <input type="checkbox" class="form-check-input"
-          [(ngModel)]="chkAudio"
-          (change)="onCheckboxChange('chkAudio')"
-          [disabled]="isDownloading">
-          <span class="form-check-label">Audio Only</span>
-        </label>
-
-
-        @if (chkAudio) {
-          <div [@fadeInOut]>
-            <label style="margin-left: 2rem; margin-right: 1rem">Choose Audio Format:</label>
-            <div class="form-check form-check-inline">
-              <input mdbRadio
-                class="form-check-input"
-                type="radio"
-                name="rdoFlac"
-                id="flacRadioId"
-                (change)="selectedAudioFormat = 'flac'"
-                [(ngModel)]="selectedAudioFormat"
-                value="flac" />
-                <label class="form-check-label" for="flacRadioId">Flac</label>
-              </div>
-              <div class="form-check form-check-inline">
-                <input mdbRadio
-                  class="form-check-input"
-                  type="radio"
-                  name="rdoWav"
-                  id="wavRadioId"
-                  (change)="selectedAudioFormat = 'wav'"
-                  [(ngModel)]="selectedAudioFormat"
-                  value="wav" />
-                  <label class="form-check-label" for="wavRadioId">Wav</label>
-                </div>
-                <div class="form-check form-check-inline">
-                  <input mdbRadio
-                    class="form-check-input"
-                    type="radio"
-                    name="rdoMp3"
-                    id="mp3RadioId"
-                    (change)="selectedAudioFormat = 'mp3'"
-                    [(ngModel)]="selectedAudioFormat"
-                    value="mp3" />
-                    <label class="form-check-label" for="mp3RadioId">MP3</label>
-                  </div>
-                  <div class="form-check" style="margin-left: 2rem">
-                    <label class="checkbox-container">
-                      <input type="checkbox" class="form-check-input"
-                        [(ngModel)]="checkAudioChapter" />
-                        <span class="form-check-label">Separate Chapter, if any</span>
-                      </label>
-                    </div>
-                  </div>
-                }
-              </div>
-
-              <div class="form-check" [@fadeInOut]>
-                <label class="checkbox-container">
-                  <input type="checkbox" class="form-check-input"
-                    [(ngModel)]="chkVideo"
-                    (change)="onCheckboxChange('chkVideo')"
-                    [disabled]="isDownloading">
-                    <span class="form-check-label">Video checkbox</span>
-                  </label>
-
-                  @if (chkVideo) {
-                    <div [@fadeInOut]>
-                      <label class="checkbox-container" style="margin-left: 2rem; margin-right: 1rem">
-                        <input type="checkbox" class="form-check-input"
-                          [(ngModel)]="chKSubTitleInclude"
-                          [disabled]="isDownloading">
-                          <span class="form-check-label">Sub Titles or ClosedCaption</span>
-                        </label>
-                        @if (chKSubTitleInclude) {
-                          <div style="margin-left: 4rem;">
-                            <div class="form-check">
-                              <input mdbRadio
-                                class="form-check-input"
-                                type="radio"
-                                name="rdoEnKm"
-                                id="langEnKmId"
-                                (change)="selectedLangFormat = 'en.*,km'"
-                                [(ngModel)]="selectedLangFormat"
-                                value="en.*,km" />
-                                <label class="form-check-label" for="langEnKmId">Khmer translated from English</label>
-                              </div>
-                              <div class="form-check">
-                                <input mdbRadio
-                                  class="form-check-input"
-                                  type="radio"
-                                  name="rdoThaiKm"
-                                  id="langThaiKmId"
-                                  (change)="selectedLangFormat = 'th,km'"
-                                  [(ngModel)]="selectedLangFormat"
-                                  value="th,km" />
-                                  <label class="form-check-label" for="langThaiKmId">Khmer translated from Thai</label>
-                                </div>
-                                <div class="form-check">
-                                  <input mdbRadio
-                                    class="form-check-input"
-                                    type="radio"
-                                    name="rdoChinaKm"
-                                    id="langChinaKmId"
-                                    (change)="selectedLangFormat = 'zh-Hans,km'"
-                                    [(ngModel)]="selectedLangFormat"
-                                    value="zh-Hans,km" />
-                                    <label class="form-check-label" for="langChinaKmId">Khmer translated from Chinese</label>
-                                  </div>
-                                  <div class="form-check">
-                                    <input mdbRadio
-                                      class="form-check-input"
-                                      type="radio"
-                                      name="rdoVietKm"
-                                      id="langVietKmId"
-                                      (change)="selectedLangFormat = 'vi,km'"
-                                      [(ngModel)]="selectedLangFormat"
-                                      value="vi,km" />
-                                      <label class="form-check-label" for="langVietKmId">Khmer translated from Vietnamese</label>
-                                    </div>
-                                    <div class="form-check">
-                                      <input mdbRadio
-                                        class="form-check-input"
-                                        type="radio"
-                                        name="rdoLaoKm"
-                                        id="langLaoKmId"
-                                        (change)="selectedLangFormat = 'lo,km'"
-                                        [(ngModel)]="selectedLangFormat"
-                                        value="lo,km" />
-                                        <label class="form-check-label" for="langLaoKmId">Khmer translated from Lao</label>
-                                      </div>
-                                      <div class="form-check">
-                                        <input mdbRadio
-                                          class="form-check-input"
-                                          type="radio"
-                                          name="rdoEn"
-                                          id="langEn"
-                                          (change)="selectedLangFormat = 'en.*'"
-                                          [(ngModel)]="selectedLangFormat"
-                                          value="end.*" />
-                                          <label class="form-check-label" for="langEn">English</label>
-                                        </div>
-                                      </div>
-                                    }
-                                  </div>
-                                }
-
-                                <div class="mt-3 mb-3">
-                                  <div class="input-group mb-0">
-                                    <span class="input-group-text">Output To Server medias</span>
-                                    <span class="input-group-text"> <i class="bi bi-folder-fill"></i> </span>
-                                    <span class="input-group-text"> medias\</span>
-                                    <div class="input-group-prepend">
-                                      <select class="form-select" [(ngModel)]="selectedMenuValue">
-                                        <option value="MOVIES" selected>Movies\</option>
-                                        <option value="VIDEOS">Videos\</option>
-                                        <option value="MUSICS">Musics\</option>
-                                      </select>
-                                    </div>
-                                    <input type="text" class="form-control" [(ngModel)]="outputFolder" aria-label="output" aria-describedby="output" required>
-                                  </div>
-                                  <small id="telephoneHelp" class="form-text text-muted">Directory in Medias such as videos\test..., movies\test..., musics\test...</small>
-                                </div>
-                                <div class="button-group mb-3">
-                                  <button class="btn btn-primary"
-                                    (click)="startDownload()"
-                                    [disabled]="!url || isDownloading">
-                                    Download
-                                  </button>
-                                </div>
-
-                                <table class="table table-striped" width="80%">
-                                  <caption class="m-3" style="caption-side: top">
-                                    <label>Download Progress:</label>
-                                    <div class="progress">
-                                      <div class="progress-bar progress-bar-orange" role="progressbar" [style.width]="progress + '%'" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-                                    </div>
-                                  </caption>
-                                  <thead>
-                                    <tr>
-                                      <th width="5%">Size</th>
-                                      <th width="5%">Speed</th>
-                                      <th width="5%">ETA</th>
-                                      <th width="75%">File</th>
-                                      <th width="10%">#-Frags</th>
-
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    <tr>
-                                      <td>{{ ReceiveTotalSize || "-" }}  </td>
-                                      <td>{{ ReceiveSpeed || "-"}}</td>
-                                      <td>{{ ReceiveETA || "-"}}</td>
-                                      <td>{{ ReceiveFileName || "-"}}</td>
-                                      <td>{{ TotalFragments || "-"}}</td>
-                                    </tr>
-                                  </tbody>
-                                  <tfoot>
-                                    <tr>
-                                      <td>Status</td>
-                                      <td colspan="4" style="color: orange">{{ ReceiveState || "-"}}</td>
-                                    </tr>
-                                    <tr>
-                                      <td>Error</td>
-                                      <td colspan="4" style="color: orange">{{ error || "-"}}</td>
-                                    </tr>
-                                    <tr>
-                                      <td>Output</td>
-                                      <td colspan="4" style="color: orange">{{ finish || "-"}}</td>
-                                    </tr>
-                                  </tfoot>
-                                </table>
-                                <section width="50%" class="text-end">
-                                <article [innerHTML]="chapter().join('<br />')" class="text-start"></article>
-                              </section>
-                              <label for="output">Output Text Processing:</label>
-                              <section #sectionOutput>
-                                <article [innerHTML]="output$ | async | linebreak"></article>
-                              </section>
-                            </div>
-                          </div>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>{{ ReceiveTotalSize || "-" }}  </td>
+          <td>{{ ReceiveSpeed || "-"}}</td>
+          <td>{{ ReceiveETA || "-"}}</td>
+          <td>{{ ReceiveFileName || "-"}}</td>
+          <td>{{ TotalFragments || "-"}}</td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td>Status</td>
+          <td colspan="4" style="color: orange">{{ ReceiveState || "-"}}</td>
+        </tr>
+        <tr>
+          <td>Error</td>
+          <td colspan="4" style="color: orange">{{ error || "-"}}</td>
+        </tr>
+        <tr>
+          <td>Output</td>
+          <td colspan="4" style="color: orange">{{ finish || "-"}}</td>
+        </tr>
+      </tfoot>
+    </table>
+    <section width="50%" class="text-end">
+      <article [innerHTML]="chapter().join('<br />')" class="text-start"></article>
+    </section>
+    <label for="output">Output Text Processing:</label>
+    <section #sectionOutput>
+      <article [innerHTML]="output$ | async | linebreak"></article>
+    </section>
+  </div>
+</div>
 
