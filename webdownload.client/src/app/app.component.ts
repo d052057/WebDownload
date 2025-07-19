@@ -55,7 +55,8 @@ export class AppComponent {
     });
     this.signalRService.addHandler('ReceiveOutput', (info: downloadInfo) => {
       const currentOutput = this.outputSubject.value;
-      const updatedOutput = [...currentOutput, `${info.output}`];
+     /* const updatedOutput = [...currentOutput, `${info.output}`];*/
+      const updatedOutput = [`${info.output}`, ...currentOutput];
       this.outputSubject.next(updatedOutput);
     });
     this.signalRService.addHandler('ReceiveLastDownloadInfo', (info: downloadInfo) => {
