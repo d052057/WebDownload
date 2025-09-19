@@ -93,7 +93,7 @@ namespace WebDownload.Server.Services
             }
             else
             {
-                // inlude subtitles
+                // include subtitles
                 if (request.SubTitle)
                 {
                     //sb.Append(" --sub-langs \"en,km\" --write-subs --write-auto-subs");

@@ -1,8 +1,6 @@
-//using Microsoft.Extensions.DependencyInjection;
 using WebDownload.Server.Services;
 using WebDownload.Server;
 using Microsoft.Extensions.FileProviders;
-//using System;
 using WebDownload.Server.Hubs;
 var builder = WebApplication.CreateBuilder(args);
 

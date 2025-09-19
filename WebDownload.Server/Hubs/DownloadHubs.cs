@@ -3,7 +3,6 @@ using System.Text.RegularExpressions;
 using Microsoft.Extensions.Options;
 using WebDownload.Server.Services;
 using WebDownload.Server.Models;
-using Microsoft.AspNetCore.Http.Features;
 namespace WebDownload.Server.Hubs
 {
     public class DownloadHub : Microsoft.AspNetCore.SignalR.Hub
