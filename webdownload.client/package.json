@@ -1,6 +1,6 @@
 {
   "name": "webdownload.client",
-  "version": "0.0.0",
+  "version": "20.3.3",
   "scripts": {
     "ng": "ng",
     "start": "run-script-os",
@@ -9,7 +9,10 @@
     "test": "ng test",
     "prestart": "node aspnetcore-https",
     "start:windows": "ng serve --ssl --ssl-cert \"%APPDATA%\\ASP.NET\\https\\%npm_package_name%.pem\" --ssl-key \"%APPDATA%\\ASP.NET\\https\\%npm_package_name%.key\" --host=127.0.0.1",
-    "start:default": "ng serve --ssl --ssl-cert \"$HOME/.aspnet/https/${npm_package_name}.pem\" --ssl-key \"$HOME/.aspnet/https/${npm_package_name}.key\" --host=127.0.0.1"
+    "start:default": "ng serve --ssl --ssl-cert \"$HOME/.aspnet/https/${npm_package_name}.pem\" --ssl-key \"$HOME/.aspnet/https/${npm_package_name}.key\" --host=127.0.0.1",
+    "release:angular": "npm version patch && git push --follow-tags",
+    "release:dotnet": "git add . && git commit -m 'chore: .NET version update' && git push",
+    "release": "npm run release:angular && npm run release:dotnet"
   },
   "private": true,
   "dependencies": {
