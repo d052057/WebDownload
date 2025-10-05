@@ -1,6 +1,6 @@
 {
   "name": "webdownload.client",
-  "version": "20.3.3",
+  "version": "20.3.4",
   "scripts": {
     "ng": "ng",
     "start": "run-script-os",
