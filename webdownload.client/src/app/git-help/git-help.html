@@ -33,8 +33,8 @@
           <strong>Install Git LFS</strong>
           <div class="code-block">
             <code>
-              <span class="comment"># Download from https://git-lfs.github.com/</span>
-              <span class="comment"># Or use package manager (Windows with Chocolatey):</span>
+              <span class="comment"># Download from https://git-lfs.github.com/</span><br />
+              <span class="comment"># Or use package manager (Windows with Chocolatey):</span><br />
               choco install git-lfs
             </code>
           </div>
@@ -45,7 +45,7 @@
           <strong>Initialize your project</strong>
           <div class="code-block">
             <code>
-              cd YourProjectFolder
+              cd YourProjectFolder<br />
               git init
             </code>
           </div>
@@ -56,9 +56,9 @@
           <strong>Setup Git LFS</strong>
           <div class="code-block">
             <code>
-              git lfs install
-              git lfs track "*.dll"  <span class="comment"># Track DLL files</span>
-              git lfs track "*.mp4"  <span class="comment"># Track video files</span>
+              git lfs install<br />
+              git lfs track "*.dll"  <span class="comment"># Track DLL files</span><br />
+              git lfs track "*.mp4"  <span class="comment"># Track video files</span><br />
               git lfs track "*.zip"  <span class="comment"># Track archives</span>
             </code>
           </div>
@@ -69,8 +69,8 @@
           <strong>Commit LFS configuration</strong>
           <div class="code-block">
             <code>
-              git add .gitattributes
-              git commit -m "Configure Git LFS"
+              git add .gitattributes<br />
+              git commit -m "Configure Git LFS"<br />
             </code>
           </div>
         </div>
@@ -80,9 +80,9 @@
           <strong>Add your files and push</strong>
           <div class="code-block">
             <code>
-              git add .
-              git commit -m "Initial commit"
-              git remote add origin https://github.com/username/repo.git
+              git add .<br />
+              git commit -m "Initial commit"<br />
+              git remote add origin https://github.com/username/repo.git<br />
               git push -u origin master
             </code>
           </div>
@@ -106,8 +106,8 @@
           <strong>Delete the .git folder (Nuclear Option - Simplest)</strong>
           <div class="code-block">
             <code>
-              cd YourProjectFolder
-              Remove-Item -Recurse -Force .git
+              cd YourProjectFolder<br />
+              Remove-Item -Recurse -Force .git<br />
             </code>
           </div>
           <p style="margin-top: 10px;">This removes all Git history. Your files stay intact, but all commit history is gone.</p>
@@ -118,11 +118,11 @@
           <strong>Start fresh with Git LFS</strong>
           <div class="code-block">
             <code>
-              git init
-              git lfs install
-              git lfs track "*.dll"
-              git add .gitattributes
-              git add .
+              git init<br />
+              git lfs install<br />
+              git lfs track "*.dll"<br />
+              git add .gitattributes<br />
+              git add .<br />
               git commit -m "Initial commit with Git LFS"
             </code>
           </div>
@@ -140,7 +140,7 @@
           <strong>Push to GitHub</strong>
           <div class="code-block">
             <code>
-              git remote add origin https://github.com/username/repo.git
+              git remote add origin https://github.com/username/repo.git<br />
               git push -u origin master
             </code>
           </div>
@@ -158,8 +158,8 @@
           <strong>Run LFS commands in PowerShell first</strong>
           <div class="code-block">
             <code>
-              git lfs install
-              git lfs track "*.dll"
+              git lfs install<br />
+              git lfs track "*.dll"<br />
             </code>
           </div>
         </div>
@@ -194,28 +194,28 @@
         <div class="code-block">
           <code>
             <span class="comment"># Design files</span>
-            git lfs track "*.psd"
-            git lfs track "*.ai"
-            git lfs track "*.sketch"
+            git lfs track "*.psd"<br />
+            git lfs track "*.ai"<br />
+            git lfs track "*.sketch"<br />
 
-            <span class="comment"># Media files</span>
-            git lfs track "*.mp4"
-            git lfs track "*.mov"
-            git lfs track "*.avi"
+            <span class="comment"># Media files</span><br />
+            git lfs track "*.mp4"<br />
+            git lfs track "*.mov"<br />
+            git lfs track "*.avi"<br />
 
-            <span class="comment"># Archives</span>
-            git lfs track "*.zip"
-            git lfs track "*.rar"
-            git lfs track "*.7z"
+            <span class="comment"># Archives</span><br />
+            git lfs track "*.zip"<br />
+            git lfs track "*.rar"<br />
+            git lfs track "*.7z"<br />
 
-            <span class="comment"># Binary files</span>
-            git lfs track "*.dll"
-            git lfs track "*.exe"
-            git lfs track "*.so"
+            <span class="comment"># Binary files</span><br />
+            git lfs track "*.dll"<br />
+            git lfs track "*.exe"<br />
+            git lfs track "*.so"<br />
 
-            <span class="comment"># Database files</span>
-            git lfs track "*.db"
-            git lfs track "*.sqlite"
+            <span class="comment"># Database files</span><br />
+            git lfs track "*.db"<br />
+            git lfs track "*.sqlite"<br />
           </code>
         </div>
       </div>
