@@ -164,10 +164,6 @@ ul > li:focus {
   }
 }
 
-/* FIXED: Card grid responsive fixes */
-.col-6, .col-sm-6, .col-md-4, .col-lg-3, .col-xl-2 {
-  min-width: 0; /* Prevent flex items from overflowing */
-}
 /* Original media query */
 @media screen and (max-width:600px) {
   .banner {
@@ -206,9 +202,9 @@ ul > li:focus {
   }
 }
 
-/* FIXED: Additional safety for very small screens */
-@media screen and (max-width: 320px) {
-  .card-img-top {
-    height: 20vw;
-  }
+.jumbotron {
+  padding: 2rem 1rem;
+  margin-bottom: 2rem;
+  background-color: #e9ecef;
+  border-radius: .3rem;
 }
