@@ -59,3 +59,4 @@
 #*.RTF   diff=astextplain
 *.dll filter=lfs diff=lfs merge=lfs -text
 WebDownload.Server/*.dll filter=lfs diff=lfs merge=lfs -text
+*.exe filter=lfs diff=lfs merge=lfs -text

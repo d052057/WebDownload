@@ -1,246 +1,301 @@
-  <div class="container mt-1 fade-in-out" style="animation-delay: 10ms;">
-    <div class="header">
-      <h1>📚 Git LFS Lessons Learned</h1>
-      <p>Handling Large Files in Git - A Complete Guide</p>
+<div class="container mt-1 fade-in-out" style="animation-delay: 10ms;">
+  <div class="header">
+    <h1>📚 Git LFS Lessons Learned</h1>
+    <p>Handling Large Files in Git - A Complete Guide</p>
+  </div>
+
+  <div>
+    <!-- Problem Section -->
+    <div class="section">
+      <h2>🚨 The Problem</h2>
+      <div class="problem-box jumbotron fade-in-out" style="animation-delay: 10ms;">
+        <h3>Error Encountered:</h3>
+        <p><strong>GH001: Large files detected. You may want to try Git Large File Storage</strong></p>
+        <p style="margin-top: 10px;">GitHub blocks files larger than 100MB. In our case, <code>avcodec-62.dll</code> was 100.45MB, which exceeded the limit.</p>
+      </div>
     </div>
 
-    <div>
-      <!-- Problem Section -->
-      <div class="section">
-        <h2>🚨 The Problem</h2>
-        <div class="problem-box jumbotron fade-in-out" style="animation-delay: 10ms;">
-          <h3>Error Encountered:</h3>
-          <p><strong>GH001: Large files detected. You may want to try Git Large File Storage</strong></p>
-          <p style="margin-top: 10px;">GitHub blocks files larger than 100MB. In our case, <code>avcodec-62.dll</code> was 100.45MB, which exceeded the limit.</p>
-        </div>
+    <!-- Solution Section -->
+    <div class="section">
+      <h2>✅ The Solution: Git LFS</h2>
+      <div class="solution-box">
+        <h3>What is Git LFS?</h3>
+        <p>Git Large File Storage (LFS) replaces large files with small pointer files in your repository, while storing the actual file contents on a remote server. This keeps your repository fast and efficient.</p>
       </div>
+    </div>
 
-      <!-- Solution Section -->
-      <div class="section">
-        <h2>✅ The Solution: Git LFS</h2>
-        <div class="solution-box">
-          <h3>What is Git LFS?</h3>
-          <p>Git Large File Storage (LFS) replaces large files with small pointer files in your repository, while storing the actual file contents on a remote server. This keeps your repository fast and efficient.</p>
-        </div>
-      </div>
+    <!-- Initial Setup -->
+    <div class="section">
+      <h2>🔧 Initial Setup (For New Projects)</h2>
 
-      <!-- Initial Setup -->
-      <div class="section">
-        <h2>🔧 Initial Setup (For New Projects)</h2>
-
-        <div class="step">
-          <span class="step-number">1</span>
-          <strong>Install Git LFS</strong>
-          <div class="code-block">
-            <code>
-              <span class="comment"># Download from https://git-lfs.github.com/</span><br />
-              <span class="comment"># Or use package manager (Windows with Chocolatey):</span><br />
-              choco install git-lfs
-            </code>
-          </div>
-        </div>
-
-        <div class="step">
-          <span class="step-number">2</span>
-          <strong>Initialize your project</strong>
-          <div class="code-block">
-            <code>
-              cd YourProjectFolder<br />
-              git init
-            </code>
-          </div>
-        </div>
-
-        <div class="step">
-          <span class="step-number">3</span>
-          <strong>Setup Git LFS</strong>
-          <div class="code-block">
-            <code>
-              git lfs install<br />
-              git lfs track "*.dll"  <span class="comment"># Track DLL files</span><br />
-              git lfs track "*.mp4"  <span class="comment"># Track video files</span><br />
-              git lfs track "*.zip"  <span class="comment"># Track archives</span>
-            </code>
-          </div>
-        </div>
-
-        <div class="step">
-          <span class="step-number">4</span>
-          <strong>Commit LFS configuration</strong>
-          <div class="code-block">
-            <code>
-              git add .gitattributes<br />
-              git commit -m "Configure Git LFS"<br />
-            </code>
-          </div>
-        </div>
-
-        <div class="step">
-          <span class="step-number">5</span>
-          <strong>Add your files and push</strong>
-          <div class="code-block">
-            <code>
-              git add .<br />
-              git commit -m "Initial commit"<br />
-              git remote add origin https://github.com/username/repo.git<br />
-              git push -u origin master
-            </code>
-          </div>
-        </div>
-
-        <div class="tip">
-          <strong>💡 Pro Tip:</strong> Always set up Git LFS BEFORE adding large files to your repository!
-        </div>
-      </div>
-
-      <!-- Recovery Section -->
-      <div class="section">
-        <h2>🔄 Recovery (If You Already Committed Large Files)</h2>
-
-        <div class="warning">
-          <strong>⚠️ Warning:</strong> If you've already committed large files without LFS, they're stuck in your Git history. You need to clean the history first.
-        </div>
-
-        <div class="step">
-          <span class="step-number">1</span>
-          <strong>Delete the .git folder (Nuclear Option - Simplest)</strong>
-          <div class="code-block">
-            <code>
-              cd YourProjectFolder<br />
-              Remove-Item -Recurse -Force .git<br />
-            </code>
-          </div>
-          <p style="margin-top: 10px;">This removes all Git history. Your files stay intact, but all commit history is gone.</p>
-        </div>
-
-        <div class="step">
-          <span class="step-number">2</span>
-          <strong>Start fresh with Git LFS</strong>
-          <div class="code-block">
-            <code>
-              git init<br />
-              git lfs install<br />
-              git lfs track "*.dll"<br />
-              git add .gitattributes<br />
-              git add .<br />
-              git commit -m "Initial commit with Git LFS"
-            </code>
-          </div>
-        </div>
-
-        <div class="step">
-          <span class="step-number">3</span>
-          <strong>Verify LFS is working</strong>
-          <div class="code-block"><code>git lfs ls-files</code></div>
-          <p style="margin-top: 10px;">You should see your large files listed here!</p>
-        </div>
-
-        <div class="step">
-          <span class="step-number">4</span>
-          <strong>Push to GitHub</strong>
-          <div class="code-block">
-            <code>
-              git remote add origin https://github.com/username/repo.git<br />
-              git push -u origin master
-            </code>
-          </div>
-        </div>
-      </div>
-
-      <!-- VS2022 Section -->
-      <div class="section">
-        <h2>🎨 Using Visual Studio 2022</h2>
-
-        <p style="margin-bottom: 20px;">Visual Studio 2022 has built-in Git support, but you still need to set up LFS via command line first:</p>
-
-        <div class="step">
-          <span class="step-number">1</span>
-          <strong>Run LFS commands in PowerShell first</strong>
-          <div class="code-block">
-            <code>
-              git lfs install<br />
-              git lfs track "*.dll"<br />
-            </code>
-          </div>
-        </div>
-
-        <div class="step">
-          <span class="step-number">2</span>
-          <strong>Use VS2022 for everything else</strong>
-          <ul>
-            <li>Open your solution in Visual Studio 2022</li>
-            <li>Go to <strong>View → Git Changes</strong> (Ctrl+0, G)</li>
-            <li>Stage files by clicking the <strong>+</strong> button</li>
-            <li>Enter commit message and click <strong>Commit All</strong></li>
-            <li>Click <strong>Push</strong> to push to GitHub</li>
-          </ul>
-        </div>
-
-        <div class="step">
-          <span class="step-number">3</span>
-          <strong>Add remote repository (if needed)</strong>
-          <ul>
-            <li>Go to <strong>Git → Manage Remotes</strong></li>
-            <li>Click <strong>Add</strong></li>
-            <li>Enter Name: <code>origin</code></li>
-            <li>Enter URL: <code>https://github.com/username/repo.git</code></li>
-          </ul>
-        </div>
-      </div>
-
-      <!-- Common File Types -->
-      <div class="section">
-        <h2>📁 Common File Types to Track with LFS</h2>
+      <div class="step">
+        <span class="step-number">1</span>
+        <strong>Install Git LFS</strong>
         <div class="code-block">
           <code>
-            <span class="comment"># Design files</span>
-            git lfs track "*.psd"<br />
-            git lfs track "*.ai"<br />
-            git lfs track "*.sketch"<br />
-
-            <span class="comment"># Media files</span><br />
-            git lfs track "*.mp4"<br />
-            git lfs track "*.mov"<br />
-            git lfs track "*.avi"<br />
-
-            <span class="comment"># Archives</span><br />
-            git lfs track "*.zip"<br />
-            git lfs track "*.rar"<br />
-            git lfs track "*.7z"<br />
-
-            <span class="comment"># Binary files</span><br />
-            git lfs track "*.dll"<br />
-            git lfs track "*.exe"<br />
-            git lfs track "*.so"<br />
-
-            <span class="comment"># Database files</span><br />
-            git lfs track "*.db"<br />
-            git lfs track "*.sqlite"<br />
+            <span class="comment"># Download from https://git-lfs.github.com/</span><br />
+            <span class="comment"># Or use package manager (Windows with Chocolatey):</span><br />
+            choco install git-lfs
           </code>
         </div>
       </div>
 
-      <!-- Key Takeaways -->
-      <div class="section">
-        <h2>🎯 Key Takeaways</h2>
+      <div class="step">
+        <span class="step-number">2</span>
+        <strong>Initialize your project</strong>
+        <div class="code-block">
+          <code>
+            cd YourProjectFolder<br />
+            git init
+          </code>
+        </div>
+      </div>
+
+      <div class="step">
+        <span class="step-number">3</span>
+        <strong>Setup Git LFS</strong>
+        <div class="code-block">
+          <code>
+            git lfs install<br />
+            git lfs track "*.dll"  <span class="comment"># Track DLL files</span><br />
+            git lfs track "*.mp4"  <span class="comment"># Track video files</span><br />
+            git lfs track "*.zip"  <span class="comment"># Track archives</span>
+          </code>
+        </div>
+      </div>
+
+      <div class="step">
+        <span class="step-number">4</span>
+        <strong>Commit LFS configuration</strong>
+        <div class="code-block">
+          <code>
+            git add .gitattributes<br />
+            git commit -m "Configure Git LFS"<br />
+          </code>
+        </div>
+      </div>
+
+      <div class="step">
+        <span class="step-number">5</span>
+        <strong>Add your files and push</strong>
+        <div class="code-block">
+          <code>
+            git add .<br />
+            git commit -m "Initial commit"<br />
+            git remote add origin https://github.com/username/repo.git<br />
+            git push -u origin master
+          </code>
+        </div>
+      </div>
+
+      <div class="tip">
+        <strong>💡 Pro Tip:</strong> Always set up Git LFS BEFORE adding large files to your repository!
+      </div>
+    </div>
+
+    <!-- Recovery Section -->
+    <div class="section">
+      <h2>🔄 Recovery (If You Already Committed Large Files)</h2>
+
+      <div class="warning">
+        <strong>⚠️ Warning:</strong> If you've already committed large files without LFS, they're stuck in your Git history. You need to clean the history first.
+      </div>
+
+      <div class="step">
+        <span class="step-number">1</span>
+        <strong>Delete the .git folder (Nuclear Option - Simplest)</strong>
+        <div class="code-block">
+          <code>
+            cd YourProjectFolder<br />
+            Remove-Item -Recurse -Force .git<br />
+          </code>
+        </div>
+        <p style="margin-top: 10px;">This removes all Git history. Your files stay intact, but all commit history is gone.</p>
+      </div>
+
+      <div class="step">
+        <span class="step-number">2</span>
+        <strong>Start fresh with Git LFS</strong>
+        <div class="code-block">
+          <code>
+            git init<br />
+            git lfs install<br />
+            git lfs track "*.dll"<br />
+            git add .gitattributes<br />
+            git add .<br />
+            git commit -m "Initial commit with Git LFS"
+          </code>
+        </div>
+      </div>
+
+      <div class="step">
+        <span class="step-number">3</span>
+        <strong>Verify LFS is working</strong>
+        <div class="code-block"><code>git lfs ls-files</code></div>
+        <p style="margin-top: 10px;">You should see your large files listed here!</p>
+      </div>
+
+      <div class="step">
+        <span class="step-number">4</span>
+        <strong>Push to GitHub</strong>
+        <div class="code-block">
+          <code>
+            git remote add origin https://github.com/username/repo.git<br />
+            git push -u origin master
+          </code>
+        </div>
+      </div>
+    </div>
+
+    <!-- VS2022 Section -->
+    <div class="section">
+      <h2>🎨 Using Visual Studio 2022</h2>
+
+      <p style="margin-bottom: 20px;">Visual Studio 2022 has built-in Git support, but you still need to set up LFS via command line first:</p>
+
+      <div class="step">
+        <span class="step-number">1</span>
+        <strong>Run LFS commands in PowerShell first</strong>
+        <div class="code-block">
+          <code>
+            git lfs install<br />
+            git lfs track "*.dll"<br />
+          </code>
+        </div>
+      </div>
+
+      <div class="step">
+        <span class="step-number">2</span>
+        <strong>Use VS2022 for everything else</strong>
         <ul>
-          <li><strong>Setup LFS BEFORE adding large files</strong> - This prevents issues entirely</li>
-          <li><strong>Files over 100MB cannot be pushed to GitHub without LFS</strong></li>
-          <li><strong>If you already committed large files, clean your Git history</strong> - The easiest way is to delete .git and start fresh</li>
-          <li><strong>Verify LFS is working</strong> - Use <code>git lfs ls-files</code> to confirm files are tracked</li>
-          <li><strong>The .gitattributes file must be committed BEFORE large files</strong></li>
-          <li><strong>Visual Studio 2022 can be used after LFS is set up via command line</strong></li>
+          <li>Open your solution in Visual Studio 2022</li>
+          <li>Go to <strong>View → Git Changes</strong> (Ctrl+0, G)</li>
+          <li>Stage files by clicking the <strong>+</strong> button</li>
+          <li>Enter commit message and click <strong>Commit All</strong></li>
+          <li>Click <strong>Push</strong> to push to GitHub</li>
         </ul>
       </div>
 
-      <!-- Resources -->
-      <div class="section">
-        <h2>🔗 Useful Resources</h2>
+      <div class="step">
+        <span class="step-number">3</span>
+        <strong>Add remote repository (if needed)</strong>
         <ul>
-          <li><a href="https://git-lfs.github.com/" target="_blank">Git LFS Official Website</a></li>
-          <li><a href="https://docs.github.com/en/repositories/working-with-files/managing-large-files" target="_blank">GitHub Large Files Documentation</a></li>
-          <li><a href="https://git-lfs.github.com/" target="_blank">Download Git LFS</a></li>
+          <li>Go to <strong>Git → Manage Remotes</strong></li>
+          <li>Click <strong>Add</strong></li>
+          <li>Enter Name: <code>origin</code></li>
+          <li>Enter URL: <code>https://github.com/username/repo.git</code></li>
         </ul>
       </div>
     </div>
+
+    <!-- Common File Types -->
+    <div class="section">
+      <h2>📁 Common File Types to Track with LFS</h2>
+      <div class="code-block">
+        <code>
+          <span class="comment"># Design files</span>
+          git lfs track "*.psd"<br />
+          git lfs track "*.ai"<br />
+          git lfs track "*.sketch"<br />
+
+          <span class="comment"># Media files</span><br />
+          git lfs track "*.mp4"<br />
+          git lfs track "*.mov"<br />
+          git lfs track "*.avi"<br />
+
+          <span class="comment"># Archives</span><br />
+          git lfs track "*.zip"<br />
+          git lfs track "*.rar"<br />
+          git lfs track "*.7z"<br />
+
+          <span class="comment"># Binary files</span><br />
+          git lfs track "*.dll"<br />
+          git lfs track "*.exe"<br />
+          git lfs track "*.so"<br />
+
+          <span class="comment"># Database files</span><br />
+          git lfs track "*.db"<br />
+          git lfs track "*.sqlite"<br />
+        </code>
+      </div>
+    </div>
+    <div class="section">
+      <h2>✅ CORRECT ORDER (The Solution)</h2>
+      <div class="step">
+        <span class="step-number">1</span>
+        <code>git lfs install</code>
+        <div style="margin-left: 32px; margin-top: 5px; color: #166534; font-size: 0.9em;">
+          ✓ Initialize LFS
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-number">2</span>
+        <code>git lfs track "*.dll"</code>
+        <div style="margin-left: 32px; margin-top: 5px; color: #166534; font-size: 0.9em;">
+          ✓ Configure which files use LFS
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-number">3</span>
+        <code>git add .gitattributes</code>
+        <div style="margin-left: 32px; margin-top: 5px; color: #166534; font-size: 0.9em;">
+          ✓ Commit LFS config FIRST
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-number">4</span>
+        <code>git commit -m "Configure LFS"</code>
+      </div>
+      <div class="step">
+        <span class="step-number">5</span>
+        <code>git add .</code>
+        <div style="margin-left: 32px; margin-top: 5px; color: #166534; font-size: 0.9em;">
+          ✓ Large files go through LFS now
+        </div>
+      </div>
+      <div class="step">
+        <span class="step-number">6</span>
+        <code>git commit -m "Add files"</code>
+      </div>
+      <div class="step">
+        <span class="step-number">7</span>
+        <code>git push</code>
+        <div style="margin-left: 32px; margin-top: 5px; color: #166534; font-size: 0.9em;">
+          ✓ SUCCESS - Files are LFS pointers
+        </div>
+      </div>
+      <div class="section m-lg-5">
+        <h2>🎯 Adding Large File to existing Git Lfs</h2>
+        <span class="comment">Repeat step 2, 3, 4 and 5</span><br />
+        <code>git lfs track "*.new file type"</code><br />
+        <code>git add .gitattributes</code><br />
+        <code>git commit -m "Configure new LFS"</code><br />
+        <code>git add .</code><br />
+        <span class="comment">Last step, commit from VS2022 or this comment line below</span><br />
+        <code>git push</code>
+      </div>
+    </div>
+    <!-- Key Takeaways -->
+    <div class="section">
+      <h2>🎯 Key Takeaways</h2>
+      <ul>
+        <li><strong>Setup LFS BEFORE adding large files</strong> - This prevents issues entirely</li>
+        <li><strong>Files over 100MB cannot be pushed to GitHub without LFS</strong></li>
+        <li><strong>If you already committed large files, clean your Git history</strong> - The easiest way is to delete .git and start fresh</li>
+        <li><strong>Verify LFS is working</strong> - Use <code>git lfs ls-files</code> to confirm files are tracked</li>
+        <li><strong>The .gitattributes file must be committed BEFORE large files</strong></li>
+        <li><strong>Visual Studio 2022 can be used after LFS is set up via command line</strong></li>
+      </ul>
+    </div>
+
+    <!-- Resources -->
+    <div class="section">
+      <h2>🔗 Useful Resources</h2>
+      <ul>
+        <li><a href="https://git-lfs.github.com/" target="_blank">Git LFS Official Website</a></li>
+        <li><a href="https://docs.github.com/en/repositories/working-with-files/managing-large-files" target="_blank">GitHub Large Files Documentation</a></li>
+        <li><a href="https://git-lfs.github.com/" target="_blank">Download Git LFS</a></li>
+      </ul>
+    </div>
+  </div>
   </div>
