@@ -1,0 +1,147 @@
+<div class="container">
+    <h1>Hard Disk Copy Guide Using Robocopy</h1>
+    <p><strong>Purpose:</strong> Copy data from Hard Disk 1 to Hard Disk 2 without overwriting existing files</p>
+    <p><strong>Data Volume:</strong> ~2TB</p>
+
+    <h2>Recommendation: Use Robocopy (Not C#)</h2>
+
+    <div class="info-box">
+      <strong>Bottom Line:</strong> Use a simple batch file with robocopy command. It's faster, more reliable, and requires zero development time.
+    </div>
+
+    <h3>Why Robocopy Over C#?</h3>
+    <table>
+      <tr>
+        <th>Factor</th>
+        <th>Robocopy</th>
+        <th>C# Application</th>
+      </tr>
+      <tr>
+        <td><strong>Performance</strong></td>
+        <td class="pros">✓ Highly optimized for file operations</td>
+        <td class="cons">✗ Slower due to managed code overhead</td>
+      </tr>
+      <tr>
+        <td><strong>Development Time</strong></td>
+        <td class="pros">✓ Ready to use immediately</td>
+        <td class="cons">✗ Requires significant development</td>
+      </tr>
+      <tr>
+        <td><strong>Features</strong></td>
+        <td class="pros">✓ Built-in resume, retry, multi-threading</td>
+        <td class="cons">✗ Must implement everything from scratch</td>
+      </tr>
+      <tr>
+        <td><strong>Reliability</strong></td>
+        <td class="pros">✓ Battle-tested on billions of operations</td>
+        <td class="cons">✗ Prone to bugs with large datasets</td>
+      </tr>
+    </table>
+
+    <h2>Simple Solution - Batch File</h2>
+
+    <h3>The Simplest Possible Script (2 Lines)</h3>
+    <div class="code-block">
+      robocopy "D:" "E:" /E /XC /XN /XO /MT:16
+      pause
+    </div>
+
+    <h3>Step-by-Step Instructions</h3>
+    <div class="step"><strong>Step 1:</strong> Open Notepad</div>
+    <div class="step"><strong>Step 2:</strong> Copy the 2 lines above</div>
+    <div class="step"><strong>Step 3:</strong> Change "D:" to your source hard disk drive letter</div>
+    <div class="step"><strong>Step 4:</strong> Change "E:" to your destination hard disk drive letter</div>
+    <div class="step"><strong>Step 5:</strong> Save as <code>copy.bat</code> (select "All Files" as file type, not .txt)</div>
+    <div class="step"><strong>Step 6:</strong> Right-click the .bat file and select "Run as Administrator"</div>
+    <div class="step"><strong>Step 7:</strong> Watch the progress in the command window</div>
+
+    <div class="highlight">
+      <strong>Example:</strong> If source is F: and destination is G:
+      <div class="code-block">
+        robocopy "F:" "G:" /E /XC /XN /XO /MT:16
+        pause
+      </div>
+    </div>
+
+    <h2>Robocopy Switch Explanations</h2>
+    <table>
+      <tr>
+        <th>Switch</th>
+        <th>Description</th>
+        <th>Why We Need It</th>
+      </tr>
+      <tr>
+        <td><span class="switch">/E</span></td>
+        <td>Copy subdirectories (including empty ones)</td>
+        <td>Ensures complete directory structure is copied</td>
+      </tr>
+      <tr>
+        <td><span class="switch">/XC</span></td>
+        <td>eXclude Changed files</td>
+        <td>Skip files that already exist on destination</td>
+      </tr>
+      <tr>
+        <td><span class="switch">/XN</span></td>
+        <td>eXclude Newer files</td>
+        <td>Skip if newer version exists on destination</td>
+      </tr>
+      <tr>
+        <td><span class="switch">/XO</span></td>
+        <td>eXclude Older files</td>
+        <td>Skip if older version exists on destination</td>
+      </tr>
+      <tr>
+        <td><span class="switch">/MT:16</span></td>
+        <td>Multi-threaded with 16 threads</td>
+        <td>Speeds up copy operation significantly</td>
+      </tr>
+    </table>
+
+    <div class="info-box">
+      <strong>Combined Effect:</strong> The /XC, /XN, and /XO switches together ensure that ONLY files that don't exist on HD2 will be copied from HD1.
+    </div>
+
+    <h2>Optional Enhancements</h2>
+
+    <h3>Version with Logging and Retry Logic</h3>
+    <div class="code-block">
+      robocopy "D:" "E:" /E /XC /XN /XO /R:3 /W:5 /MT:16 /LOG:copy_log.txt
+      pause
+    </div>
+
+    <p><strong>Additional switches explained:</strong></p>
+    <ul>
+      <li><span class="switch">/R:3</span> - Retry 3 times on failed copies</li>
+      <li><span class="switch">/W:5</span> - Wait 5 seconds between retries</li>
+      <li><span class="switch">/LOG:copy_log.txt</span> - Creates a log file of the operation</li>
+    </ul>
+
+    <h2>Performance Expectations</h2>
+    <div class="info-box">
+      <p><strong>Speed depends on:</strong></p>
+      <ul>
+        <li>Drive type (HDD vs SSD)</li>
+        <li>Connection type (USB 2.0/3.0, SATA, etc.)</li>
+        <li>File sizes (many small files vs. few large files)</li>
+      </ul>
+      <p><strong>Robocopy will maximize whatever bandwidth is available on your hardware.</strong></p>
+    </div>
+
+    <h2>Important Notes</h2>
+    <ul>
+      <li>Always run as Administrator for full file access permissions</li>
+      <li>The operation can be interrupted and resumed safely</li>
+      <li>Robocopy shows real-time progress during the copy</li>
+      <li>For 2TB of data, expect the operation to take several hours depending on hardware</li>
+      <li>Ensure destination drive has sufficient free space before starting</li>
+    </ul>
+
+    <div class="highlight">
+      <strong>⚠ Important:</strong> Test with a small folder first to verify the command works as expected before running on 2TB of data!
+    </div>
+
+    <hr style="margin: 30px 0; border: none; border-top: 2px solid #eee;">
+    <p style="text-align: center; color: #888; font-size: 0.9em;">
+      Internal Documentation | Generated: November 2025
+    </p>
+  </div>

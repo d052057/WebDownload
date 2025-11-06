@@ -11,6 +11,11 @@ export const routes: Routes = [
       .then(mod => mod.Ffmpeg)
   },
   {
+    path: 'robocopy',
+    loadComponent: () => import('./robo-copy/robo-copy')
+      .then(mod => mod.RoboCopy)
+  },
+  {
     path: 'githelp',
     loadComponent: () => import('./git-help/git-help')
       .then(mod => mod.GitHelp)
