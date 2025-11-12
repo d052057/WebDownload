@@ -16,6 +16,11 @@ export const routes: Routes = [
       .then(mod => mod.RoboCopy)
   },
   {
+    path: 'dmg',
+    loadComponent: () => import('./dmg/dmg')
+      .then(mod => mod.Dmg)
+  },
+  {
     path: 'githelp',
     loadComponent: () => import('./git-help/git-help')
       .then(mod => mod.GitHelp)

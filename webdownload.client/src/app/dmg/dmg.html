@@ -1,0 +1,38 @@
+<div class="container">
+  <h1>Guide: Create macOS Sequoia Bootable USB and DMG</h1>
+
+  <h2>Step 1: Download & Install Sequoia using gibMacOS</h2>
+  <ol>
+    <li>Use <strong>gibMacOS</strong> to download <code>InstallAssistant.pkg</code> for macOS Sequoia 15.7.2.</li>
+    <li>Copy the downloaded folder to your Mac Desktop.</li>
+    <li>Open Terminal and run the following to install the Sequoia installer app into <code>/Applications</code>:</li>
+    <pre>sudo installer -pkg ~/Desktop/Sequoia15.7.2/InstallAssistant.pkg -target /</pre>
+    <li>Verify it exists: <pre>ls /Applications | grep Sequoia</pre> You should see <code>Install macOS Sequoia.app</code>.</li>
+  </ol>
+
+  <h2>Step 2: Create Bootable USB</h2>
+  <ol>
+    <li>Plug in a USB drive (≥16GB) and open <strong>Disk Utility</strong>.</li>
+    <li>
+      Erase the USB with:
+      <ul>
+        <li>Name: <code>Sequoia15.7.2</code> (optional, it will be renamed)</li>
+        <li>Format: Mac OS Extended (Journaled)</li>
+        <li>Scheme: GUID Partition Map</li>
+      </ul>
+    </li>
+    <li>Use Terminal to create the bootable USB:</li>
+    <pre>sudo /Applications/Install\ macOS\ Sequoia.app/Contents/Resources/createinstallmedia --volume "/Volumes/Sequoia15.7.2"</pre>
+    <li>After completion, the USB will be renamed automatically to <code>Install macOS Sequoia</code>.</li>
+  </ol>
+
+  <h2>Step 3: Create a DMG Backup</h2>
+  <ol>
+    <li>Once the USB is ready, you can create a DMG for backup.</li>
+    <li>Run the following in Terminal to make a compressed DMG on your Desktop:</li>
+    <pre>sudo hdiutil create -volname "Sequoia15.7.2" -srcfolder "/Volumes/Install macOS Sequoia" -format UDZO ~/Desktop/Sequoia15.7.2.dmg</pre>
+    <li>Wait until Terminal shows: <code>created: /Users/YourName/Desktop/Sequoia15.7.2.dmg</code></li>
+  </ol>
+
+  <p>✅ Now you have a bootable USB and a DMG backup of macOS Sequoia 15.7.2 ready for installation or future use.</p>
+</div>
