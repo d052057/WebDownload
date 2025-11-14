@@ -21,6 +21,11 @@ export const routes: Routes = [
       .then(mod => mod.Dmg)
   },
   {
+    path: 'recovery',
+    loadComponent: () => import('./recovery/recovery')
+      .then(mod => mod.Recovery)
+  },
+  {
     path: 'githelp',
     loadComponent: () => import('./git-help/git-help')
       .then(mod => mod.GitHelp)
