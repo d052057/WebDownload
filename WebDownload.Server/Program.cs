@@ -1,6 +1,7 @@
 using WebDownload.Server.Services;
 using WebDownload.Server;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.AspNetCore.OpenApi;
 using WebDownload.Server.Hubs;
 var builder = WebApplication.CreateBuilder(args);
 
