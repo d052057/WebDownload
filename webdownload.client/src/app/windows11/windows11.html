@@ -1,0 +1,87 @@
+<div class="windows11-container">
+  <div class="container-fluid p-0">
+    <!-- Header -->
+    <div class="header text-center text-white py-5">
+      <h1 class="display-4 fw-bold mb-3">🚀 Windows 11 Development Setup</h1>
+      <p class="lead">Step-by-Step Installation Guide with RDP Testing</p>
+    </div>
+
+    <div class="container py-5">
+      <!-- Warning Alert -->
+      <div class="alert alert-warning d-flex align-items-center mb-4" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <div>
+          <strong>⚠️ Important:</strong> Test Remote Desktop Connection to 192.168.1.158 after EACH major installation to ensure nothing breaks RDP!
+        </div>
+      </div>
+
+      <!-- Steps -->
+      <div *ngFor="let step of steps" class="step-container mb-5">
+        <div class="step-header d-flex align-items-center mb-3">
+          <span class="step-number">{{ step.number }}</span>
+          <h2 class="h3 mb-0 ms-3">{{ step.title }}</h2>
+        </div>
+
+        <div class="step-content ps-5">
+          <p class="text-muted">{{ step.description }}</p>
+
+          <!-- Alert if present -->
+          <div *ngIf="step.alert"
+               [class]="'alert alert-' + step.alert.type + ' d-flex align-items-center mb-3'"
+               role="alert"
+               [innerHTML]="step.alert.message">
+          </div>
+
+          <!-- Code Blocks -->
+          <div *ngFor="let codeBlock of step.codeBlocks" class="code-block-wrapper mb-3">
+            <div class="code-block position-relative">
+              <button class="btn btn-sm btn-primary copy-btn"
+                      (click)="copyCode(codeBlock.code, codeBlock.id)">
+                <i class="bi" [ngClass]="copiedId === codeBlock.id ? 'bi-check' : 'bi-clipboard'"></i>
+                {{ copiedId === codeBlock.id ? 'Copied!' : 'Copy' }}
+              </button>
+              <pre class="mb-0"><code>{{ codeBlock.code }}</code></pre>
+            </div>
+          </div>
+
+          <!-- List if present -->
+          <ul *ngIf="step.list" class="mb-3">
+            <li *ngFor="let item of step.list">{{ item }}</li>
+          </ul>
+
+          <!-- Checkboxes -->
+          <div class="form-check" *ngFor="let checkbox of step.checkboxes">
+            <input class="form-check-input"
+                   type="checkbox"
+                   [id]="checkbox.id"
+                   [checked]="isChecked(checkbox.id)"
+                   (change)="toggleCheck(checkbox.id)">
+            <label class="form-check-label" [for]="checkbox.id">
+              {{ checkbox.label }}
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Success Alert -->
+      <div class="alert alert-success mb-4" role="alert">
+        <h4 class="alert-heading">✅ Setup Complete!</h4>
+        <p>Your Windows 11 development environment is ready. Test your applications and verify everything works correctly.</p>
+        <hr>
+        <p class="mb-0"><strong>Final RDP Test:</strong> Connect to 192.168.1.158 to ensure everything still works!</p>
+      </div>
+
+      <!-- Quick Reference -->
+      <div class="alert alert-info" role="alert">
+        <h4 class="alert-heading">📝 Quick Reference</h4>
+        <ul class="mb-0">
+          <li><strong>SQL Server:</strong> .\SQLEXPRESS (sa/sa)</li>
+          <li><strong>Data Directory:</strong> C:\mssql\data</li>
+          <li><strong>Backup Directory:</strong> C:\mssql\backup</li>
+          <li><strong>Certificates:</strong> %APPDATA%\ASP.NET\https\</li>
+          <li><strong>Git Config:</strong> C:\Users\Admin\.gitconfig</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>

@@ -26,6 +26,16 @@ export const routes: Routes = [
       .then(mod => mod.Recovery)
   },
   {
+    path: 'ypdlp',
+    loadComponent: () => import('./ypdlp/ypdlp')
+      .then(mod => mod.Ypdlp)
+  },
+  {
+    path: 'windows',
+    loadComponent: () => import('./windows11/windows11')
+      .then(mod => mod.Windows11)
+  },
+  {
     path: 'githelp',
     loadComponent: () => import('./git-help/git-help')
       .then(mod => mod.GitHelp)
