@@ -7,25 +7,35 @@
       <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="navbarSupportedContent">
-      <ul class="navbar-nav mr-auto">
-        <li class="nav-item"><a routerLink="/githelp" class="nav-link"><i class="bi bi-lightbulb"></i> Git Help</a></li>
-        <li class="nav-item">
-          <a class="nav-link" routerLink="/ffmpeg"><i class="bi bi-book"></i> FFmpeg document</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" routerLink="/robocopy"><i class="bi bi-book"></i> RoboCopy</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" routerLink="/dmg"><i class="bi bi-book"></i> Apple</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" routerLink="/recovery"><i class="bi bi-book"></i> Recreate Recovery</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" routerLink="/ypdlp"><i class="bi bi-book"></i> WebSites</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" routerLink="/windows"><i class="bi bi-book"></i> Install Windows 11</a>
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class='bi bi-book'></i> Helps
+          </a>
+          <ul class="dropdown-menu">
+            <li>
+              <a routerLink="/githelp" class="dropdown-item">Git Help</a>
+            </li>
+            <li>
+              <a class="dropdown-item" routerLink="/ffmpeg">FFmpeg document</a>
+            </li>
+            <li>
+              <a class="dropdown-item" routerLink="/robocopy">RoboCopy</a>
+            </li>
+            <li>
+              <a class="dropdown-item" routerLink="/dmg">Apple</a>
+            </li>
+            <li>
+              <a class="dropdown-item" routerLink="/recovery">Recreate Recovery</a>
+            </li>
+            <li >
+              <a class="dropdown-item" routerLink="/ypdlp">WebSites</a>
+            </li>
+            <li>
+              <a class="dropdown-item" routerLink="/windows">Install Windows 11</a>
+            </li>
+          </ul>
+
         </li>
       </ul>
     </div>
