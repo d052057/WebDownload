@@ -1,7 +1,6 @@
 import { ApplicationConfig, inject, provideAppInitializer } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { routes } from './app.routes';
-import { provideHttpClient } from '@angular/common/http';
 import { MatIconModule, MatIconRegistry } from '@angular/material/icon';
 import { DomSanitizer } from '@angular/platform-browser';
 function initializeIcons() {
@@ -19,8 +18,7 @@ function initializeIcons() {
 export const appConfig: ApplicationConfig = {
   providers: [
     provideRouter(routes),
-    provideAppInitializer(initializeIcons),
-    provideHttpClient()
+    provideAppInitializer(initializeIcons)
   ]
 };
 
