@@ -1,8 +1,7 @@
-using WebDownload.Server.Services;
-using WebDownload.Server;
 using Microsoft.Extensions.FileProviders;
-using Microsoft.AspNetCore.OpenApi;
+using WebDownload.Server;
 using WebDownload.Server.Hubs;
+using WebDownload.Server.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.

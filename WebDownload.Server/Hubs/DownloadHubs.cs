@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.SignalR;
-using System.Text.RegularExpressions;
 using Microsoft.Extensions.Options;
-using WebDownload.Server.Services;
+using System.Text.RegularExpressions;
 using WebDownload.Server.Models;
+using WebDownload.Server.Services;
 namespace WebDownload.Server.Hubs
 {
     public class DownloadHub : Microsoft.AspNetCore.SignalR.Hub
