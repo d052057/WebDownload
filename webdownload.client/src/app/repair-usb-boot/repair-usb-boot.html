@@ -1,0 +1,631 @@
+  <div class="container">
+    <div class="main-container">
+      <div class="header-section">
+        <div class="d-flex align-items-center mb-3">
+          <i class="fas fa-usb fa-3x me-3"></i>
+          <div>
+            <h1 class="mb-0">Windows 11 USB Boot Repair Guide</h1>
+            <p class="mb-0 mt-2 opacity-75"><i class="far fa-calendar-alt me-2"></i>Advanced Boot Recovery Methods</p>
+          </div>
+        </div>
+        <p class="mb-0 fs-5">Manual boot repair using Windows 11 installation USB when automatic repair fails</p>
+      </div>
+
+      <div class="p-4">
+        <div class="alert alert-danger border-start border-danger border-4" role="alert">
+          <div class="d-flex">
+            <div class="icon-box bg-danger bg-opacity-25 text-danger me-3">
+              <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="flex-grow-1">
+              <h4 class="alert-heading"><i class="fas fa-info-circle me-2"></i>When to Use This Guide</h4>
+              <p class="mb-2"><strong>Problem:</strong> You have a Windows 11 installation USB and tried the "Repair your computer" option, but it didn't work.</p>
+              <p class="mb-2"><strong>Situation:</strong> Your hard disk has Windows 11 installed with data, but won't boot properly.</p>
+              <p class="mb-0"><strong>Solution:</strong> Manual boot repair using Command Prompt from the Windows 11 USB recovery environment.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+          <div class="card-header bg-danger text-white">
+            <h3 class="mb-0"><i class="fas fa-list-check me-2"></i>What You Need</h3>
+          </div>
+          <div class="card-body">
+            <ul class="list-group list-group-flush">
+              <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Windows 11 installation USB drive (bootable)</li>
+              <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Non-bootable hard disk with Windows 11 and data still intact</li>
+              <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Access to BIOS/UEFI to boot from USB</li>
+              <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Basic knowledge of Command Prompt</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="alert alert-warning border-start border-warning border-4" role="alert">
+          <div class="d-flex">
+            <div class="icon-box bg-warning bg-opacity-25 text-warning me-3">
+              <i class="fas fa-shield-alt"></i>
+            </div>
+            <div>
+              <h5 class="alert-heading mb-2">⚠️ Important Notes</h5>
+              <ul class="mb-0">
+                <li>These commands will not delete your data</li>
+                <li>Back up critical files if possible before proceeding</li>
+                <li>Make sure you identify the correct disk and partitions</li>
+                <li>If unsure, stop and seek professional help</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="mt-5 mb-4 text-danger"><i class="fas fa-rocket me-2"></i>Getting Started</h2>
+
+        <div class="card step-card shadow-sm mb-4">
+          <div class="card-header bg-light">
+            <h4 class="mb-0"><span class="badge bg-danger badge-custom me-2">Initial Setup</span> Boot from Windows 11 USB</h4>
+          </div>
+          <div class="card-body">
+            <ol class="mb-3">
+              <li>Insert the Windows 11 installation USB drive</li>
+              <li>Restart your computer</li>
+              <li>Press the boot menu key (usually F12, F10, F8, or ESC)</li>
+              <li>Select the USB drive from the boot menu</li>
+              <li>When Windows Setup appears, select your language and click "Next"</li>
+              <li><strong>Click "Repair your computer"</strong> (bottom left, NOT "Install now")</li>
+              <li>Click <strong>"Troubleshoot"</strong></li>
+              <li>Click <strong>"Advanced options"</strong></li>
+              <li>Click <strong>"Command Prompt"</strong></li>
+            </ol>
+            <div class="alert alert-info">
+              <i class="fas fa-keyboard me-2"></i><strong>Tip:</strong> You may need to enter your BitLocker recovery key if your drive is encrypted.
+            </div>
+          </div>
+        </div>
+
+        <h2 class="mt-5 mb-4 text-danger"><i class="fas fa-wrench me-2"></i>Boot Repair Methods</h2>
+        <p class="lead mb-4">Try these methods in order. Method 1 is the quickest, but if it doesn't work, proceed to the next method.</p>
+
+        <div class="row mb-4">
+          <div class="col-md-4 mb-3">
+            <div class="card method-card border-success">
+              <div class="card-header bg-success text-white text-center">
+                <h5 class="mb-0"><i class="fas fa-bolt me-2"></i>Method 1</h5>
+              </div>
+              <div class="card-body text-center">
+                <i class="fas fa-tools fa-3x text-success mb-3"></i>
+                <h6>Automatic Boot Repair</h6>
+                <p class="small text-muted mb-0">Quick commands to fix common boot issues</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4 mb-3">
+            <div class="card method-card border-warning">
+              <div class="card-header bg-warning text-white text-center">
+                <h5 class="mb-0"><i class="fas fa-cogs me-2"></i>Method 2</h5>
+              </div>
+              <div class="card-body text-center">
+                <i class="fas fa-hard-drive fa-3x text-warning mb-3"></i>
+                <h6>Manual Boot Rebuild</h6>
+                <p class="small text-muted mb-0">Manually recreate boot files</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4 mb-3">
+            <div class="card method-card border-danger">
+              <div class="card-header bg-danger text-white text-center">
+                <h5 class="mb-0"><i class="fas fa-medkit me-2"></i>Method 3</h5>
+              </div>
+              <div class="card-body text-center">
+                <i class="fas fa-sync-alt fa-3x text-danger mb-3"></i>
+                <h6>Full EFI Partition Rebuild</h6>
+                <p class="small text-muted mb-0">Complete EFI partition recreation</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card step-card shadow-sm mb-4 border-success">
+          <div class="card-header bg-light">
+            <h4 class="mb-0">
+              <span class="badge bg-success badge-custom me-2">Method 1</span>
+              Automatic Boot Repair (Try This First)
+            </h4>
+          </div>
+          <div class="card-body">
+            <p class="lead">This method uses Windows built-in tools to automatically fix boot problems.</p>
+
+            <h5 class="mt-4"><i class="fas fa-terminal me-2"></i>Commands to Run:</h5>
+            <div class="command-block">
+              bootrec /fixmbr<br>
+              bootrec /fixboot<br>
+              bootrec /scanos<br>
+              bootrec /rebuildbcd
+            </div>
+
+            <h5 class="mt-4"><i class="fas fa-info-circle me-2"></i>What Each Command Does:</h5>
+            <ul>
+              <li><code>bootrec /fixmbr</code> - Fixes the Master Boot Record</li>
+              <li><code>bootrec /fixboot</code> - Writes a new boot sector</li>
+              <li><code>bootrec /scanos</code> - Scans all disks for Windows installations</li>
+              <li><code>bootrec /rebuildbcd</code> - Rebuilds the Boot Configuration Data</li>
+            </ul>
+
+            <div class="alert alert-success mt-3">
+              <i class="fas fa-check-circle me-2"></i><strong>If Successful:</strong> You'll see messages like "The operation completed successfully" for each command. Type <code>exit</code> and restart your computer.
+            </div>
+
+            <div class="alert alert-warning mt-3">
+              <i class="fas fa-arrow-right me-2"></i><strong>If This Doesn't Work:</strong> Proceed to Method 2 below.
+            </div>
+          </div>
+        </div>
+
+        <div class="card step-card shadow-sm mb-4 border-warning">
+          <div class="card-header bg-light">
+            <h4 class="mb-0">
+              <span class="badge bg-warning badge-custom me-2">Method 2</span>
+              Manual Boot Rebuild
+            </h4>
+          </div>
+          <div class="card-body">
+            <p class="lead">This method manually identifies your Windows installation and rebuilds the boot files.</p>
+
+            <h5 class="mt-4 mb-3"><i class="fas fa-search me-2"></i>Step 1: Identify Your Disk and Partitions</h5>
+            <div class="command-block">
+              diskpart<br>
+              list disk<br>
+              <span class="command-comment">// Note the disk number of your Windows disk (usually Disk 0)</span><br>
+              <br>
+              select disk 0<br>
+              <span class="command-comment">// Replace 0 with your disk number</span><br>
+              list volume<br>
+              <span class="command-comment">// Look for: EFI partition (FAT32, ~100-500MB) and Windows partition (NTFS, large size)</span>
+            </div>
+
+            <div class="alert alert-info mt-3">
+              <i class="fas fa-lightbulb me-2"></i><strong>Important:</strong> Take note of:
+              <ul class="mb-0 mt-2">
+                <li><strong>EFI System Partition:</strong> Usually 100-500MB, FAT32 format, may show as "System"</li>
+                <li><strong>Windows Partition:</strong> Large NTFS partition containing your Windows installation</li>
+              </ul>
+            </div>
+
+            <h5 class="mt-4 mb-3"><i class="fas fa-pen me-2"></i>Step 2: Assign Drive Letters</h5>
+            <div class="command-block">
+              select volume 2<br>
+              <span class="command-comment">// Replace 2 with the volume number of your EFI partition</span><br>
+              assign letter=S<br>
+              <br>
+              select volume 3<br>
+              <span class="command-comment">// Replace 3 with the volume number of your Windows partition</span><br>
+              assign letter=W<br>
+              <br>
+              exit
+            </div>
+
+            <h5 class="mt-4 mb-3"><i class="fas fa-copy me-2"></i>Step 3: Rebuild Boot Files</h5>
+            <div class="command-block">
+              bcdboot W:\Windows /s S: /f UEFI
+            </div>
+
+            <p class="mt-3">Where:</p>
+            <ul>
+              <li><strong>W:\Windows</strong> = Your Windows installation location</li>
+              <li><strong>/s S:</strong> = Target EFI system partition</li>
+              <li><strong>/f UEFI</strong> = Boot files format for UEFI systems</li>
+            </ul>
+
+            <div class="alert alert-success mt-3">
+              <i class="fas fa-check-circle me-2"></i><strong>Success Message:</strong> "Boot files successfully created."
+            </div>
+
+            <h5 class="mt-4 mb-3"><i class="fas fa-redo me-2"></i>Step 4: Restart</h5>
+            <div class="command-block">
+              exit<br>
+              <span class="command-comment">// Remove the USB drive and restart</span>
+            </div>
+
+            <div class="alert alert-warning mt-3">
+              <i class="fas fa-arrow-right me-2"></i><strong>If This Doesn't Work:</strong> Proceed to Method 3.
+            </div>
+          </div>
+        </div>
+
+        <div class="card step-card shadow-sm mb-4 border-danger">
+          <div class="card-header bg-light">
+            <h4 class="mb-0">
+              <span class="badge bg-danger badge-custom me-2">Method 3</span>
+              Full EFI Partition Rebuild (Advanced)
+            </h4>
+          </div>
+          <div class="card-body">
+            <div class="alert alert-danger">
+              <i class="fas fa-exclamation-triangle me-2"></i><strong>Warning:</strong> This method recreates the EFI partition. Only use this if Methods 1 and 2 failed. This will not delete your Windows data.
+            </div>
+
+            <p class="lead">Use this when the EFI partition is corrupted or missing entirely.</p>
+
+            <h5 class="mt-4 mb-3"><i class="fas fa-search me-2"></i>Step 1: Check Current Partitions</h5>
+            <div class="command-block">
+              diskpart<br>
+              list disk<br>
+              select disk 0<br>
+              <span class="command-comment">// Replace 0 with your Windows disk number</span><br>
+              list partition<br>
+              <span class="command-comment">// Check if you have an EFI partition (usually 100-500MB)</span>
+            </div>
+
+            <h5 class="mt-4 mb-3"><i class="fas fa-trash-alt me-2"></i>Step 2: Delete Old EFI Partition (If Exists and Corrupted)</h5>
+            <div class="command-block">
+              select partition 1<br>
+              <span class="command-comment">// Replace 1 with the EFI partition number</span><br>
+              delete partition override<br>
+              <span class="command-comment">// ONLY if you confirmed this is the small FAT32 EFI partition!</span>
+            </div>
+
+            <div class="alert alert-danger mt-3 mb-3">
+              <i class="fas fa-exclamation-circle me-2"></i><strong>CRITICAL:</strong> Make absolutely sure you're deleting the correct partition! The EFI partition is small (100-500MB) and FAT32. DO NOT delete your Windows partition!
+            </div>
+
+            <h5 class="mt-4 mb-3"><i class="fas fa-plus-circle me-2"></i>Step 3: Create New EFI Partition</h5>
+            <div class="command-block">
+              <span class="command-comment">// Shrink Windows partition to make space (if needed)</span><br>
+              select partition 2<br>
+              <span class="command-comment">// Replace 2 with your Windows partition number</span><br>
+              shrink desired=500 minimum=100<br>
+              <br>
+              <span class="command-comment">// Create new EFI partition</span><br>
+              create partition efi size=500<br>
+              format quick fs=fat32 label="System"<br>
+              assign letter=S<br>
+              list volume<br>
+              <span class="command-comment">// Verify the new EFI partition was created</span>
+            </div>
+
+            <h5 class="mt-4 mb-3"><i class="fas fa-hdd me-2"></i>Step 4: Identify Windows Partition</h5>
+            <div class="command-block">
+              select partition 2<br>
+              <span class="command-comment">// Replace 2 with your Windows partition number</span><br>
+              assign letter=W<br>
+              exit
+            </div>
+
+            <h5 class="mt-4 mb-3"><i class="fas fa-file-code me-2"></i>Step 5: Create Boot Files</h5>
+            <div class="command-block">
+              bcdboot W:\Windows /s S: /f UEFI
+            </div>
+
+            <div class="alert alert-success mt-3">
+              <i class="fas fa-check-circle me-2"></i><strong>Expected Output:</strong> "Boot files successfully created."
+            </div>
+
+            <h5 class="mt-4 mb-3"><i class="fas fa-power-off me-2"></i>Step 6: Exit and Restart</h5>
+            <div class="command-block">
+              exit<br>
+              <span class="command-comment">// Remove USB and restart your computer</span>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="mt-5 mb-4 text-info"><i class="fas fa-toolbox me-2"></i>Additional Boot Fixes</h2>
+
+        <div class="accordion" id="additionalFixes">
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#fix1">
+                <i class="fas fa-bug text-danger me-2"></i>
+                Fix Corrupted System Files
+              </button>
+            </h2>
+            <div id="fix1" class="accordion-collapse collapse show" data-bs-parent="#additionalFixes">
+              <div class="accordion-body">
+                <p>If Windows boots but has errors, run these commands from Command Prompt (Admin):</p>
+                <div class="command-block">
+                  sfc /scannow<br>
+                  <span class="command-comment">// Scans and repairs Windows system files</span><br>
+                  <br>
+                  DISM /Online /Cleanup-Image /RestoreHealth<br>
+                  <span class="command-comment">// Repairs the Windows image</span>
+                </div>
+                <p class="mt-2"><small class="text-muted">These commands can take 15-30 minutes to complete.</small></p>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#fix2">
+                <i class="fas fa-shield-alt text-warning me-2"></i>
+                Disable Secure Boot (If Boot Still Fails)
+              </button>
+            </h2>
+            <div id="fix2" class="accordion-collapse collapse" data-bs-parent="#additionalFixes">
+              <div class="accordion-body">
+                <p>Sometimes Secure Boot can prevent booting after repairs:</p>
+                <ol>
+                  <li>Restart and enter BIOS/UEFI (press F2, F10, DEL, or F12)</li>
+                  <li>Find "Secure Boot" settings (usually under Security or Boot tab)</li>
+                  <li>Disable Secure Boot</li>
+                  <li>Save and Exit</li>
+                  <li>Try booting again</li>
+                </ol>
+                <div class="alert alert-info mt-2">
+                  <i class="fas fa-info-circle me-2"></i>You can re-enable Secure Boot after Windows is working properly.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#fix3">
+                <i class="fas fa-clock text-info me-2"></i>
+                Reset BIOS to Default Settings
+              </button>
+            </h2>
+            <div id="fix3" class="accordion-collapse collapse" data-bs-parent="#additionalFixes">
+              <div class="accordion-body">
+                <p>Corrupted BIOS settings can cause boot failures:</p>
+                <ol>
+                  <li>Enter BIOS/UEFI settings</li>
+                  <li>Find "Load Optimized Defaults" or "Reset to Default"</li>
+                  <li>Confirm and save</li>
+                  <li>Make sure boot mode is set to UEFI (not Legacy)</li>
+                  <li>Set your hard disk as first boot device</li>
+                  <li>Save and Exit</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#fix4">
+                <i class="fas fa-network-wired text-success me-2"></i>
+                Check Hard Drive Cables/Connection
+              </button>
+            </h2>
+            <div id="fix4" class="accordion-collapse collapse" data-bs-parent="#additionalFixes">
+              <div class="accordion-body">
+                <p>Physical connection issues can prevent booting:</p>
+                <ul>
+                  <li>Power off the computer completely</li>
+                  <li>Open the case and check SATA/power cables</li>
+                  <li>Disconnect and reconnect both cables firmly</li>
+                  <li>Try different SATA ports on motherboard</li>
+                  <li>Replace SATA cable if available</li>
+                </ul>
+                <div class="alert alert-warning">
+                  <i class="fas fa-exclamation-triangle me-2"></i>Only do this if you're comfortable opening your computer case.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="mt-5 mb-4 text-warning"><i class="fas fa-life-ring me-2"></i>Common Issues and Solutions</h2>
+
+        <div class="card shadow-sm mb-3">
+          <div class="card-header bg-warning text-white">
+            <h5 class="mb-0"><i class="fas fa-question-circle me-2"></i>"Element not found" or "Access denied" errors</h5>
+          </div>
+          <div class="card-body">
+            <p><strong>Solution:</strong></p>
+            <ul>
+              <li>Make sure you're selecting the correct partition numbers</li>
+              <li>The EFI partition should be FAT32 format</li>
+              <li>The Windows partition should be NTFS format</li>
+              <li>Use <code>list volume</code> to double-check before proceeding</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card shadow-sm mb-3">
+          <div class="card-header bg-warning text-white">
+            <h5 class="mb-0"><i class="fas fa-question-circle me-2"></i>"Total identified Windows installations: 0"</h5>
+          </div>
+          <div class="card-body">
+            <p><strong>Solution:</strong></p>
+            <ul>
+              <li>Your Windows installation may be on a different disk</li>
+              <li>Run <code>diskpart</code> → <code>list disk</code> to see all disks</li>
+              <li>Select each disk and check for Windows partition</li>
+              <li>Windows folder should exist in the root directory (C:\Windows or W:\Windows)</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card shadow-sm mb-3">
+          <div class="card-header bg-warning text-white">
+            <h5 class="mb-0"><i class="fas fa-question-circle me-2"></i>Computer boots to USB instead of hard disk</h5>
+          </div>
+          <div class="card-body">
+            <p><strong>Solution:</strong></p>
+            <ul>
+              <li>Remove the USB drive before restarting</li>
+              <li>Enter BIOS and change boot order (hard disk first)</li>
+              <li>Make sure boot mode is set to UEFI, not Legacy</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card shadow-sm mb-3">
+          <div class="card-header bg-warning text-white">
+            <h5 class="mb-0"><i class="fas fa-question-circle me-2"></i>Still can't boot after all methods</h5>
+          </div>
+          <div class="card-body">
+            <p><strong>Possible causes:</strong></p>
+            <ul>
+              <li>Hard drive may be failing (check SMART status)</li>
+              <li>Windows system files may be corrupted beyond repair</li>
+              <li>Motherboard BIOS may need updating</li>
+              <li>Consider backing up data and doing clean Windows install</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+          <div class="card-header bg-dark text-white">
+            <h3 class="mb-0"><i class="fas fa-book me-2"></i>Quick Command Reference</h3>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead class="table-dark">
+                  <tr>
+                    <th width="40%">Command</th>
+                    <th>Purpose</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>diskpart</code></td>
+                    <td>Open disk partitioning tool</td>
+                  </tr>
+                  <tr>
+                    <td><code>list disk</code></td>
+                    <td>Show all hard disks</td>
+                  </tr>
+                  <tr>
+                    <td><code>list volume</code></td>
+                    <td>Show all partitions/volumes</td>
+                  </tr>
+                  <tr>
+                    <td><code>select disk #</code></td>
+                    <td>Select a disk to work with</td>
+                  </tr>
+                  <tr>
+                    <td><code>select volume #</code></td>
+                    <td>Select a partition/volume</td>
+                  </tr>
+                  <tr>
+                    <td><code>assign letter=X</code></td>
+                    <td>Assign drive letter to partition</td>
+                  </tr>
+                  <tr>
+                    <td><code>detail volume</code></td>
+                    <td>Show detailed partition info</td>
+                  </tr>
+                  <tr>
+                    <td><code>bootrec /fixmbr</code></td>
+                    <td>Fix Master Boot Record</td>
+                  </tr>
+                  <tr>
+                    <td><code>bootrec /fixboot</code></td>
+                    <td>Write new boot sector</td>
+                  </tr>
+                  <tr>
+                    <td><code>bootrec /rebuildbcd</code></td>
+                    <td>Rebuild boot configuration</td>
+                  </tr>
+                  <tr>
+                    <td><code>bcdboot X:\Windows /s Y: /f UEFI</code></td>
+                    <td>Copy boot files to EFI partition</td>
+                  </tr>
+                  <tr>
+                    <td><code>exit</code></td>
+                    <td>Exit diskpart or Command Prompt</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="alert alert-success border-start border-success border-5 mb-4" role="alert">
+          <div class="d-flex">
+            <div class="icon-box bg-success bg-opacity-25 text-success me-3">
+              <i class="fas fa-trophy"></i>
+            </div>
+            <div class="flex-grow-1">
+              <h4 class="alert-heading"><i class="fas fa-check-double me-2"></i>Success Indicators</h4>
+              <p class="mb-2">If the repair was successful, you should see:</p>
+              <ul class="mb-0">
+                <li><i class="fas fa-check text-success me-2"></i>Windows boots normally without the USB drive</li>
+                <li><i class="fas fa-check text-success me-2"></i>All your files and programs are accessible</li>
+                <li><i class="fas fa-check text-success me-2"></i>No boot error messages appear</li>
+                <li><i class="fas fa-check text-success me-2"></i>System runs as it did before the boot issue</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="card shadow-sm mb-4 bg-light">
+          <div class="card-body">
+            <h4 class="text-primary mb-3"><i class="fas fa-graduation-cap me-2"></i>What You Learned</h4>
+            <div class="row">
+              <div class="col-md-6">
+                <h6><i class="fas fa-book-open text-info me-2"></i>Boot Process Basics</h6>
+                <ul class="small">
+                  <li>EFI partitions store boot files</li>
+                  <li>BCD controls Windows boot sequence</li>
+                  <li>UEFI vs Legacy boot modes</li>
+                </ul>
+              </div>
+              <div class="col-md-6">
+                <h6><i class="fas fa-tools text-warning me-2"></i>Useful Commands</h6>
+                <ul class="small">
+                  <li>diskpart for disk management</li>
+                  <li>bootrec for boot repairs</li>
+                  <li>bcdboot to create boot files</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card shadow-sm border-info">
+          <div class="card-header bg-info text-white">
+            <h4 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Prevention Tips</h4>
+          </div>
+          <div class="card-body">
+            <p class="mb-3">To avoid boot problems in the future:</p>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <div class="card h-100 border-0 bg-light">
+                  <div class="card-body">
+                    <h6 class="text-primary"><i class="fas fa-save me-2"></i>Regular Backups</h6>
+                    <p class="small mb-0">Create system images regularly using Windows Backup or third-party tools like Acronis</p>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <div class="card h-100 border-0 bg-light">
+                  <div class="card-body">
+                    <h6 class="text-primary"><i class="fas fa-sync me-2"></i>Keep Windows Updated</h6>
+                    <p class="small mb-0">Install Windows updates regularly to prevent system file corruption</p>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <div class="card h-100 border-0 bg-light">
+                  <div class="card-body">
+                    <h6 class="text-primary"><i class="fas fa-shield-virus me-2"></i>Use Antivirus</h6>
+                    <p class="small mb-0">Keep antivirus software active to prevent malware that can damage boot files</p>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <div class="card h-100 border-0 bg-light">
+                  <div class="card-body">
+                    <h6 class="text-primary"><i class="fas fa-plug me-2"></i>Safe Shutdown</h6>
+                    <p class="small mb-0">Always shut down properly and use a UPS to protect against power failures</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="text-center mt-5 pt-4 border-top">
+          <p class="text-muted mb-2">
+            <i class="far fa-clock me-2"></i>
+            <em>This guide is based on real-world Windows 11 boot repair procedures as of January 2026</em>
+          </p>
+          <p class="text-muted small mb-0">
+            <i class="fas fa-info-circle me-2"></i>
+            If you're still having issues after trying all methods, consider seeking professional technical support or contacting Microsoft Support.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>

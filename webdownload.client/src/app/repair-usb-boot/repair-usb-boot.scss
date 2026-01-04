@@ -1,0 +1,67 @@
+body {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  padding: 30px 0;
+}
+
+.main-container {
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+  overflow: hidden;
+}
+
+.header-section {
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+  color: white;
+  padding: 40px;
+}
+
+.command-block {
+  background-color: #1e1e1e;
+  color: #00ff00;
+  padding: 15px;
+  border-radius: 8px;
+  font-family: 'Consolas', 'Courier New', monospace;
+  margin: 15px 0;
+  overflow-x: auto;
+  border-left: 4px solid #00ff00;
+}
+
+.command-comment {
+  color: #888;
+}
+
+.step-card {
+  border-left: 5px solid #dc3545;
+  transition: transform 0.2s;
+}
+
+.step-card:hover {
+  transform: translateX(5px);
+}
+
+.icon-box {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+.method-card {
+  transition: all 0.3s;
+  height: 100%;
+}
+
+.method-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+}
+
+.badge-custom {
+  padding: 8px 15px;
+  font-size: 14px;
+}

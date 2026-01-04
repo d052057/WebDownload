@@ -31,6 +31,11 @@ export const routes: Routes = [
       .then(mod => mod.RepairBoot)
   },
   {
+    path: 'repairusbboot',
+    loadComponent: () => import('./repair-usb-boot/repair-usb-boot')
+      .then(mod => mod.RepairUsbBoot)
+  },
+  {
     path: 'ypdlp',
     loadComponent: () => import('./ypdlp/ypdlp')
       .then(mod => mod.Ypdlp)
