@@ -13,15 +13,16 @@ namespace WebDownload.Server.Services
     public class DownloadService : IDownloadService
     {
         private string OutputFileTemplate = @"%(title)s [%(id)s].%(ext)s";
-
+        private readonly string configPath = @"yt-dlp.conf";
         private string ytDlpPath = @"yt-dlp.exe";
         private StringBuilder sb = new StringBuilder();
         public async Task StartDownloadTitleAsync(DownloadTitleRequest request, Func<DownloadInfo, Task> callback)
         {
             sb.Clear();
-            sb.AppendFormat(" {0} -o \"{1}\" {2}", "--progress", OutputFileTemplate, "--restrict-filenames");
-            sb.AppendFormat(" {0} {1} {2}", "--no-warnings", "--print filename", "--skip-download");
-            sb.AppendFormat(" {0}", request.Url);
+            sb.AppendFormat(" {0} {1}", "--config-location", configPath);
+            sb.AppendFormat(" --progress -o \"{0}\" --restrict-filenames", OutputFileTemplate);
+            sb.AppendFormat(" --no-warnings --print filename --skip-download");
+            sb.AppendFormat(" \"{0}\"", request.Url);
             try
             {
                 var process = new Process
@@ -76,8 +77,12 @@ namespace WebDownload.Server.Services
         {
             //--list-subs  --skip-download --get-title
             sb.Clear();
-            sb.AppendFormat(" -P {0}", request.OutputFolder); // output to a folder
-            sb.AppendFormat(" {0} -o \"{1}\"", "--progress", OutputFileTemplate);
+            // Config location
+            sb.AppendFormat(" --config-location \"{0}\"", configPath);
+
+            // Output folder and template
+            sb.AppendFormat(" -P \"{0}\"", request.OutputFolder);
+            sb.AppendFormat(" --progress -o \"{0}\"", OutputFileTemplate);
             if (request.AudioOnly)
             {
                 sb.AppendFormat(" -f {0} ", "bestaudio");
@@ -93,17 +98,17 @@ namespace WebDownload.Server.Services
             }
             else
             {
-                // include subtitles
                 if (request.SubTitle)
                 {
-                    //sb.Append(" --sub-langs \"en,km\" --write-subs --write-auto-subs");
-                    sb.AppendFormat(" --sub-langs \"{0}\" --write-subs --write-auto-subs", request.SubTitleLang);
+                    sb.AppendFormat(" --sub-langs \"{0}\" --write-subs --write-auto-subs",
+                        request.SubTitleLang ?? "en");
                 }
             }
             ;
-            sb.AppendFormat(" {0}", "--no-warnings");
-            sb.AppendFormat(" {0}", request.Url);
-            Console.WriteLine(sb.ToString());
+            sb.Append(" --no-warnings");
+            sb.AppendFormat(" \"{0}\"", request.Url);
+
+            Console.WriteLine($"yt-dlp command: {sb}");
             try
             {
                 var process = new Process

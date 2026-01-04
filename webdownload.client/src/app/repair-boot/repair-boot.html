@@ -1,0 +1,432 @@
+<div class="container">
+  <div class="main-container">
+    <div class="header-section">
+      <div class="d-flex align-items-center mb-3">
+        <i class="fas fa-hard-drive fa-3x me-3"></i>
+        <div>
+          <h1 class="mb-0">Windows 11 Boot Repair Guide</h1>
+          <p class="mb-0 mt-2 opacity-75"><i class="far fa-calendar-alt me-2"></i>January 3, 2026</p>
+        </div>
+      </div>
+      <p class="mb-0 fs-5">Restore bootability to a non-bootable Windows 11 hard disk with intact OS and data</p>
+    </div>
+
+    <div class="p-4">
+      <!-- Scenario -->
+      <div class="alert alert-warning border-start border-warning border-4" role="alert">
+        <div class="d-flex">
+          <div class="icon-box bg-warning bg-opacity-25 text-warning me-3">
+            <i class="fas fa-exclamation-triangle"></i>
+          </div>
+          <div class="flex-grow-1">
+            <h4 class="alert-heading"><i class="fas fa-info-circle me-2"></i>Scenario</h4>
+            <p class="mb-2"><strong>Problem:</strong> First hard disk contains current Windows 11 installation with up-to-date data and applications, but is not bootable (missing boot partition or boot files).</p>
+            <p class="mb-2"><strong>Available:</strong> Second hard disk that is bootable (cloned from first disk in the past via Acronis).</p>
+            <p class="mb-0"><strong>Goal:</strong> Make the first hard disk bootable again without reinstalling Windows or losing data.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Prerequisites -->
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+          <h3 class="mb-0"><i class="fas fa-list-check me-2"></i>Prerequisites</h3>
+        </div>
+        <div class="card-body">
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Administrator access to Windows</li>
+            <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Both hard disks connected to the system</li>
+            <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Boot from the working (second) hard disk</li>
+            <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Basic familiarity with Command Prompt</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Warning -->
+      <div class="alert alert-danger border-start border-danger border-4" role="alert">
+        <div class="d-flex">
+          <div class="icon-box bg-danger bg-opacity-25 text-danger me-3">
+            <i class="fas fa-exclamation-circle"></i>
+          </div>
+          <div>
+            <h5 class="alert-heading mb-2">⚠️ Important Safety Notice</h5>
+            <p class="mb-0">Before proceeding, back up any critical data from the first disk if possible. While this procedure is safe, it's always better to have backups.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Steps -->
+      <h2 class="mt-5 mb-4 text-primary"><i class="fas fa-clipboard-list me-2"></i>Step-by-Step Procedure</h2>
+
+      <!-- Step 1 -->
+      <div class="card step-card shadow-sm mb-4">
+        <div class="card-header bg-light">
+          <h4 class="mb-0"><span class="badge bg-primary badge-custom me-2">Step 1</span> Identify Disk Volumes</h4>
+        </div>
+        <div class="card-body">
+          <p>Open Command Prompt as Administrator and run diskpart to view all volumes:</p>
+          <div class="command-block">
+            diskpart<br>
+            list volume
+          </div>
+          <p class="mt-3">Look for the following in the output:</p>
+          <div class="table-responsive">
+            <table class="table table-striped table-custom">
+              <thead>
+                <tr>
+                  <th>Volume Type</th>
+                  <th>Characteristics</th>
+                  <th>Purpose</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="badge bg-info">Current Boot Disk</span></td>
+                  <td>Status: "Boot" (usually C:)</td>
+                  <td>Currently booting system (second disk)</td>
+                </tr>
+                <tr>
+                  <td><span class="badge bg-warning">EFI System (Current)</span></td>
+                  <td>FAT32, 100MB, Status: "System"</td>
+                  <td>Boot partition for second disk</td>
+                </tr>
+                <tr>
+                  <td><span class="badge bg-success">Target Disk</span></td>
+                  <td>NTFS, Large partition with data</td>
+                  <td>First disk to be made bootable</td>
+                </tr>
+                <tr>
+                  <td><span class="badge bg-danger">EFI System (Target)</span></td>
+                  <td>FAT32, 200MB, Hidden</td>
+                  <td>Boot partition for first disk</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="card step-card shadow-sm mb-4">
+        <div class="card-header bg-light">
+          <h4 class="mb-0"><span class="badge bg-primary badge-custom me-2">Step 2</span> Assign Drive Letter to Target EFI Partition</h4>
+        </div>
+        <div class="card-body">
+          <p>Identify the EFI partition belonging to your first disk (the one to be made bootable). In diskpart:</p>
+          <div class="command-block">
+            select volume 5<br>
+            <span class="command-comment">// Replace '5' with the actual volume number of the first disk's EFI partition</span><br>
+            detail volume<br>
+            <span class="command-comment">// Verify this is the correct EFI partition for the first disk</span><br>
+            assign letter=T<br>
+            exit
+          </div>
+          <div class="alert alert-info mt-3">
+            <i class="fas fa-lightbulb me-2"></i><strong>Note:</strong> The EFI partition is usually 100-500MB, formatted as FAT32, and marked as Hidden. Use "detail volume" to confirm which physical disk it belongs to.
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="card step-card shadow-sm mb-4">
+        <div class="card-header bg-light">
+          <h4 class="mb-0"><span class="badge bg-primary badge-custom me-2">Step 3</span> Identify Windows Installation on First Disk</h4>
+        </div>
+        <div class="card-body">
+          <p>Determine which drive letter contains the Windows installation on your first disk:</p>
+          <div class="command-block">
+            dir D:\Windows<br>
+            dir F:\Windows<br>
+            <span class="command-comment">// Check each potential drive until you find the Windows folder</span>
+          </div>
+          <p class="mt-3">The drive that shows a Windows directory is your target. In this example, we'll assume it's D:</p>
+        </div>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="card step-card shadow-sm mb-4">
+        <div class="card-header bg-light">
+          <h4 class="mb-0"><span class="badge bg-primary badge-custom me-2">Step 4</span> Copy Boot Files to First Disk's EFI Partition</h4>
+        </div>
+        <div class="card-body">
+          <p>Use the bcdboot command to install boot files from the first disk's Windows installation to its EFI partition:</p>
+          <div class="command-block">
+            bcdboot D:\Windows /s T: /f UEFI
+          </div>
+          <p class="mt-3">Where:</p>
+          <ul>
+            <li><strong>D:\Windows</strong> = Path to Windows installation on first disk</li>
+            <li><strong>/s T:</strong> = Target EFI system partition (assigned in Step 2)</li>
+            <li><strong>/f UEFI</strong> = Format for UEFI boot (modern systems)</li>
+          </ul>
+          <div class="alert alert-success mt-3">
+            <i class="fas fa-check-circle me-2"></i><strong>Expected Output:</strong> "Boot files successfully created."
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 5 -->
+      <div class="card step-card shadow-sm mb-4">
+        <div class="card-header bg-light">
+          <h4 class="mb-0"><span class="badge bg-primary badge-custom me-2">Step 5</span> Verify Boot Configuration</h4>
+        </div>
+        <div class="card-body">
+          <p>Confirm that the boot entry was created successfully:</p>
+          <div class="command-block">
+            bcdedit /enum firmware
+          </div>
+          <p class="mt-3">Look for an entry showing:</p>
+          <ul>
+            <li><strong>device</strong> = partition=T: (or the letter you assigned)</li>
+            <li><strong>path</strong> = \EFI\Microsoft\Boot\bootmgfw.efi</li>
+            <li><strong>description</strong> = Windows Boot Manager</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Step 6 -->
+      <div class="card step-card shadow-sm mb-4">
+        <div class="card-header bg-light">
+          <h4 class="mb-0"><span class="badge bg-primary badge-custom me-2">Step 6</span> Test the Bootable Disk</h4>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <div class="card h-100 border-success">
+                <div class="card-header bg-success text-white">
+                  <h5 class="mb-0"><i class="fas fa-star me-2"></i>Option A: Physical Disk Test (Recommended)</h5>
+                </div>
+                <div class="card-body">
+                  <ol>
+                    <li>Shut down the computer completely</li>
+                    <li>Physically disconnect the second (working) hard disk</li>
+                    <li>Leave only the first disk connected</li>
+                    <li>Power on the computer</li>
+                    <li>The first disk should now boot successfully</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6 mb-3">
+              <div class="card h-100 border-primary">
+                <div class="card-header bg-primary text-white">
+                  <h5 class="mb-0"><i class="fas fa-cog me-2"></i>Option B: BIOS Boot Order Change</h5>
+                </div>
+                <div class="card-body">
+                  <ol>
+                    <li>Restart the computer</li>
+                    <li>Enter BIOS/UEFI settings (F2, F10, DEL, or F12)</li>
+                    <li>Navigate to Boot menu</li>
+                    <li>Look for two "Windows Boot Manager" entries</li>
+                    <li>Move the first disk's entry to top priority</li>
+                    <li>Save and Exit</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Verification Checklist -->
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-success text-white">
+          <h3 class="mb-0"><i class="fas fa-clipboard-check me-2"></i>Verification Checklist</h3>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-bordered">
+              <thead class="table-light">
+                <tr>
+                  <th width="40%">Check</th>
+                  <th>Expected Result</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Windows boots successfully</td>
+                  <td><i class="fas fa-check-circle text-success me-2"></i>System starts without errors</td>
+                </tr>
+                <tr>
+                  <td>All data is accessible</td>
+                  <td><i class="fas fa-check-circle text-success me-2"></i>Files and folders are intact</td>
+                </tr>
+                <tr>
+                  <td>Applications are present</td>
+                  <td><i class="fas fa-check-circle text-success me-2"></i>Installed software appears in Start Menu</td>
+                </tr>
+                <tr>
+                  <td>System settings preserved</td>
+                  <td><i class="fas fa-check-circle text-success me-2"></i>User accounts, preferences intact</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Troubleshooting -->
+      <h2 class="mt-5 mb-4 text-danger"><i class="fas fa-tools me-2"></i>Troubleshooting</h2>
+
+      <div class="accordion" id="troubleshootingAccordion">
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1">
+              <i class="fas fa-question-circle text-warning me-2"></i>
+              "Boot files successfully created" but disk still won't boot
+            </button>
+          </h2>
+          <div id="collapse1" class="accordion-collapse collapse show" data-bs-parent="#troubleshootingAccordion">
+            <div class="accordion-body">
+              <ul>
+                <li>Verify you selected the correct EFI partition using "detail volume" in diskpart</li>
+                <li>Ensure the Windows path was correct (check for \Windows folder)</li>
+                <li>Try running the bootrec commands:</li>
+              </ul>
+              <div class="command-block">
+                bootrec /fixmbr<br>
+                bootrec /fixboot<br>
+                bootrec /rebuildbcd
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse2">
+              <i class="fas fa-question-circle text-warning me-2"></i>
+              Cannot find EFI partition for first disk
+            </button>
+          </h2>
+          <div id="collapse2" class="accordion-collapse collapse" data-bs-parent="#troubleshootingAccordion">
+            <div class="accordion-body">
+              <ul>
+                <li>The first disk may not have an EFI partition - it might have been deleted</li>
+                <li>You may need to create a new EFI partition using diskpart</li>
+                <li>Alternatively, clone the EFI partition from the second disk</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse3">
+              <i class="fas fa-question-circle text-warning me-2"></i>
+              "Access Denied" errors
+            </button>
+          </h2>
+          <div id="collapse3" class="accordion-collapse collapse" data-bs-parent="#troubleshootingAccordion">
+            <div class="accordion-body">
+              <ul>
+                <li>Ensure Command Prompt is running as Administrator</li>
+                <li>Disable BitLocker if enabled on the disk</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Technical Notes -->
+      <h2 class="mt-5 mb-4 text-info"><i class="fas fa-book me-2"></i>Technical Notes</h2>
+
+      <div class="row">
+        <div class="col-md-6 mb-4">
+          <div class="card h-100 border-info">
+            <div class="card-header bg-info text-white">
+              <h5 class="mb-0"><i class="fas fa-microchip me-2"></i>About EFI System Partitions</h5>
+            </div>
+            <div class="card-body">
+              <p>The EFI System Partition (ESP) is a small FAT32 partition that contains boot loaders and boot configuration files. In UEFI systems, this partition is essential for booting Windows. The bcdboot command copies the necessary boot files from a Windows installation to the ESP.</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6 mb-4">
+          <div class="card h-100 border-info">
+            <div class="card-header bg-info text-white">
+              <h5 class="mb-0"><i class="fas fa-exchange-alt me-2"></i>Drive Letter Changes After Boot</h5>
+            </div>
+            <div class="card-body">
+              <p>When you boot from the first disk alone, the drive letters will change. What was previously D: will likely become C: since it's now the boot drive. This is normal Windows behavior.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Commands Reference -->
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-dark text-white">
+          <h3 class="mb-0"><i class="fas fa-terminal me-2"></i>Commands Reference</h3>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead class="table-dark">
+                <tr>
+                  <th width="35%">Command</th>
+                  <th>Purpose</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>diskpart</code></td>
+                  <td>Disk partitioning utility</td>
+                </tr>
+                <tr>
+                  <td><code>list volume</code></td>
+                  <td>Display all volumes with details</td>
+                </tr>
+                <tr>
+                  <td><code>select volume #</code></td>
+                  <td>Select a specific volume for operations</td>
+                </tr>
+                <tr>
+                  <td><code>detail volume</code></td>
+                  <td>Show detailed information about selected volume</td>
+                </tr>
+                <tr>
+                  <td><code>assign letter=X</code></td>
+                  <td>Assign drive letter to selected volume</td>
+                </tr>
+                <tr>
+                  <td><code>bcdboot [source] /s [target] /f UEFI</code></td>
+                  <td>Copy boot files from Windows installation to EFI partition</td>
+                </tr>
+                <tr>
+                  <td><code>bcdedit /enum firmware</code></td>
+                  <td>Display firmware boot entries</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Success Summary -->
+      <div class="alert alert-success border-start border-success border-5" role="alert">
+        <div class="d-flex">
+          <div class="icon-box bg-success bg-opacity-25 text-success me-3">
+            <i class="fas fa-trophy"></i>
+          </div>
+          <div class="flex-grow-1">
+            <h4 class="alert-heading"><i class="fas fa-check-double me-2"></i>Success Indicators</h4>
+            <p class="mb-2">If you successfully completed this procedure, you should have:</p>
+            <ul class="mb-0">
+              <li><i class="fas fa-check text-success me-2"></i>A bootable first hard disk with all current data and applications</li>
+              <li><i class="fas fa-check text-success me-2"></i>Avoided reinstalling Windows and all software</li>
+              <li><i class="fas fa-check text-success me-2"></i>Created proper EFI boot files on the first disk</li>
+              <li><i class="fas fa-check text-success me-2"></i>A backup bootable disk (the second one) for emergency use</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="text-center mt-5 pt-4 border-top">
+        <p class="text-muted mb-0">
+          <i class="far fa-clock me-2"></i>
+          <em>This documentation reflects the actual successful boot repair procedure completed on January 3, 2026</em>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>

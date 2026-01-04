@@ -26,6 +26,11 @@ export const routes: Routes = [
       .then(mod => mod.Recovery)
   },
   {
+    path: 'repairboot',
+    loadComponent: () => import('./repair-boot/repair-boot')
+      .then(mod => mod.RepairBoot)
+  },
+  {
     path: 'ypdlp',
     loadComponent: () => import('./ypdlp/ypdlp')
       .then(mod => mod.Ypdlp)
