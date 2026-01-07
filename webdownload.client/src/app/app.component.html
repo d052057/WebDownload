@@ -7,46 +7,19 @@
       <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="navbarSupportedContent">
-      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            <i class='bi bi-book'></i> Helps
-          </a>
-          <ul class="dropdown-menu">
-              <li>
-                  <a routerLink="/githelp" class="dropdown-item">Git Help</a>
-              </li>
-              <li>
-                  <a class="dropdown-item" routerLink="/ffmpeg">FFmpeg document</a>
-              </li>
-              <li>
-                  <a class="dropdown-item" routerLink="/robocopy">RoboCopy</a>
-              </li>
-              <li>
-                  <a class="dropdown-item" routerLink="/dmg">Apple</a>
-              </li>
-              <li>
-                  <a class="dropdown-item" routerLink="/recovery">Recreate Recovery</a>
-              </li>
-              <li>
-                  <a class="dropdown-item" routerLink="/ypdlp">WebSites</a>
-              </li>
-              <li>
-                  <a class="dropdown-item" routerLink="/windows">Install Windows 11</a>
-              </li>
-              <li>
-                  <a class="dropdown-item" routerLink="/repairboot">Windows 11 Boot Repair</a>
-              </li>
-              <li>
-                  <a class="dropdown-item" routerLink="/repairusbboot">Windows 11 Boot Repair from USB</a>
-              </li>
-              <li>
-                  <a class="dropdown-item" routerLink="/backupiis">Backup IIS</a>
-              </li>
-          </ul>
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+            <li class="nav-item"><a routerLink="/guide" class="nav-link"><i class='bi bi-book'></i> Guides</a></li>
 
-        </li>
-      </ul>
+<!--             <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class='bi bi-book'></i> Helps
+                </a>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" [routerLink]="'/guide'">Guide</a></li>
+                </ul>
+
+            </li> -->
+        </ul>
     </div>
   </div>
 </nav>

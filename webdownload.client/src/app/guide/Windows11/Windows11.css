@@ -95,8 +95,6 @@
     }
   }
 }
-
-// Dark theme for code blocks
 .code-block {
   code {
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
