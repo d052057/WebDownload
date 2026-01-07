@@ -46,6 +46,11 @@ export const routes: Routes = [
       .then(mod => mod.Windows11)
   },
   {
+    path: 'backupiis',
+    loadComponent: () => import('./backup-iis/backup-iis')
+      .then(mod => mod.BackupIis)
+  },
+  {
     path: 'githelp',
     loadComponent: () => import('./git-help/git-help')
       .then(mod => mod.GitHelp)
