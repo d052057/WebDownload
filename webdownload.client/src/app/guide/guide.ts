@@ -12,14 +12,12 @@ export class Guide {
   router = inject(Router)
   items = [
     'Backup IIS',
-    'FFmpeg',
     'Git Help',
     'Apple Dmg',
     'Repair Boot',
     'Recovery',
     'Robo Copy',
     'Yt-dlp Websites',
-    'Windows11',
     'Repair Boot From USB'
   ]
 

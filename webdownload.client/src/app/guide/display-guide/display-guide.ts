@@ -21,14 +21,12 @@ export class DisplayGuide implements OnInit {
   item: string = '';
   css = [
     'Backup IIS.css',
-    'FFmpeg.css',
     'Git Help.css',
     'Apple Dmg.css',
     'Repair Boot.css',
     'Recovery.css',
     'Robo Copy.css',
     'Yt-dlp Websites.css',
-    'Windows11.css',
     'Repair Boot From USB.css'
   ]
   js = [
