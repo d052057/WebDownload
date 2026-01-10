@@ -11,11 +11,6 @@ export const routes: Routes = [
       .then(mod => mod.Windows11)
   },
   {
-    path: 'ffmpeg',  // Default route
-    loadComponent: () => import('./ffmpeg/ffmpeg')
-      .then(mod => mod.Ffmpeg)
-  },
-  {
     path: 'guide',
     loadComponent: () => import('./guide/guide')
       .then(mod => mod.Guide),

@@ -18,7 +18,8 @@ export class Guide {
     'Recovery',
     'Robo Copy',
     'Yt-dlp Websites',
-    'Repair Boot From USB'
+    'Repair Boot From USB',
+    'FFmpeg'
   ]
 
   constructor() { }
