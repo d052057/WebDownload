@@ -55,18 +55,6 @@ export class DisplayGuide implements OnInit {
         }
       );
   }
-  //loadStylesheet(feature: string) {
-  //  const url = 'assets/guide/' + feature + '/' + feature + '.css'
-  //  const cssFile = feature + '.css';
-  //  for (const c of this.css) {
-  //    if (c === cssFile) {
-  //      const link = this.renderer2.createElement('link');
-  //      this.renderer2.setAttribute(link, 'rel', 'stylesheet');
-  //      this.renderer2.setAttribute(link, 'href', url);
-  //      this.renderer2.appendChild(this.document.head, link);
-  //    }
-  //  }
-  //}
   loadStylesheet(feature: string): Promise<void> {
     return new Promise((resolve) => {
       const url = 'assets/guide/' + feature + '/' + feature + '.css';

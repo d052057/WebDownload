@@ -1,9 +1,9 @@
 import { Component, inject } from '@angular/core';
-import { ActivatedRoute, Router, RouterOutlet } from '@angular/router';
+import { ActivatedRoute, Router, RouterOutlet, RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-guide',
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, RouterLink],
   templateUrl: './guide.html',
   styleUrl: './guide.scss',
 })
@@ -23,10 +23,10 @@ export class Guide {
   ]
 
   constructor() { }
-  showGuide(item: string) {
-    this.router.navigate(['./guide', item],
-      {
-        relativeTo: this.activatedRoute
-      })
-  }
+  //showGuide(item: string) {
+  //  this.router.navigate([item],
+  //    {
+  //      relativeTo: this.activatedRoute
+  //    })
+  //}
 }

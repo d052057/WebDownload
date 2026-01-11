@@ -6,21 +6,22 @@ export const routes: Routes = [
       .then(mod => mod.Home)
   },
   {
-    path: 'windows11',  // Default route
-    loadComponent: () => import('./windows11/windows11')
-      .then(mod => mod.Windows11)
-  },
-  {
     path: 'guide',
     loadComponent: () => import('./guide/guide')
       .then(mod => mod.Guide),
-    children: [{
-      path: 'guide/:item',
+    children: [
+      {
+        path: 'windows11',  // Default route
+        loadComponent: () => import('./guide/windows11/windows11')
+          .then(mod => mod.Windows11)
+      },
+      {
+      path: ':item',
       loadComponent: () => import('./guide/display-guide/display-guide')
         .then(mod => mod.DisplayGuide)
-    }
+      }
     ]
-  },
+  }
 ];
 
 
