@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>WebAngular Project Setup Reference</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+code { background: #e9ecef; padding: 2px 4px; border-radius: 3px; }
+body { padding: 20px; }
+</style>
+</head>
+<body>
+
+<div class="container">
+<h1 class="mb-4">WebAngular Project Setup Reference</h1>
+
+<p>This document explains how to create a full-stack project with Angular 21 frontend and .NET 9 backend.</p>
+
+<hr>
+
+<h2>1. Create Solution Folder and Solution</h2>
+<pre><code>mkdir webangular
+cd webangular
+dotnet new sln -n webangular
+</code></pre>
+
+<h2>2. Create .NET 9 Backend (Web API)</h2>
+<pre><code>dotnet new webapi -n webangular.server
+dotnet sln add webangular.server/webangular.server.csproj
+
+# Optional: clean template controllers
+del webangular.server\Controllers\WeatherForecastController.cs
+del webangular.server\WeatherForecast.cs
+</code></pre>
+
+<h2>3. Create Angular 21 Frontend</h2>
+<pre><code>ng new webangular.client --routing --style=scss --skip-tests</code></pre>
+
+<h2>4. Add Proxy Configuration</h2>
+<pre><code>cd webangular.client
+echo {
+  "/api": {
+    "target": "https://localhost:5001",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  }
+} > proxy.conf.json
+
+powershell -Command "(gc angular.json) -replace '\"options\": {','\"options\": {\n        \"proxyConfig\": \"proxy.conf.json\",' | Out-File angular.json -encoding UTF8"</code></pre>
+
+<h2>5. Build Angular into Backend wwwroot</h2>
+<pre><code>cd webangular.client
+ng build --prod --output-path ../webangular.server/wwwroot</code></pre>
+
+<h2>6. Optional Pre-Build Angular Step in Backend</h2>
+<pre><code>powershell -Command "Add-Content webangular.server\webangular.server.csproj '<Target Name=\"BuildAngular\" BeforeTargets=\"Build\">\n  <Exec Command=\"npm install\" WorkingDirectory=\"..\webangular.client\" />\n  <Exec Command=\"npm run build -- --output-path ../webangular.server/wwwroot\" WorkingDirectory=\"..\webangular.client\" />\n</Target>'"</code></pre>
+
+<h2>7. Minimal Program.cs</h2>
+<pre><code>var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.WithOrigins("http://localhost:4200")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
+var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseCors();
+app.UseHttpsRedirection();
+app.UseAuthorization();
+app.MapControllers();
+app.UseDefaultFiles();
+app.UseStaticFiles();
+app.Run();</code></pre>
+
+<h2>8. Run the Project</h2>
+<h5>Backend</h5>
+<pre><code>cd webangular.server
+dotnet run</code></pre>
+<h5>Angular Dev Server (with proxy)</h5>
+<pre><code>cd webangular.client
+ng serve</code></pre>
+
+<h2>9. Folder Structure</h2>
+<pre><code>webangular/
+├─ webangular.client/
+│   └─ proxy.conf.json
+├─ webangular.server/
+│   └─ wwwroot/
+└─ webangular.sln</code></pre>
+
+<hr>
+<p>Now you can open <code>webangular.sln</code> in VS2022, set the backend as startup project, and run Angular separately or integrated with wwwroot.</p>
+</div>
+
+</body>
+</html>
