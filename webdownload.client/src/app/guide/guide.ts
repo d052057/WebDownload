@@ -19,7 +19,8 @@ export class Guide {
     'Robo Copy',
     'Yt-dlp Websites',
     'Repair Boot From USB',
-    'FFmpeg'
+    'FFmpeg',
+    'create App'
   ]
 
   constructor() { }

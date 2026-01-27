@@ -29,7 +29,8 @@ export class DisplayGuide implements OnInit {
     'Robo Copy.css',
     'Yt-dlp Websites.css',
     'Repair Boot From USB.css',
-    'FFmpeg,css'
+    'FFmpeg,css',
+    'create App.css'
   ]
   js = [
   ]
