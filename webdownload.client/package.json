@@ -37,7 +37,6 @@
     "zone.js": "^0.16.0"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "^21.1.1",
     "run-script-os": "*",
     "@angular/build": "^21.1.1",
     "@angular/cli": "^21.1.1",
