@@ -21,7 +21,7 @@ export class Home {
   output$ = this.outputSubject.asObservable();
 
   url: string = '';
-  isDownloading: boolean = false;
+  isDownloading = signal(false);  
   options: string = '-- progress -o "%(title)s [%(id)s].%(ext)s" "--restrict-filenames"\n--no-warnings\n-P movies\\9\n--sub-langs "en"\n--write-subs\n--write-auto-subs "en.*,km"';
   chkAudio: boolean = false;
   checkAudioChapter: boolean = true;
@@ -81,7 +81,7 @@ export class Home {
 
     // Subscribe to download finished
     this.signalRService.addHandler('ReceiveDownloadFinished', (info: downloadInfo) => {
-      this.isDownloading = false;
+      this.isDownloading.set(false);
       this.finish = `${info.finishOutput}`;
     });
     this.signalRService.addHandler('ReceiveState', (info: downloadInfo) => {
@@ -142,7 +142,7 @@ export class Home {
       subTitleLang: this.selectedLangFormat,
       outputFolder: `${this.selectedMenuValue}\\${this.outputFolder}`  // Send the user-provided output folder.
     };
-    this.isDownloading = true;
+    this.isDownloading.set(true);
     this.signalRService.invokeMethod('HubStartDownloadServiceAsync', payload);
   }
 }

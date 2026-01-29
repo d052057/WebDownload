@@ -10,7 +10,7 @@
            [(ngModel)]="url"
            placeholder="Enter YouTube URL"
            (change)="getTitle()"
-           [disabled]="isDownloading">
+           [disabled]="isDownloading()">
   </div>
 
   <label for="options">Custom Options (one per line):</label>
@@ -23,7 +23,7 @@
       <input type="checkbox" class="form-check-input"
              [(ngModel)]="chkAudio"
              (change)="onCheckboxChange('chkAudio')"
-             [disabled]="isDownloading">
+             [disabled]="isDownloading()">
       <span class="form-check-label">Audio Only</span>
     </label>
 
@@ -80,7 +80,7 @@
       <input type="checkbox" class="form-check-input"
              [(ngModel)]="chkVideo"
              (change)="onCheckboxChange('chkVideo')"
-             [disabled]="isDownloading">
+             [disabled]="isDownloading()">
       <span class="form-check-label">Video checkbox</span>
     </label>
 
@@ -89,7 +89,7 @@
       <label class="checkbox-container" style="margin-left: 2rem; margin-right: 1rem">
         <input type="checkbox" class="form-check-input"
                [(ngModel)]="chKSubTitleInclude"
-               [disabled]="isDownloading">
+               [disabled]="isDownloading()">
         <span class="form-check-label">Sub Titles or ClosedCaption</span>
       </label>
       @if (chKSubTitleInclude) {
@@ -184,7 +184,7 @@
     <div class="button-group mb-3">
       <button class="btn btn-primary"
               (click)="startDownload()"
-              [disabled]="!url || isDownloading">
+              [disabled]="!url || isDownloading()">
         Download
       </button>
     </div>
