@@ -40,6 +40,7 @@ export class Home {
   ReceiveVideoIndex: string = '';
   ReceiveTotalSize: string = '';
   TotalFragments: string = '';
+  CurrentFragment: string = '';
   finish: string = '';
   ReceiveFileName: string = '';
   ReceiveState: string = '';
@@ -72,6 +73,9 @@ export class Home {
       this.ReceiveETA = info.eta;
       this.ReceiveTotalSize = info.size;
       this.ReceiveState = info.state;
+      if (info.frag) {
+        this.CurrentFragment = info.frag;
+      }
     });
     // Subscribe to error messages
     this.signalRService.addHandler('ReceiveError', (info: downloadInfo) => {
