@@ -71,7 +71,6 @@ export class Home {
       this.ReceiveSpeed = info.speed;
       this.ReceiveETA = info.eta;
       this.ReceiveTotalSize = info.size;
-      this.TotalFragments = info.frag;
       this.ReceiveState = info.state;
     });
     // Subscribe to error messages
