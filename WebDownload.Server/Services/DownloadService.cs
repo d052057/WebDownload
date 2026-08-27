@@ -105,6 +105,13 @@ namespace WebDownload.Server.Services
                 }
             }
             ;
+            if (!string.IsNullOrWhiteSpace(request.Options))
+            {
+                // Options is entered as multi-line text in the UI; collapse newlines to spaces
+                // since the process argument string must be a single line.
+                var customOptions = request.Options.Replace("\r\n", " ").Replace("\n", " ").Replace("\r", " ").Trim();
+                sb.AppendFormat(" {0}", customOptions);
+            }
             sb.Append(" --no-warnings");
             sb.AppendFormat(" \"{0}\"", request.Url);
 
