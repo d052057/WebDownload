@@ -22,7 +22,7 @@ export class Home {
 
   url: string = '';
   isDownloading = signal(false);  
-  options: string = '-- progress -o "%(title)s [%(id)s].%(ext)s" "--restrict-filenames"\n--no-warnings\n-P movies\\9\n--sub-langs "en"\n--write-subs\n--write-auto-subs "en.*,km"';
+  options: string = '';
   chkAudio: boolean = false;
   checkAudioChapter: boolean = true;
   selectedAudioFormat: string = 'flac';
@@ -46,6 +46,35 @@ export class Home {
   ReceiveState: string = '';
   outputFolder: string = "9";
   connectionId!: string;
+
+  private buildAutoOptions(): string {
+    const parts: string[] = [];
+    if (this.chkAudio) {
+      parts.push('-f bestaudio');
+      if (this.selectedAudioFormat) {
+        parts.push(`-x --audio-format ${this.selectedAudioFormat}`);
+      }
+      if (this.checkAudioChapter) {
+        parts.push('--split-chapters');
+      }
+    } else if (this.chKSubTitleInclude) {
+      parts.push(`--sub-langs "${this.selectedLangFormat || 'en'}" --write-subs --write-auto-subs`);
+    }
+    return parts.join('\n');
+  }
+
+  // Phase 1: always clear the box and rebuild it entirely from the current switches.
+  updateAutoOptions(): void {
+    this.options = this.buildAutoOptions();
+  }
+
+  onUrlChange(): void {
+    this.getTitle();
+    if (this.url && this.url.trim() !== '') {
+      this.updateAutoOptions();
+    }
+  }
+
   ngOnInit(): void {
     // Initialize SignalR connection
     this.signalRService.startConnection();
@@ -115,6 +144,7 @@ export class Home {
     } else if (changedCheckbox === 'chkVideo') {
       this.chkAudio = !this.chkVideo;
     }
+    this.updateAutoOptions();
   }
 
   getTitle(): void {

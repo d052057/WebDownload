@@ -9,14 +9,15 @@
            class="form-control"
            [(ngModel)]="url"
            placeholder="Enter YouTube URL"
-           (change)="getTitle()"
+           (change)="onUrlChange()"
            [disabled]="isDownloading()">
   </div>
 
   <label for="options">Custom Options (one per line):</label>
   <textarea id="options"
-            class="form-control viewOnly"
-            rows="6">{{ options }}</textarea>
+            class="form-control"
+            rows="6"
+            [(ngModel)]="options"></textarea>
 
   <div class="form-check form-check-inline fade-in-out" style="animation-delay: 10ms;">
     <label class="checkbox-container">
@@ -37,7 +38,7 @@
                type="radio"
                name="rdoFlac"
                id="flacRadioId"
-               (change)="selectedAudioFormat = 'flac'"
+               (change)="selectedAudioFormat = 'flac'; updateAutoOptions()"
                [(ngModel)]="selectedAudioFormat"
                value="flac" />
         <label class="form-check-label" for="flacRadioId">Flac</label>
@@ -48,7 +49,7 @@
                type="radio"
                name="rdoWav"
                id="wavRadioId"
-               (change)="selectedAudioFormat = 'wav'"
+               (change)="selectedAudioFormat = 'wav'; updateAutoOptions()"
                [(ngModel)]="selectedAudioFormat"
                value="wav" />
         <label class="form-check-label" for="wavRadioId">Wav</label>
@@ -59,7 +60,7 @@
                type="radio"
                name="rdoMp3"
                id="mp3RadioId"
-               (change)="selectedAudioFormat = 'mp3'"
+               (change)="selectedAudioFormat = 'mp3'; updateAutoOptions()"
                [(ngModel)]="selectedAudioFormat"
                value="mp3" />
         <label class="form-check-label" for="mp3RadioId">MP3</label>
@@ -67,7 +68,8 @@
       <div class="form-check" style="margin-left: 2rem">
         <label class="checkbox-container">
           <input type="checkbox" class="form-check-input"
-                 [(ngModel)]="checkAudioChapter" />
+                 [(ngModel)]="checkAudioChapter"
+                 (change)="updateAutoOptions()" />
           <span class="form-check-label">Separate Chapter, if any</span>
         </label>
       </div>
@@ -89,6 +91,7 @@
       <label class="checkbox-container" style="margin-left: 2rem; margin-right: 1rem">
         <input type="checkbox" class="form-check-input"
                [(ngModel)]="chKSubTitleInclude"
+               (change)="updateAutoOptions()"
                [disabled]="isDownloading()">
         <span class="form-check-label">Sub Titles or ClosedCaption</span>
       </label>
@@ -100,7 +103,7 @@
                  type="radio"
                  name="rdoEnKm"
                  id="langEnKmId"
-                 (change)="selectedLangFormat = 'en.*,km'"
+                 (change)="selectedLangFormat = 'en.*,km'; updateAutoOptions()"
                  [(ngModel)]="selectedLangFormat"
                  value="en.*,km" />
           <label class="form-check-label" for="langEnKmId">Khmer translated from English</label>
@@ -111,7 +114,7 @@
                  type="radio"
                  name="rdoThaiKm"
                  id="langThaiKmId"
-                 (change)="selectedLangFormat = 'th,km'"
+                 (change)="selectedLangFormat = 'th,km'; updateAutoOptions()"
                  [(ngModel)]="selectedLangFormat"
                  value="th,km" />
           <label class="form-check-label" for="langThaiKmId">Khmer translated from Thai</label>
@@ -122,7 +125,7 @@
                  type="radio"
                  name="rdoChinaKm"
                  id="langChinaKmId"
-                 (change)="selectedLangFormat = 'zh-Hans,km'"
+                 (change)="selectedLangFormat = 'zh-Hans,km'; updateAutoOptions()"
                  [(ngModel)]="selectedLangFormat"
                  value="zh-Hans,km" />
           <label class="form-check-label" for="langChinaKmId">Khmer translated from Chinese</label>
@@ -133,7 +136,7 @@
                  type="radio"
                  name="rdoVietKm"
                  id="langVietKmId"
-                 (change)="selectedLangFormat = 'vi,km'"
+                 (change)="selectedLangFormat = 'vi,km'; updateAutoOptions()"
                  [(ngModel)]="selectedLangFormat"
                  value="vi,km" />
           <label class="form-check-label" for="langVietKmId">Khmer translated from Vietnamese</label>
@@ -144,7 +147,7 @@
                  type="radio"
                  name="rdoLaoKm"
                  id="langLaoKmId"
-                 (change)="selectedLangFormat = 'lo,km'"
+                 (change)="selectedLangFormat = 'lo,km'; updateAutoOptions()"
                  [(ngModel)]="selectedLangFormat"
                  value="lo,km" />
           <label class="form-check-label" for="langLaoKmId">Khmer translated from Lao</label>
@@ -155,7 +158,7 @@
                  type="radio"
                  name="rdoEn"
                  id="langEn"
-                 (change)="selectedLangFormat = 'en.*'"
+                 (change)="selectedLangFormat = 'en.*'; updateAutoOptions()"
                  [(ngModel)]="selectedLangFormat"
                  value="end.*" />
           <label class="form-check-label" for="langEn">English</label>
