@@ -34,7 +34,7 @@ export class SignalrService {
     console.log(`Connecting to SignalR hub at: ${hubUrl}`);
     // Initialize the SignalR connection
     this.hubConnection = new signalR.HubConnectionBuilder()
-      .withUrl(hubUrl, { transport: signalR.HttpTransportType.WebSockets, withCredentials: false }) // Update URL if needed
+      .withUrl(hubUrl, { withCredentials: false }) // let SignalR negotiate and fall back if WS upgrade is blocked by the proxy
    
       .configureLogging(signalR.LogLevel.Information)
       .withAutomaticReconnect()
