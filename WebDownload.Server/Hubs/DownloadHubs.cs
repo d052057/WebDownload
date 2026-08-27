@@ -147,17 +147,16 @@ namespace WebDownload.Server.Hubs
                                 await Clients.Client(conn).SendAsync("ReceiveLastDownloadInfo", xinfo);
                             }
 
-                            if (p.Output.IndexOf("[Merger] Merging formats into") > -1 || p.Output.IndexOf("Deleting original file") > -1)
-                            {
-                                DownloadInfo minfo = new()
-                                {
-                                    State = "Post Processing"
-                                };
-                                await Clients.Client(conn).SendAsync("ReceiveState", minfo);
-
-                            }
-
                         };
+                        if (p.Output.IndexOf("[Merger] Merging formats into") > -1 || p.Output.IndexOf("Deleting original file") > -1)
+                        {
+                            DownloadInfo minfo = new()
+                            {
+                                State = "Post Processing"
+                            };
+                            await Clients.Client(conn).SendAsync("ReceiveState", minfo);
+
+                        }
                         if (p.Output.Contains("[ExtractAudio]"))
                         {
                             var matchExtractFile = rgxExtractAudio.Match(p.Output);
