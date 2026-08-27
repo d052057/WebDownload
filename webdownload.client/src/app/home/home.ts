@@ -75,6 +75,43 @@ export class Home {
     }
   }
 
+  // Phase 2: draggable reference list of common yt-dlp args that can be dropped into the Options box.
+  ytDlpArgList: { label: string; arg: string }[] = [
+    { label: 'Embed subtitles (closed captions)', arg: '--embed-subs' },
+    { label: 'Prefer SRT subtitle format', arg: '--sub-format srt/best' },
+    { label: 'Convert subtitles to SRT', arg: '--convert-subs srt' },
+    { label: 'Remux to MP4 container', arg: '--remux-video mp4' },
+    { label: 'Best video+audio merged', arg: '-f bestvideo+bestaudio/best' },
+    { label: 'Cap resolution at 1080p', arg: '-f "bv*[height<=1080]+ba/b[height<=1080]"' },
+    { label: 'Force merged output to MP4', arg: '--merge-output-format mp4' },
+    { label: 'Embed chapters', arg: '--embed-chapters' },
+    { label: 'Embed metadata', arg: '--embed-metadata' },
+    { label: 'Embed thumbnail as cover art', arg: '--embed-thumbnail' },
+    { label: 'Only specific playlist items', arg: '--playlist-items 1-5' },
+    { label: 'Single video, ignore playlist', arg: '--no-playlist' },
+    { label: 'Limit download rate', arg: '--limit-rate 2M' },
+    { label: 'Retry count on network errors', arg: '--retries 10' },
+  ];
+
+  onArgDragStart(event: DragEvent, arg: string): void {
+    event.dataTransfer?.setData('text/plain', arg);
+  }
+
+  onOptionsDragOver(event: DragEvent): void {
+    event.preventDefault();
+  }
+
+  onOptionsDrop(event: DragEvent): void {
+    event.preventDefault();
+    const dropped = event.dataTransfer?.getData('text/plain');
+    if (dropped) {
+      this.options = this.options && this.options.trim() !== ''
+        ? this.options + '\n' + dropped
+        : dropped;
+    }
+  }
+
+
   ngOnInit(): void {
     // Initialize SignalR connection
     this.signalRService.startConnection();

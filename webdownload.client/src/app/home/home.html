@@ -13,11 +13,30 @@
            [disabled]="isDownloading()">
   </div>
 
-  <label for="options">Custom Options (one per line):</label>
-  <textarea id="options"
-            class="form-control"
-            rows="6"
-            [(ngModel)]="options"></textarea>
+  <div class="row mb-3">
+    <div class="col-md-8">
+      <label for="options">Custom Options (one per line):</label>
+      <textarea id="options"
+                class="form-control"
+                rows="10"
+                [(ngModel)]="options"
+                (dragover)="onOptionsDragOver($event)"
+                (drop)="onOptionsDrop($event)"></textarea>
+    </div>
+    <div class="col-md-4">
+      <label>yt-dlp Arg List (drag an item onto the box):</label>
+      <div class="d-flex flex-column gap-2 p-2 border rounded" style="max-height: 260px; overflow-y: auto;">
+        @for (item of ytDlpArgList; track item.arg) {
+        <span class="badge text-bg-secondary arg-chip text-wrap text-start"
+              draggable="true"
+              (dragstart)="onArgDragStart($event, item.arg)"
+              [title]="item.arg">
+          {{ item.label }}
+        </span>
+        }
+      </div>
+    </div>
+  </div>
 
   <div class="form-check form-check-inline fade-in-out" style="animation-delay: 10ms;">
     <label class="checkbox-container">

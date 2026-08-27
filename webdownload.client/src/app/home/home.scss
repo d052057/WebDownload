@@ -4,6 +4,15 @@
   cursor: not-allowed;
 }
 
+.arg-chip {
+  cursor: grab;
+  user-select: none;
+}
+
+.arg-chip:active {
+  cursor: grabbing;
+}
+
 .progress-bar-orange {
   background-color: orange !important;
 }
