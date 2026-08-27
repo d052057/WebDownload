@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.FileProviders;
 using WebDownload.Server;
 using WebDownload.Server.Hubs;
@@ -17,6 +18,21 @@ builder.Services.AddCors();
 builder.Services.Configure<ApplicationSettings>(builder.Configuration.GetSection("ApplicationSettings"));
 
 var app = builder.Build();
+
+// Must run first: trust X-Forwarded-Proto/For/Host from the reverse proxy
+// so HTTPS redirection, HSTS, and Request.Scheme/Host are correct.
+var forwardedHeadersOptions = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost
+};
+// Default only trusts 127.0.0.1. If the reverse proxy is on another
+// host/container, either add its IP to KnownProxies, or (only if the proxy
+// is not internet-reachable directly, e.g. behind a firewall/same docker
+// network) clear the lists so any proxy IP is trusted:
+forwardedHeadersOptions.KnownNetworks.Clear();
+forwardedHeadersOptions.KnownProxies.Clear();
+app.UseForwardedHeaders(forwardedHeadersOptions);
+
 app.UseStaticFiles();
 string MediaDrive = builder.Configuration.GetValue("ApplicationSettings:MediaDrive", "*") ?? @"c:/medias";
 app.UseStaticFiles(new StaticFileOptions
@@ -56,7 +72,8 @@ if (app.Environment.IsDevelopment())
             options.SwaggerEndpoint("../openapi/v1.json", "version 1");
         });
 }
-else {
+else
+{
     app.UseHsts();
 }
 app.UseHttpsRedirection();
