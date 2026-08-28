@@ -4,14 +4,36 @@
   cursor: not-allowed;
 }
 
-.arg-chip {
+/* Improve yt-dlp arg list styling */
+.arg-list-container {
+  max-height: 500px;
+  overflow-y: auto;
+  border-radius: 4px;
+  border: 1px solid #dee2e6;
+}
+
+.arg-item {
   cursor: grab;
   user-select: none;
 }
 
-.arg-chip:active {
+.arg-item:active {
   cursor: grabbing;
 }
+
+.list-group-item.active {
+  background-color: #dc3545;
+  border-color: #dc3545;
+}
+
+.list-group-item:hover {
+  background-color: #f8f9fa;
+}
+
+.list-group-item.active:hover {
+  background-color: #c82333;
+}
+
 
 .progress-bar-orange {
   background-color: orange !important;

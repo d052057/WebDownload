@@ -93,8 +93,15 @@ export class Home {
     { label: 'Retry count on network errors', arg: '--retries 10' },
   ];
 
+  draggingArg: string | null = null;
+
   onArgDragStart(event: DragEvent, arg: string): void {
     event.dataTransfer?.setData('text/plain', arg);
+    this.draggingArg = arg;
+  }
+
+  onArgDragEnd(): void {
+    this.draggingArg = null;
   }
 
   onOptionsDragOver(event: DragEvent): void {
@@ -109,6 +116,7 @@ export class Home {
         ? this.options + '\n' + dropped
         : dropped;
     }
+    this.draggingArg = null;
   }
 
 
