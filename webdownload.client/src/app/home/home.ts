@@ -68,7 +68,25 @@ export class Home {
     this.options = this.buildAutoOptions();
   }
 
+  private resetDownloadStatus(): void {
+    this.progress = '';
+    this.error = '';
+    this.ReceiveSpeed = '';
+    this.ReceiveETA = '';
+    this.ReceiveData = '';
+    this.ReceiveVideoIndex = '';
+    this.ReceiveTotalSize = '';
+    this.TotalFragments = '';
+    this.CurrentFragment = '';
+    this.finish = '';
+    this.ReceiveFileName = '';
+    this.ReceiveState = '';
+    this.chapter.set([]);
+    this.outputSubject.next([]);
+  }
+
   onUrlChange(): void {
+    this.resetDownloadStatus();
     this.getTitle();
     if (this.url && this.url.trim() !== '') {
       this.updateAutoOptions();
