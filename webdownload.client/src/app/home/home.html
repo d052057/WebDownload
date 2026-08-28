@@ -172,6 +172,22 @@
         </div>
         }
       </div>
+
+      <div class="form-check form-check-inline fade-in-out mt-2" style="animation-delay: 10ms;">
+        <label class="checkbox-container">
+          <input type="checkbox" class="form-check-input"
+                 [(ngModel)]="useCookiesFromBrowser"
+                 (change)="onCookiesFromBrowserChange()">
+          <span class="form-check-label">Use Chrome cookies (same machine)</span>
+        </label>
+        <label class="checkbox-container" style="margin-left: 2rem">
+          <input type="checkbox" class="form-check-input"
+                 [(ngModel)]="useCookiesFile"
+                 (change)="onCookiesFileChange()">
+          <span class="form-check-label">Use cookies.txt file</span>
+        </label>
+      </div>
+
     </div>
     <div class="col-md-4 sticky-top" style="top: 1rem;">
       <label>yt-dlp Arg List (drag an item onto the box):</label>

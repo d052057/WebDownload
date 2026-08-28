@@ -47,6 +47,23 @@ export class Home {
   outputFolder: string = "9";
   connectionId!: string;
 
+  useCookiesFromBrowser: boolean = false;
+  useCookiesFile: boolean = false;
+
+  onCookiesFromBrowserChange(): void {
+    if (this.useCookiesFromBrowser) {
+      this.useCookiesFile = false;
+    }
+    this.updateAutoOptions();
+  }
+
+  onCookiesFileChange(): void {
+    if (this.useCookiesFile) {
+      this.useCookiesFromBrowser = false;
+    }
+    this.updateAutoOptions();
+  }
+
   private buildAutoOptions(): string {
     const parts: string[] = [];
     if (this.chkAudio) {
@@ -59,6 +76,11 @@ export class Home {
       }
     } else if (this.chKSubTitleInclude) {
       parts.push(`--sub-langs "${this.selectedLangFormat || 'en'}" --write-subs --write-auto-subs`);
+    }
+    if (this.useCookiesFromBrowser) {
+      parts.push('--cookies-from-browser chrome');
+    } else if (this.useCookiesFile) {
+      parts.push('--cookies cookies.txt');
     }
     return parts.join('\n');
   }
