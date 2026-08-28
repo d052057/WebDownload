@@ -46,6 +46,7 @@ export class Home {
   ReceiveState: string = '';
   outputFolder: string = "9";
   connectionId!: string;
+  ytDlpCommand: string = '';
 
   useCookiesFromBrowser: boolean = false;
   useCookiesFile: boolean = false;
@@ -103,6 +104,7 @@ export class Home {
     this.finish = '';
     this.ReceiveFileName = '';
     this.ReceiveState = '';
+    this.ytDlpCommand = '';
     this.chapter.set([]);
     this.outputSubject.next([]);
   }
@@ -164,6 +166,9 @@ export class Home {
     // Initialize SignalR connection
     this.signalRService.startConnection();
 
+    this.signalRService.addHandler('ReceiveCommand', (info: downloadInfo) => {
+      this.ytDlpCommand = info.command || '';
+    });
     this.signalRService.addHandler('ReceiveTotalFragment', (info: downloadInfo) => {
       this.TotalFragments = `${info.frag}`;
     });

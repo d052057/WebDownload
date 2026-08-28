@@ -84,6 +84,15 @@ namespace WebDownload.Server.Hubs
             {
                 Func<DownloadInfo, Task> callback = async p =>
                 {
+                    if (!string.IsNullOrEmpty(p.Command))
+                    {
+                        DownloadInfo cinfo = new()
+                        {
+                            Command = p.Command
+                        };
+                        await Clients.Client(conn).SendAsync("ReceiveCommand", cinfo);
+                    }
+
                     var matchFileName = rgxFilePostProc.Match(p.Output);
                     if (matchFileName.Success)
                     {

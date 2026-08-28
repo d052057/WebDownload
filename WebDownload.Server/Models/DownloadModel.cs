@@ -33,6 +33,7 @@
         public string? Chapter { get; set;}
         public string? FinishOutput { get; set; }
         public string? Error { get; set; }
+        public string? Command { get; set; }
     }
 }
 

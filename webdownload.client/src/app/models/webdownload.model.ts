@@ -10,7 +10,8 @@ export class downloadInfo {
   chapter: string;
   error: string;
   finishOutput: string;
-  constructor(speed: string, eta: string, size: string, frag: string, state: string, output: string, progress: string, fileName: string, chapter: string, error: string, finishOutput: string) {
+  command?: string;
+  constructor(speed: string, eta: string, size: string, frag: string, state: string, output: string, progress: string, fileName: string, chapter: string, error: string, finishOutput: string, command?: string) {
     this.speed = speed;
     this.eta = eta;
     this.size = size;
@@ -22,6 +23,7 @@ export class downloadInfo {
     this.chapter = chapter;
     this.finishOutput = finishOutput;
     this.error = error;
+    this.command = command;
 
   }
 }

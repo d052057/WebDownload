@@ -116,6 +116,7 @@ namespace WebDownload.Server.Services
             sb.AppendFormat(" \"{0}\"", request.Url);
 
             Console.WriteLine($"yt-dlp command: {sb}");
+            await callback(new DownloadInfo { Command = sb.ToString() });
             try
             {
                 var process = new Process

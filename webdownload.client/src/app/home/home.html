@@ -278,6 +278,10 @@
       <section width="50%" class="text-end">
         <article [innerHTML]="chapter().join('<br />')" class="text-start"></article>
       </section>
+      <label for="ytDlpCommand">yt-dlp Command Executed:</label>
+      <div id="ytDlpCommand" class="p-2 bg-light border rounded text-break" style="font-family: monospace; font-size: 0.85rem;">
+        {{ ytDlpCommand || "-" }}
+      </div>
       <label for="output">Output Text Processing:</label>
       <section #sectionOutput>
         <article [innerHTML]="output$ | async | linebreak"></article>
