@@ -2,7 +2,7 @@ import { Component, inject } from '@angular/core';
 import { SignalrService } from '../services/signalr.service';
 import { FormsModule } from '@angular/forms'
 import { AsyncPipe } from '@angular/common';
-import { downloadInfo } from '../models/webdownload.model';
+import { downloadInfo, SubtitleTrackOption } from '../models/webdownload.model';
 import { BehaviorSubject } from 'rxjs';
 import { LinebreakPipe } from '../pipes/linebreak.pipe';
 import { signal } from '@angular/core';
@@ -26,11 +26,39 @@ export class Home {
   chkAudio: boolean = false;
   checkAudioChapter: boolean = true;
   selectedAudioFormat: string = 'flac';
-  selectedLangFormat: string = 'en.*,km';
   selectedMenuValue: string = "MOVIES";
   chkVideo: boolean = true;
   chKSubTitleInclude: boolean = true;
   chapter = signal<string[]>([]);
+
+  // Subtitle checkboxes: starts empty, gets filled in once we know what
+  // YouTube actually has for the entered URL (see getSubtitles()).
+  subtitleOptions: SubtitleTrackOption[] = [];
+  isLoadingSubtitles = false;
+
+  // "Translate to ..." checkboxes, mutually exclusive, same pattern as the
+  // cookie checkboxes below.
+  translateToKm: boolean = false;
+  translateToEn: boolean = false;
+  translatedFile: string = '';
+
+  onTranslateToKmChange(): void {
+    if (this.translateToKm) {
+      this.translateToEn = false;
+    }
+  }
+
+  onTranslateToEnChange(): void {
+    if (this.translateToEn) {
+      this.translateToKm = false;
+    }
+  }
+
+  get translateTo(): string {
+    if (this.translateToKm) return 'km';
+    if (this.translateToEn) return 'en';
+    return '';
+  }
 
   progress: string = '';
   error: string = '';
@@ -75,8 +103,6 @@ export class Home {
       if (this.checkAudioChapter) {
         parts.push('--split-chapters');
       }
-    } else if (this.chKSubTitleInclude) {
-      parts.push(`--sub-langs "${this.selectedLangFormat || 'en'}" --write-subs --write-auto-subs`);
     }
     if (this.useCookiesFromBrowser) {
       parts.push('--cookies-from-browser chrome');
@@ -107,14 +133,37 @@ export class Home {
     this.ytDlpCommand = '';
     this.chapter.set([]);
     this.outputSubject.next([]);
+    this.translatedFile = '';
   }
 
   onUrlChange(): void {
     this.resetDownloadStatus();
+    this.subtitleOptions = [];
     this.getTitle();
     if (this.url && this.url.trim() !== '') {
       this.updateAutoOptions();
+      this.getSubtitles();
     }
+  }
+
+  // Ask the server what subtitle/caption tracks YouTube has for this URL,
+  // then render them as checkboxes (see ReceiveSubtitleList handler).
+  getSubtitles(): void {
+    if (!this.chKSubTitleInclude) {
+      return;
+    }
+    this.connectionId = this.signalRService.getConnectionId();
+    this.isLoadingSubtitles = true;
+    const payload = {
+      downloadId: this.connectionId,
+      url: this.url,
+    };
+    this.signalRService.invokeMethod('HubGetSubtitlesAsync', payload);
+  }
+
+  onSubtitleToggleChanged(): void {
+    // Placeholder hook if we need side-effects later; checkbox state is
+    // bound directly via [(ngModel)]="option.checked" in the template.
   }
 
   // Phase 2: draggable reference list of common yt-dlp args that can be dropped into the Options box.
@@ -217,6 +266,16 @@ export class Home {
     this.signalRService.addHandler('ReceiveChapterFileName', (info: downloadInfo) => {
       this.chapter.update(current => [...current, `${info.chapter}`]);
     });
+
+    this.signalRService.addHandler('ReceiveSubtitleList', (info: downloadInfo) => {
+      this.isLoadingSubtitles = false;
+      const tracks = info.subtitleTracks || [];
+      this.subtitleOptions = tracks.map(t => ({ ...t, checked: false }));
+    });
+
+    this.signalRService.addHandler('ReceiveTranslatedFile', (info: downloadInfo) => {
+      this.translatedFile = info.translatedFile || '';
+    });
   }
   ngOnDestroy(): void {
     // Stop SignalR connection
@@ -253,6 +312,9 @@ export class Home {
     if (!this.connectionId) {
       this.connectionId = this.signalRService.getConnectionId();
     }
+    const subtitleLangs = this.chKSubTitleInclude
+      ? this.subtitleOptions.filter(o => o.checked).map(o => o.code)
+      : [];
     const payload = {
       downloadId: this.connectionId,
       url: this.url,
@@ -261,8 +323,8 @@ export class Home {
       audioFormat: this.selectedAudioFormat,
       audioChapter: this.checkAudioChapter,
       videoOnly: this.chkVideo,
-      subTitle: this.chKSubTitleInclude,
-      subTitleLang: this.selectedLangFormat,
+      subtitleLangs: subtitleLangs,
+      translateTo: this.translateTo || null,
       outputFolder: `${this.selectedMenuValue}\\${this.outputFolder}`  // Send the user-provided output folder.
     };
     this.isDownloading.set(true);

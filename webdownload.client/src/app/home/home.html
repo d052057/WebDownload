@@ -95,78 +95,29 @@
           <label class="checkbox-container" style="margin-left: 2rem; margin-right: 1rem">
             <input type="checkbox" class="form-check-input"
                    [(ngModel)]="chKSubTitleInclude"
-                   (change)="updateAutoOptions()"
+                   (change)="getSubtitles()"
                    [disabled]="isDownloading()">
             <span class="form-check-label">Sub Titles or ClosedCaption</span>
           </label>
+
           @if (chKSubTitleInclude) {
           <div style="margin-left: 4rem;">
+            @if (isLoadingSubtitles) {
+            <div class="text-muted"><em>Looking up available subtitles&hellip;</em></div>
+            }
+            @if (!isLoadingSubtitles && subtitleOptions.length === 0) {
+            <div class="text-muted"><em>Enter a URL above to see which subtitles are available.</em></div>
+            }
+            @for (option of subtitleOptions; track option.code) {
             <div class="form-check">
-              <input mdbRadio
-                     class="form-check-input"
-                     type="radio"
-                     name="rdoEnKm"
-                     id="langEnKmId"
-                     (change)="selectedLangFormat = 'en.*,km'; updateAutoOptions()"
-                     [(ngModel)]="selectedLangFormat"
-                     value="en.*,km" />
-              <label class="form-check-label" for="langEnKmId">Khmer translated from English</label>
+              <label class="checkbox-container">
+                <input type="checkbox" class="form-check-input"
+                       [(ngModel)]="option.checked"
+                       [disabled]="isDownloading()">
+                <span class="form-check-label">{{ option.name }} ({{ option.code }})</span>
+              </label>
             </div>
-            <div class="form-check">
-              <input mdbRadio
-                     class="form-check-input"
-                     type="radio"
-                     name="rdoThaiKm"
-                     id="langThaiKmId"
-                     (change)="selectedLangFormat = 'th,km'; updateAutoOptions()"
-                     [(ngModel)]="selectedLangFormat"
-                     value="th,km" />
-              <label class="form-check-label" for="langThaiKmId">Khmer translated from Thai</label>
-            </div>
-            <div class="form-check">
-              <input mdbRadio
-                     class="form-check-input"
-                     type="radio"
-                     name="rdoChinaKm"
-                     id="langChinaKmId"
-                     (change)="selectedLangFormat = 'zh-Hans,km'; updateAutoOptions()"
-                     [(ngModel)]="selectedLangFormat"
-                     value="zh-Hans,km" />
-              <label class="form-check-label" for="langChinaKmId">Khmer translated from Chinese</label>
-            </div>
-            <div class="form-check">
-              <input mdbRadio
-                     class="form-check-input"
-                     type="radio"
-                     name="rdoVietKm"
-                     id="langVietKmId"
-                     (change)="selectedLangFormat = 'vi,km'; updateAutoOptions()"
-                     [(ngModel)]="selectedLangFormat"
-                     value="vi,km" />
-              <label class="form-check-label" for="langVietKmId">Khmer translated from Vietnamese</label>
-            </div>
-            <div class="form-check">
-              <input mdbRadio
-                     class="form-check-input"
-                     type="radio"
-                     name="rdoLaoKm"
-                     id="langLaoKmId"
-                     (change)="selectedLangFormat = 'lo,km'; updateAutoOptions()"
-                     [(ngModel)]="selectedLangFormat"
-                     value="lo,km" />
-              <label class="form-check-label" for="langLaoKmId">Khmer translated from Lao</label>
-            </div>
-            <div class="form-check">
-              <input mdbRadio
-                     class="form-check-input"
-                     type="radio"
-                     name="rdoEn"
-                     id="langEn"
-                     (change)="selectedLangFormat = 'en.*'; updateAutoOptions()"
-                     [(ngModel)]="selectedLangFormat"
-                     value="end.*" />
-              <label class="form-check-label" for="langEn">English</label>
-            </div>
+            }
           </div>
           }
         </div>
@@ -185,6 +136,23 @@
                  [(ngModel)]="useCookiesFile"
                  (change)="onCookiesFileChange()">
           <span class="form-check-label">Use cookies.txt file</span>
+        </label>
+      </div>
+
+      <div class="form-check form-check-inline fade-in-out mt-2" style="animation-delay: 10ms;">
+        <label class="checkbox-container">
+          <input type="checkbox" class="form-check-input"
+                 [(ngModel)]="translateToKm"
+                 (change)="onTranslateToKmChange()"
+                 [disabled]="isDownloading()">
+          <span class="form-check-label">Translate subtitle to Khmer</span>
+        </label>
+        <label class="checkbox-container" style="margin-left: 2rem">
+          <input type="checkbox" class="form-check-input"
+                 [(ngModel)]="translateToEn"
+                 (change)="onTranslateToEnChange()"
+                 [disabled]="isDownloading()">
+          <span class="form-check-label">Translate subtitle to English</span>
         </label>
       </div>
 
@@ -272,6 +240,10 @@
           <tr>
             <td>Output</td>
             <td colspan="4" style="color: orange">{{ finish || "-"}}</td>
+          </tr>
+          <tr>
+            <td>Translated Subtitle</td>
+            <td colspan="4" style="color: orange">{{ translatedFile || "-"}}</td>
           </tr>
         </tfoot>
       </table>

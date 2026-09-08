@@ -8,6 +8,7 @@ namespace WebDownload.Server.Services
     {
         Task StartDownloadAsync(DownloadRequest request, Func<DownloadInfo, Task> callback);
         Task StartDownloadTitleAsync(DownloadTitleRequest request, Func<DownloadInfo, Task> callback);
+        Task<List<SubtitleTrack>> GetAvailableSubtitlesAsync(string url);
     };
 
     public class DownloadService : IDownloadService
@@ -98,10 +99,11 @@ namespace WebDownload.Server.Services
             }
             else
             {
-                if (request.SubTitle)
+                if (request.SubtitleLangs is { Count: > 0 })
                 {
-                    sb.AppendFormat(" --sub-langs \"{0}\" --write-subs --write-auto-subs",
-                        request.SubTitleLang ?? "en");
+                    var langs = string.Join(",", request.SubtitleLangs);
+                    sb.AppendFormat(" --sub-langs \"{0}\" --write-subs --write-auto-subs --convert-subs srt",
+                        langs);
                 }
             }
             ;
@@ -169,5 +171,95 @@ namespace WebDownload.Server.Services
             }
         }
 
+        // Runs `yt-dlp --list-subs` and parses both the "Available subtitles"
+        // (manually authored) and "Available automatic captions" sections into
+        // a flat list the UI can render as checkboxes.
+        public async Task<List<SubtitleTrack>> GetAvailableSubtitlesAsync(string url)
+        {
+            var tracks = new List<SubtitleTrack>();
+            var args = new StringBuilder();
+            args.AppendFormat(" --config-location \"{0}\"", configPath);
+            args.Append(" --list-subs --skip-download --no-warnings");
+            args.AppendFormat(" \"{0}\"", url);
+
+            var process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = ytDlpPath,
+                    Arguments = args.ToString(),
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                }
+            };
+
+            process.Start();
+            var stdout = await process.StandardOutput.ReadToEndAsync();
+            await process.StandardError.ReadToEndAsync(); // drain, ignore for now
+            await process.WaitForExitAsync();
+
+            bool isAutomaticSection = false;
+            bool inSubtitleTable = false;
+            var seen = new HashSet<string>();
+
+            foreach (var rawLine in stdout.Split('\n'))
+            {
+                var line = rawLine.TrimEnd('\r');
+
+                if (line.Contains("Available automatic captions for", StringComparison.OrdinalIgnoreCase))
+                {
+                    isAutomaticSection = true;
+                    inSubtitleTable = true;
+                    continue;
+                }
+                if (line.Contains("Available subtitles for", StringComparison.OrdinalIgnoreCase))
+                {
+                    isAutomaticSection = false;
+                    inSubtitleTable = true;
+                    continue;
+                }
+                if (!inSubtitleTable)
+                {
+                    continue;
+                }
+                if (string.IsNullOrWhiteSpace(line))
+                {
+                    inSubtitleTable = false;
+                    continue;
+                }
+                // Header row: "Language Name    Formats"
+                if (line.TrimStart().StartsWith("Language", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                // Columns are aligned with runs of 2+ spaces:
+                // "en       English                                     vtt, ttml, ..."
+                var columns = System.Text.RegularExpressions.Regex.Split(line.Trim(), @"\s{2,}");
+                if (columns.Length < 1)
+                {
+                    continue;
+                }
+
+                var code = columns[0].Trim();
+                var name = columns.Length > 1 ? columns[1].Trim() : code;
+
+                if (string.IsNullOrWhiteSpace(code) || !seen.Add(code + "|" + isAutomaticSection))
+                {
+                    continue;
+                }
+
+                tracks.Add(new SubtitleTrack
+                {
+                    Code = code,
+                    Name = isAutomaticSection ? $"{name} (auto)" : name,
+                    IsAutomatic = isAutomaticSection
+                });
+            }
+
+            return tracks;
+        }
     }
 }

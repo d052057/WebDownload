@@ -1,3 +1,14 @@
+export interface SubtitleTrack {
+  code: string;       // e.g. "en", "en-orig", "km"
+  name: string;       // e.g. "English", "English (auto)"
+  isAutomatic: boolean;
+}
+
+// UI-only wrapper so we can bind a "checked" state per row.
+export interface SubtitleTrackOption extends SubtitleTrack {
+  checked: boolean;
+}
+
 export class downloadInfo {
   speed: string; //ReceiveSpeed
   eta: string; //ReceiveETA
@@ -11,6 +22,8 @@ export class downloadInfo {
   error: string;
   finishOutput: string;
   command?: string;
+  subtitleTracks?: SubtitleTrack[];
+  translatedFile?: string;
   constructor(speed: string, eta: string, size: string, frag: string, state: string, output: string, progress: string, fileName: string, chapter: string, error: string, finishOutput: string, command?: string) {
     this.speed = speed;
     this.eta = eta;

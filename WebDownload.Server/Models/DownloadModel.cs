@@ -8,18 +8,34 @@
         public string AudioFormat { get; set; } = string.Empty;
         public bool AudioChapter { get; set; }
         public bool VideoOnly { get; set; }
-        public bool SubTitle { get; set; }
-        public string SubTitleLang { get; set; } = string.Empty;  
+
+        // Language codes the user checked in the dynamically-populated subtitle
+        // checkbox list (e.g. ["en", "en-orig"]). Empty/null means "no subtitles".
+        public List<string> SubtitleLangs { get; set; } = new();
+
+        // Empty/null = don't translate. Otherwise the target language code
+        // to translate the downloaded subtitle into, e.g. "km" or "en".
+        public string? TranslateTo { get; set; }
+
         public string Options { get; set; } = string.Empty;
         public required string DownloadId { get; set; }
         public required string OutputFolder { get; set; }
     }
-   
+
     public class DownloadTitleRequest
     {
         public required string Url { get; set; }
         public required string DownloadId { get; set; }
     }
+
+    // One row in the "Available subtitles" list returned by yt-dlp --list-subs.
+    public class SubtitleTrack
+    {
+        public required string Code { get; set; }      // e.g. "en", "en-orig", "km"
+        public required string Name { get; set; }       // e.g. "English", "English (auto)"
+        public bool IsAutomatic { get; set; }            // true = auto-generated captions
+    }
+
     public class DownloadInfo
     {
         public string? Speed { get; set; }
@@ -34,6 +50,8 @@
         public string? FinishOutput { get; set; }
         public string? Error { get; set; }
         public string? Command { get; set; }
+        public List<SubtitleTrack>? SubtitleTracks { get; set; }
+        public string? TranslatedFile { get; set; }
     }
 }
 

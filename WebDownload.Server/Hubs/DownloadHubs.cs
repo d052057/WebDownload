@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Options;
+using System.Linq;
 using System.Text.RegularExpressions;
 using WebDownload.Server.Models;
 using WebDownload.Server.Services;
@@ -8,6 +9,7 @@ namespace WebDownload.Server.Hubs
     public class DownloadHub : Microsoft.AspNetCore.SignalR.Hub
     {
         private readonly IDownloadService _downloadService;
+        private readonly ITranslationService _translationService;
         private readonly Regex rgxFilePostProc = new Regex(@"\[download\] Destination:\s+(?<downloadFileName>.+)");
         private readonly Regex rgxExtractAudio = new Regex(@"\[ExtractAudio\] Destination:\s+(?<downloadFileName>.+)");
         private readonly Regex rgxChapterAudio = new Regex(@"\[SplitChapters\] Chapter 0*\d{1,3};\s+Destination:\s+(?<ChapterFileName>.+)");
@@ -19,16 +21,36 @@ namespace WebDownload.Server.Hubs
         private readonly IOptions<ApplicationSettings> _appSettings;
         public DownloadHub(
             IHttpClientFactory httpClientFactory,
-            IDownloadService downloadService,           
+            IDownloadService downloadService,
+            ITranslationService translationService,
             IOptions<ApplicationSettings> appSettings
             )
         {
             _downloadService = downloadService;
+            _translationService = translationService;
             //_httpClientFactory = httpClientFactory;
             _appSettings = appSettings;
         }
 
         public string GetConnectionId() => Context.ConnectionId;
+
+        // Called when the URL field changes (or on demand) to populate the
+        // subtitle checkbox list from what YouTube actually has available.
+        public async Task HubGetSubtitlesAsync(DownloadTitleRequest request)
+        {
+            string conn = request.DownloadId;
+            try
+            {
+                var tracks = await _downloadService.GetAvailableSubtitlesAsync(request.Url);
+                DownloadInfo info = new() { SubtitleTracks = tracks };
+                await Clients.Client(conn).SendAsync("ReceiveSubtitleList", info);
+            }
+            catch (Exception ex)
+            {
+                DownloadInfo errInfo = new() { Error = $"Hub Error listing subtitles: {ex.Message}" };
+                await Clients.Client(conn).SendAsync("ReceiveError", errInfo);
+            }
+        }
 
 
         public async Task HubGetTitleServiceAsync(DownloadTitleRequest request)
@@ -75,6 +97,7 @@ namespace WebDownload.Server.Hubs
             request.OutputFolder = _appSettings.Value.MediaDrive + @"\" + request.OutputFolder;
             string conn = request.DownloadId;
             string state = "Pre Processing";
+            string? downloadedBaseName = null; // e.g. "My Video [abc123]" (no extension)
             DownloadInfo info = new()
             { 
                 State = state 
@@ -96,9 +119,11 @@ namespace WebDownload.Server.Hubs
                     var matchFileName = rgxFilePostProc.Match(p.Output);
                     if (matchFileName.Success)
                     {
+                        var destFile = matchFileName.Groups["downloadFileName"].Value;
+                        downloadedBaseName ??= System.IO.Path.GetFileNameWithoutExtension(destFile);
                         DownloadInfo    Finfo = new()
                         {
-                            FileName = matchFileName.Groups["downloadFileName"].Value
+                            FileName = destFile
                         };
                         await Clients.Client(conn).SendAsync("ReceiveFileName", Finfo);
                         state = "download";
@@ -199,6 +224,12 @@ namespace WebDownload.Server.Hubs
                     await Clients.Client(conn).SendAsync("ReceiveOutput", info);
                 };
                 await _downloadService.StartDownloadAsync(request, callback);
+
+                if (!string.IsNullOrWhiteSpace(request.TranslateTo) && downloadedBaseName != null)
+                {
+                    await TranslateDownloadedSubtitlesAsync(conn, request, downloadedBaseName);
+                }
+
                 DownloadInfo Finfo = new()
                 {
                     FinishOutput = $"Files saved to {request.OutputFolder}."
@@ -228,6 +259,43 @@ namespace WebDownload.Server.Hubs
                     Error = $"Hub Error during download: {ex.Message}"
                 };
                 await Clients.Client(conn).SendAsync("ReceiveError", Errinfo);
+            }
+        }
+
+        // Finds the .srt file(s) yt-dlp just wrote for this video and translates
+        // one of them (preferring "en") into request.TranslateTo.
+        private async Task TranslateDownloadedSubtitlesAsync(string conn, DownloadRequest request, string downloadedBaseName)
+        {
+            try
+            {
+                var srtFiles = Directory.GetFiles(request.OutputFolder, $"{downloadedBaseName}*.srt");
+                if (srtFiles.Length == 0)
+                {
+                    return; // nothing to translate, e.g. no subtitles were requested
+                }
+
+                // Prefer an English source track if one was downloaded; otherwise
+                // just take the first subtitle file that isn't already the target language.
+                var sourceFile = srtFiles.FirstOrDefault(f => f.Contains(".en.", StringComparison.OrdinalIgnoreCase))
+                                  ?? srtFiles.FirstOrDefault(f => !f.Contains($".{request.TranslateTo}.", StringComparison.OrdinalIgnoreCase));
+
+                if (sourceFile == null)
+                {
+                    return; // only a same-language file exists already; nothing to do
+                }
+
+                var sourceLangMatch = System.Text.RegularExpressions.Regex.Match(sourceFile, @"\.([a-zA-Z-]{2,8})\.srt$");
+                var sourceLang = sourceLangMatch.Success ? sourceLangMatch.Groups[1].Value : null;
+
+                var translatedPath = await _translationService.TranslateSrtFileAsync(sourceFile, request.TranslateTo!, sourceLang);
+
+                DownloadInfo info = new() { TranslatedFile = translatedPath };
+                await Clients.Client(conn).SendAsync("ReceiveTranslatedFile", info);
+            }
+            catch (Exception ex)
+            {
+                DownloadInfo errInfo = new() { Error = $"Hub Error translating subtitles: {ex.Message}" };
+                await Clients.Client(conn).SendAsync("ReceiveError", errInfo);
             }
         }
     }
