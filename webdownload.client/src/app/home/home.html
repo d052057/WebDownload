@@ -96,7 +96,7 @@
             <input type="checkbox" class="form-check-input"
                    [(ngModel)]="chKSubTitleInclude"
                    (change)="getSubtitles()"
-                   [disabled]="isDownloading()">
+                   [disabled]="isDownloading() || !url">
             <span class="form-check-label">Sub Titles or ClosedCaption</span>
           </label>
 

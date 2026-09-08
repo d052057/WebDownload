@@ -149,16 +149,18 @@ export class Home {
   // Ask the server what subtitle/caption tracks YouTube has for this URL,
   // then render them as checkboxes (see ReceiveSubtitleList handler).
   getSubtitles(): void {
-    if (!this.chKSubTitleInclude) {
+    if (!this.chKSubTitleInclude || !this.url || this.url.trim() === '') {
       return;
     }
-    this.connectionId = this.signalRService.getConnectionId();
     this.isLoadingSubtitles = true;
-    const payload = {
-      downloadId: this.connectionId,
-      url: this.url,
-    };
-    this.signalRService.invokeMethod('HubGetSubtitlesAsync', payload);
+    this.signalRService.ensureConnected().then(connId => {
+      this.connectionId = connId;
+      const payload = {
+        downloadId: this.connectionId,
+        url: this.url,
+      };
+      this.signalRService.invokeMethod('HubGetSubtitlesAsync', payload);
+    });
   }
 
   onSubtitleToggleChanged(): void {
@@ -297,38 +299,36 @@ export class Home {
   }
 
   getTitle(): void {
-    if (!this.connectionId) {
-      this.connectionId = this.signalRService.getConnectionId();
+    this.signalRService.ensureConnected().then(connId => {
+      this.connectionId = connId;
       const payload = {
         downloadId: this.connectionId,
         url: this.url,
       };
       this.signalRService.invokeMethod('HubGetTitleServiceAsync', payload);
-    }
+    });
   }
   startDownload(): void {
-    // Retrieve SignalR connection ID
-    this.connectionId = this.signalRService.getConnectionId();
-    if (!this.connectionId) {
-      this.connectionId = this.signalRService.getConnectionId();
-    }
-    const subtitleLangs = this.chKSubTitleInclude
-      ? this.subtitleOptions.filter(o => o.checked).map(o => o.code)
-      : [];
-    const payload = {
-      downloadId: this.connectionId,
-      url: this.url,
-      options: this.options,
-      audioOnly: this.chkAudio,
-      audioFormat: this.selectedAudioFormat,
-      audioChapter: this.checkAudioChapter,
-      videoOnly: this.chkVideo,
-      subtitleLangs: subtitleLangs,
-      translateTo: this.translateTo || null,
-      outputFolder: `${this.selectedMenuValue}\\${this.outputFolder}`  // Send the user-provided output folder.
-    };
-    this.isDownloading.set(true);
-    this.signalRService.invokeMethod('HubStartDownloadServiceAsync', payload);
+    this.signalRService.ensureConnected().then(connId => {
+      this.connectionId = connId;
+      const subtitleLangs = this.chKSubTitleInclude
+        ? this.subtitleOptions.filter(o => o.checked).map(o => o.code)
+        : [];
+      const payload = {
+        downloadId: this.connectionId,
+        url: this.url,
+        options: this.options,
+        audioOnly: this.chkAudio,
+        audioFormat: this.selectedAudioFormat,
+        audioChapter: this.checkAudioChapter,
+        videoOnly: this.chkVideo,
+        subtitleLangs: subtitleLangs,
+        translateTo: this.translateTo || null,
+        outputFolder: `${this.selectedMenuValue}\\${this.outputFolder}`  // Send the user-provided output folder.
+      };
+      this.isDownloading.set(true);
+      this.signalRService.invokeMethod('HubStartDownloadServiceAsync', payload);
+    });
   }
 }
 
