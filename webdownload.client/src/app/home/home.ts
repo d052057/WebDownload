@@ -84,6 +84,12 @@ export class Home {
   ReceiveState: string = '';
   outputFolder: string = "9";
   connectionId!: string;
+  // Stable for the life of this page load - unlike the transport
+  // connectionId (which changes every time the WebSocket reconnects), the
+  // server groups all progress sends by this id, so a mid-download network
+  // blip doesn't orphan the in-flight download/translation.
+  downloadGroupId: string = (crypto as any)?.randomUUID?.() ??
+    `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   ytDlpCommand: string = '';
 
   useCookiesFromBrowser: boolean = false;
@@ -163,10 +169,11 @@ export class Home {
       return;
     }
     this.isLoadingSubtitles = true;
-    this.signalRService.ensureConnected().then(connId => {
+    this.signalRService.ensureConnected().then(async connId => {
       this.connectionId = connId;
+      await this.signalRService.joinGroup(this.downloadGroupId);
       const payload = {
-        downloadId: this.connectionId,
+        downloadId: this.downloadGroupId,
         url: this.url,
       };
       console.log(`[${new Date().toISOString()}] Sending HubGetSubtitlesAsync`, payload);
@@ -234,7 +241,18 @@ export class Home {
 
   ngOnInit(): void {
     // Initialize SignalR connection
-    this.signalRService.startConnection();
+    this.signalRService.startConnection().then(() => {
+      this.signalRService.joinGroup(this.downloadGroupId);
+    });
+
+    // If the WebSocket drops mid-download (browser sleep, flaky wifi, dev
+    // server hot reload, proxy idle timeout, etc.), SignalR auto-reconnects
+    // but with a brand new connection id. Rejoin our stable group so the
+    // in-flight download/translation on the server keeps reaching us
+    // instead of silently sending updates to a connection that's gone.
+    this.signalRService.onReconnected(() => {
+      this.signalRService.joinGroup(this.downloadGroupId);
+    });
 
     this.signalRService.addHandler('ReceiveCommand', (info: downloadInfo) => {
       this.ytDlpCommand = info.command || '';
@@ -336,10 +354,11 @@ export class Home {
 
   getTitle(): void {
     this.isLoadingTitle = true;
-    this.signalRService.ensureConnected().then(connId => {
+    this.signalRService.ensureConnected().then(async connId => {
       this.connectionId = connId;
+      await this.signalRService.joinGroup(this.downloadGroupId);
       const payload = {
-        downloadId: this.connectionId,
+        downloadId: this.downloadGroupId,
         url: this.url,
       };
       console.log(`[${new Date().toISOString()}] Sending HubGetTitleServiceAsync`, payload);
@@ -347,13 +366,14 @@ export class Home {
     });
   }
   startDownload(): void {
-    this.signalRService.ensureConnected().then(connId => {
+    this.signalRService.ensureConnected().then(async connId => {
       this.connectionId = connId;
+      await this.signalRService.joinGroup(this.downloadGroupId);
       const subtitleLangs = this.chKSubTitleInclude
         ? this.subtitleOptions.filter(o => o.checked).map(o => o.code)
         : [];
       const payload = {
-        downloadId: this.connectionId,
+        downloadId: this.downloadGroupId,
         url: this.url,
         options: this.options,
         audioOnly: this.chkAudio,
