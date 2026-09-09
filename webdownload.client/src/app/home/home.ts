@@ -268,6 +268,7 @@ export class Home {
       this.error += `${info.error}` + "\n\n";
       this.isLoadingTitle = false;
       this.isLoadingSubtitles = false;
+      console.log('[DEBUG] ReceiveError -> isLoadingTitle:', this.isLoadingTitle, 'isLoadingSubtitles:', this.isLoadingSubtitles);
     });
 
     // Subscribe to download finished
@@ -282,6 +283,7 @@ export class Home {
     this.signalRService.addHandler('ReceiveFileName', (info: downloadInfo) => {
       this.ReceiveFileName = `${info.fileName}`;
       this.isLoadingTitle = false;
+      console.log('[DEBUG] ReceiveFileName handler ran -> isLoadingTitle is now:', this.isLoadingTitle, 'isPageBusy():', this.isPageBusy());
     });
 
     this.signalRService.addHandler('ReceiveChapterFileName', (info: downloadInfo) => {
@@ -292,6 +294,7 @@ export class Home {
       this.isLoadingSubtitles = false;
       const tracks = info.subtitleTracks || [];
       this.subtitleOptions = tracks.map(t => ({ ...t, checked: false }));
+      console.log('[DEBUG] ReceiveSubtitleList handler ran -> isLoadingSubtitles is now:', this.isLoadingSubtitles, 'isPageBusy():', this.isPageBusy(), 'tracks:', tracks.length);
     });
 
     this.signalRService.addHandler('ReceiveTranslatedFile', (info: downloadInfo) => {
