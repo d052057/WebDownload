@@ -10,7 +10,17 @@
            [(ngModel)]="url"
            placeholder="Enter YouTube URL"
            (change)="onUrlChange()"
-           [disabled]="isDownloading()">
+           [disabled]="isDownloading() || isLoadingTitle || isLoadingSubtitles">
+    @if (isLoadingTitle || isLoadingSubtitles) {
+    <div class="text-muted mt-1">
+      <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+      <em>
+        @if (isLoadingTitle && isLoadingSubtitles) { Fetching title and subtitle list from YouTube&hellip; }
+        @else if (isLoadingTitle) { Fetching title from YouTube&hellip; }
+        @else { Fetching subtitle list from YouTube&hellip; }
+      </em>
+    </div>
+    }
   </div>
 
   <div class="row mb-3 align-items-start">
@@ -96,7 +106,7 @@
             <input type="checkbox" class="form-check-input"
                    [(ngModel)]="chKSubTitleInclude"
                    (change)="getSubtitles()"
-                   [disabled]="isDownloading() || !url">
+                   [disabled]="isDownloading() || !url || isLoadingTitle || isLoadingSubtitles">
             <span class="form-check-label">Sub Titles or ClosedCaption</span>
           </label>
 

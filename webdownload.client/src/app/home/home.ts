@@ -35,6 +35,7 @@ export class Home {
   // YouTube actually has for the entered URL (see getSubtitles()).
   subtitleOptions: SubtitleTrackOption[] = [];
   isLoadingSubtitles = false;
+  isLoadingTitle = false;
 
   // "Translate to ..." checkboxes, mutually exclusive, same pattern as the
   // cookie checkboxes below.
@@ -250,6 +251,8 @@ export class Home {
     // Subscribe to error messages
     this.signalRService.addHandler('ReceiveError', (info: downloadInfo) => {
       this.error += `${info.error}` + "\n\n";
+      this.isLoadingTitle = false;
+      this.isLoadingSubtitles = false;
     });
 
     // Subscribe to download finished
@@ -263,6 +266,7 @@ export class Home {
 
     this.signalRService.addHandler('ReceiveFileName', (info: downloadInfo) => {
       this.ReceiveFileName = `${info.fileName}`;
+      this.isLoadingTitle = false;
     });
 
     this.signalRService.addHandler('ReceiveChapterFileName', (info: downloadInfo) => {
@@ -299,6 +303,7 @@ export class Home {
   }
 
   getTitle(): void {
+    this.isLoadingTitle = true;
     this.signalRService.ensureConnected().then(connId => {
       this.connectionId = connId;
       const payload = {
