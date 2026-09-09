@@ -10,6 +10,7 @@ namespace WebDownload.Server.Hubs
     {
         private readonly IDownloadService _downloadService;
         private readonly ITranslationService _translationService;
+        private readonly ITranslationJobTracker _jobTracker;
         private readonly Regex rgxFilePostProc = new Regex(@"\[download\] Destination:\s+(?<downloadFileName>.+)");
         private readonly Regex rgxExtractAudio = new Regex(@"\[ExtractAudio\] Destination:\s+(?<downloadFileName>.+)");
         private readonly Regex rgxChapterAudio = new Regex(@"\[SplitChapters\] Chapter 0*\d{1,3};\s+Destination:\s+(?<ChapterFileName>.+)");
@@ -23,16 +24,27 @@ namespace WebDownload.Server.Hubs
             IHttpClientFactory httpClientFactory,
             IDownloadService downloadService,
             ITranslationService translationService,
+            ITranslationJobTracker jobTracker,
             IOptions<ApplicationSettings> appSettings
             )
         {
             _downloadService = downloadService;
             _translationService = translationService;
+            _jobTracker = jobTracker;
             //_httpClientFactory = httpClientFactory;
             _appSettings = appSettings;
         }
 
         public string GetConnectionId() => Context.ConnectionId;
+
+        // On-demand check for "is my translation done yet?" - independent of
+        // the live SignalR push, so it still works after a page reload or if
+        // a message got missed during a reconnect. groupId is the client's
+        // stable downloadGroupId (same value it uses as DownloadId).
+        public Task<TranslationJobStatus?> GetTranslationStatus(string groupId)
+        {
+            return Task.FromResult(_jobTracker.GetStatus(groupId));
+        }
 
         // Called when the URL field changes (or on demand) to populate the
         // subtitle checkbox list from what YouTube actually has available.
@@ -291,10 +303,13 @@ namespace WebDownload.Server.Hubs
                     new DownloadInfo { Output = $"[Translate] Starting: {Path.GetFileName(sourceFile)} -> {request.TranslateTo} ..." });
                 await Clients.Client(conn).SendAsync("ReceiveState",
                     new DownloadInfo { State = $"Translating subtitles to {request.TranslateTo}..." });
+                _jobTracker.SetStatus(conn, new TranslationJobStatus { State = "Running", CurrentLine = 0, TotalLines = 0 });
 
                 var lastReportedPercent = -1;
                 async Task OnProgress(int current, int total)
                 {
+                    _jobTracker.SetStatus(conn, new TranslationJobStatus { State = "Running", CurrentLine = current, TotalLines = total });
+
                     var percent = total > 0 ? (current * 100) / total : 100;
                     // Only push a log line every ~5% (or every line for short files) so
                     // we don't flood the log for a 300+ line subtitle file.
@@ -308,6 +323,8 @@ namespace WebDownload.Server.Hubs
 
                 var translatedPath = await _translationService.TranslateSrtFileAsync(sourceFile, request.TranslateTo!, sourceLang, OnProgress);
 
+                _jobTracker.SetStatus(conn, new TranslationJobStatus { State = "Completed", TranslatedFile = translatedPath });
+
                 await Clients.Client(conn).SendAsync("ReceiveOutput",
                     new DownloadInfo { Output = $"[Translate] Done -> {Path.GetFileName(translatedPath)}" });
 
@@ -316,6 +333,7 @@ namespace WebDownload.Server.Hubs
             }
             catch (Exception ex)
             {
+                _jobTracker.SetStatus(conn, new TranslationJobStatus { State = "Failed", Error = ex.Message });
                 await Clients.Client(conn).SendAsync("ReceiveOutput",
                     new DownloadInfo { Output = $"[Translate] Failed: {ex.Message}" });
                 DownloadInfo errInfo = new() { Error = $"Hub Error translating subtitles: {ex.Message}" };

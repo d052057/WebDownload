@@ -9,6 +9,7 @@ export class SignalrService {
   public hubConnection!: signalR.HubConnection;
   private handlers = new Map<string, EventListenerOrEventListenerObject>();
   private startPromise!: Promise<void>;
+  private reconnectedCallbacks: Array<() => void> = [];
   url!: string;
 
   constructor(private ngZone: NgZone, private appRef: ApplicationRef) {
@@ -20,6 +21,23 @@ export class SignalrService {
   // nothing here that can race with the page loading.
   getConnectionId(): string {
     return this.hubConnection?.connectionId ?? '';
+  }
+
+  // Joins a stable, app-generated group (see Home's downloadGroupId). Call
+  // this once after connecting, and again from an onReconnected callback -
+  // the transport connectionId changes on every reconnect, but messages
+  // sent to Clients.Group(groupId) server-side will keep reaching whichever
+  // connection most recently joined that group.
+  async joinGroup(groupId: string): Promise<void> {
+    await this.hubConnection.invoke('JoinGroup', groupId);
+  }
+
+  // Register a callback to run every time the connection is re-established
+  // after a drop (e.g. to rejoin a group). Not the same as onreconnected
+  // logging below - this lets components hook in without touching this
+  // service's internals.
+  onReconnected(callback: () => void): void {
+    this.reconnectedCallbacks.push(callback);
   }
 
   // Await this before invoking any hub method from a component. Resolves
@@ -52,6 +70,13 @@ export class SignalrService {
 
     this.hubConnection.onreconnected(() => {
       console.log('SignalR reconnected successfully. New connectionId:', this.getConnectionId());
+      this.reconnectedCallbacks.forEach(cb => {
+        try {
+          cb();
+        } catch (err) {
+          console.error('Error in onReconnected callback:', err);
+        }
+      });
     });
 
     this.startPromise = this.hubConnection

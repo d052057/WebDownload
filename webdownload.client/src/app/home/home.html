@@ -274,6 +274,17 @@
             <td>Translated Subtitle</td>
             <td colspan="4" style="color: orange">{{ translatedFile || "-"}}</td>
           </tr>
+          @if (translateTo) {
+          <tr>
+            <td>Translation Status</td>
+            <td colspan="4">
+              <span style="color: orange">{{ translationStatusMessage || "Not started yet" }}</span>
+              <button type="button" class="btn btn-sm btn-outline-secondary ms-2" (click)="checkTranslationStatus()">
+                Check now
+              </button>
+            </td>
+          </tr>
+          }
         </tfoot>
       </table>
       <section width="50%" class="text-end">

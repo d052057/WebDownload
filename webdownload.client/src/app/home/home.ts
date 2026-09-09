@@ -49,6 +49,8 @@ export class Home {
   translateToKm: boolean = false;
   translateToEn: boolean = false;
   translatedFile: string = '';
+  translationStatusMessage: string = '';
+  private translationPollHandle: ReturnType<typeof setInterval> | null = null;
 
   onTranslateToKmChange(): void {
     if (this.translateToKm) {
@@ -308,9 +310,12 @@ export class Home {
 
     this.signalRService.addHandler('ReceiveTranslatedFile', (info: downloadInfo) => {
       this.translatedFile = info.translatedFile || '';
+      this.translationStatusMessage = `Translation completed: ${this.translatedFile}`;
+      this.stopTranslationStatusPolling();
     });
   }
   ngOnDestroy(): void {
+    this.stopTranslationStatusPolling();
     // Stop SignalR connection
     this.outputSubject.complete();
     this.signalRService.unregisterHandlers();
@@ -360,8 +365,52 @@ export class Home {
         outputFolder: `${this.selectedMenuValue}\\${this.outputFolder}`  // Send the user-provided output folder.
       };
       this.isDownloading.set(true);
+      this.translationStatusMessage = '';
+      if (this.translateTo) {
+        this.startTranslationStatusPolling();
+      }
       this.signalRService.invokeMethod('HubStartDownloadServiceAsync', payload);
     });
+  }
+
+  // Manual "check now" button - independent of the live push, works even
+  // right after a page reload as long as downloadGroupId is unchanged.
+  async checkTranslationStatus(): Promise<void> {
+    const status = await this.signalRService.invokeMethod('GetTranslationStatus', this.downloadGroupId) as any;
+    this.applyTranslationStatus(status);
+  }
+
+  private applyTranslationStatus(status: any): void {
+    if (!status) {
+      this.translationStatusMessage = 'No translation job found yet for this session.';
+      return;
+    }
+    if (status.state === 'Completed') {
+      this.translationStatusMessage = `Translation completed: ${status.translatedFile}`;
+      this.stopTranslationStatusPolling();
+    } else if (status.state === 'Failed') {
+      this.translationStatusMessage = `Translation failed: ${status.error}`;
+      this.stopTranslationStatusPolling();
+    } else {
+      const pct = status.totalLines > 0 ? Math.round((status.currentLine * 100) / status.totalLines) : 0;
+      this.translationStatusMessage = `Translating... ${status.currentLine}/${status.totalLines} (${pct}%)`;
+    }
+  }
+
+  // Poll every few seconds as a fallback/complement to the live push, in
+  // case the tab was backgrounded, reloaded, or a message was missed.
+  private startTranslationStatusPolling(): void {
+    this.stopTranslationStatusPolling();
+    this.translationPollHandle = setInterval(() => {
+      this.checkTranslationStatus();
+    }, 4000);
+  }
+
+  private stopTranslationStatusPolling(): void {
+    if (this.translationPollHandle) {
+      clearInterval(this.translationPollHandle);
+      this.translationPollHandle = null;
+    }
   }
 }
 

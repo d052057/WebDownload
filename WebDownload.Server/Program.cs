@@ -14,6 +14,7 @@ builder.Services.AddHttpClient();
 builder.Services.AddOpenApi();
 builder.Services.AddScoped<IDownloadService, DownloadService>();
 builder.Services.AddScoped<ITranslationService, TranslationService>();
+builder.Services.AddSingleton<ITranslationJobTracker, TranslationJobTracker>();
 //builder.Services.ConfigureSwagger();
 builder.Services.AddCors();
 builder.Services.Configure<ApplicationSettings>(builder.Configuration.GetSection("ApplicationSettings"));

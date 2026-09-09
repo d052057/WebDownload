@@ -53,5 +53,18 @@
         public List<SubtitleTrack>? SubtitleTracks { get; set; }
         public string? TranslatedFile { get; set; }
     }
+
+    // Server-side record of where a translation job stands, so the client
+    // can ask "is it done yet?" on demand (page reload, tab reopened later,
+    // or just double-checking) instead of relying only on the live push.
+    public class TranslationJobStatus
+    {
+        public required string State { get; set; } // "Running", "Completed", "Failed"
+        public int CurrentLine { get; set; }
+        public int TotalLines { get; set; }
+        public string? TranslatedFile { get; set; }
+        public string? Error { get; set; }
+        public DateTime LastUpdatedUtc { get; set; } = DateTime.UtcNow;
+    }
 }
 
