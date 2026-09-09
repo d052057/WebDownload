@@ -1,4 +1,4 @@
-import { Injectable, NgZone } from '@angular/core';
+import { ApplicationRef, Injectable, NgZone } from '@angular/core';
 import * as signalR from '@microsoft/signalr';
 import { environment } from '../../environments/environment';
 
@@ -11,15 +11,7 @@ export class SignalrService {
   private startPromise!: Promise<void>;
   url!: string;
 
-  // @microsoft/signalr deliberately runs its internal connection/transport
-  // work outside Angular's zone (it captures Zone.root at construction
-  // time). That means server -> client pushes (hubConnection.on callbacks)
-  // update your component fields just fine, but Angular never finds out it
-  // needs to re-render - the page only catches up on the next unrelated
-  // Angular event (a click, a Tab press, etc). That's exactly the "press Tab
-  // twice" / "toggle the checkbox and it suddenly appears" symptom. Fix:
-  // explicitly re-enter the Angular zone around every pushed callback.
-  constructor(private ngZone: NgZone) {
+  constructor(private ngZone: NgZone, private appRef: ApplicationRef) {
     this.url = environment.appUrl;
   }
 
@@ -89,7 +81,18 @@ export class SignalrService {
   }
   addHandler(eventName: string, callback: (...args: any[]) => void): void {
     const zoneWrappedCallback = (...args: any[]) => {
-      this.ngZone.run(() => callback(...args));
+      console.log(`[${new Date().toISOString()}] SignalR event received: ${eventName}`, args?.[0]);
+      this.ngZone.run(() => {
+        callback(...args);
+        // Belt-and-suspenders: force a render pass right now regardless of
+        // whether zone.js noticed this task. Harmless if it was already
+        // going to render on its own.
+        try {
+          this.appRef.tick();
+        } catch {
+          // tick() throws if a CD pass is already in progress; safe to ignore.
+        }
+      });
     };
     this.hubConnection.on(eventName, zoneWrappedCallback);
     this.handlers.set(eventName, zoneWrappedCallback);

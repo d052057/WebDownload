@@ -21,7 +21,13 @@ export class Home {
   output$ = this.outputSubject.asObservable();
 
   url: string = '';
-  isDownloading = signal(false);  
+  isDownloading = signal(false);
+
+  // Single source of truth for "lock the whole form" - true while we're
+  // waiting on title/subtitle lookups or an actual download/translation.
+  isPageBusy(): boolean {
+    return this.isDownloading() || this.isLoadingTitle || this.isLoadingSubtitles;
+  }
   options: string = '';
   chkAudio: boolean = false;
   checkAudioChapter: boolean = true;
@@ -160,6 +166,7 @@ export class Home {
         downloadId: this.connectionId,
         url: this.url,
       };
+      console.log(`[${new Date().toISOString()}] Sending HubGetSubtitlesAsync`, payload);
       this.signalRService.invokeMethod('HubGetSubtitlesAsync', payload);
     });
   }
@@ -167,6 +174,14 @@ export class Home {
   onSubtitleToggleChanged(): void {
     // Placeholder hook if we need side-effects later; checkbox state is
     // bound directly via [(ngModel)]="option.checked" in the template.
+  }
+
+  selectAllSubtitles(): void {
+    this.subtitleOptions.forEach(o => o.checked = true);
+  }
+
+  clearAllSubtitles(): void {
+    this.subtitleOptions.forEach(o => o.checked = false);
   }
 
   // Phase 2: draggable reference list of common yt-dlp args that can be dropped into the Options box.
@@ -310,6 +325,7 @@ export class Home {
         downloadId: this.connectionId,
         url: this.url,
       };
+      console.log(`[${new Date().toISOString()}] Sending HubGetTitleServiceAsync`, payload);
       this.signalRService.invokeMethod('HubGetTitleServiceAsync', payload);
     });
   }
