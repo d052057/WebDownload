@@ -17,7 +17,7 @@ namespace WebDownload.Server.Hubs
         private readonly Regex regex = new Regex(@"\[download\]\s+(?<progress>[\d.]+%) of\s+~?\s*(?<totalSize>[\d.\w]+) at\s+(?<speed>[\d.\w/]+)\s+ETA\s+(?<eta>[\w\d:]+)(\s\(frag (?<fragNumber>\d{1,3}/\d{1,3})\))?");
         private readonly Regex rgxHlsnative = new Regex(@"\[hlsnative\] Total fragments:\s(?<TotalFragment>[\d]+)");
         private readonly Regex rgxLast = new Regex(@"\[download\]\s+(?<progress>[\d.]+%) of\s+(?<totalSize>[\d.\w]+) in\s+(?<eta>[\w\d:]+) at\s+(?<speed>[\d.\w/]+)");
-      
+
 
         private readonly IOptions<ApplicationSettings> _appSettings;
         public DownloadHub(
@@ -37,6 +37,20 @@ namespace WebDownload.Server.Hubs
 
         public string GetConnectionId() => Context.ConnectionId;
 
+        // Called by the client right after connecting, and again after every
+        // automatic reconnect. groupId is the client's stable downloadGroupId
+        // (a GUID the client generates once and reuses for the life of a
+        // download job, independent of the underlying SignalR ConnectionId,
+        // which changes on every reconnect). Adding the *current* connection
+        // into that group lets the server keep sending progress updates to
+        // "whichever connection currently represents this browser tab" via
+        // Clients.Group(groupId), even after a reconnect swaps the
+        // ConnectionId out from under it.
+        public async Task JoinGroup(string groupId)
+        {
+            await Groups.AddToGroupAsync(Context.ConnectionId, groupId);
+        }
+
         // On-demand check for "is my translation done yet?" - independent of
         // the live SignalR push, so it still works after a page reload or if
         // a message got missed during a reconnect. groupId is the client's
@@ -55,12 +69,12 @@ namespace WebDownload.Server.Hubs
             {
                 var tracks = await _downloadService.GetAvailableSubtitlesAsync(request.Url);
                 DownloadInfo info = new() { SubtitleTracks = tracks };
-                await Clients.Client(conn).SendAsync("ReceiveSubtitleList", info);
+                await Clients.Group(conn).SendAsync("ReceiveSubtitleList", info);
             }
             catch (Exception ex)
             {
                 DownloadInfo errInfo = new() { Error = $"Hub Error listing subtitles: {ex.Message}" };
-                await Clients.Client(conn).SendAsync("ReceiveError", errInfo);
+                await Clients.Group(conn).SendAsync("ReceiveError", errInfo);
             }
         }
 
@@ -70,13 +84,13 @@ namespace WebDownload.Server.Hubs
             string conn = request.DownloadId;
             try
             {
-                Func<DownloadInfo, Task> callback = async p      =>
+                Func<DownloadInfo, Task> callback = async p =>
                 {
                     DownloadInfo info = new()
                     {
                         FileName = p.Output
                     };
-                    await Clients.Client(conn).SendAsync("ReceiveFileName", info);
+                    await Clients.Group(conn).SendAsync("ReceiveFileName", info);
                 };
                 await _downloadService.StartDownloadTitleAsync(request, callback);
             }
@@ -86,7 +100,7 @@ namespace WebDownload.Server.Hubs
                 {
                     Error = "Hub The URL format is invalid."
                 };
-                await Clients.Client(conn).SendAsync("ReceiveError", Errinfo);
+                await Clients.Group(conn).SendAsync("ReceiveError", Errinfo);
             }
             catch (IOException)
             {
@@ -94,14 +108,15 @@ namespace WebDownload.Server.Hubs
                 {
                     Error = "Hub An error occurred while accessing the file system."
                 };
-                await Clients.Client(conn).SendAsync("ReceiveError", Errinfo);
+                await Clients.Group(conn).SendAsync("ReceiveError", Errinfo);
             }
             catch (Exception ex)
             {
-                DownloadInfo Errinfo = new() {
+                DownloadInfo Errinfo = new()
+                {
                     Error = $"Hub Error during download: {ex.Message}"
                 };
-                await Clients.Client(conn).SendAsync("ReceiveError", Errinfo);
+                await Clients.Group(conn).SendAsync("ReceiveError", Errinfo);
             }
         }
         public async Task HubStartDownloadServiceAsync(DownloadRequest request)
@@ -111,10 +126,10 @@ namespace WebDownload.Server.Hubs
             string state = "Pre Processing";
             string? downloadedBaseName = null; // e.g. "My Video [abc123]" (no extension)
             DownloadInfo info = new()
-            { 
-                State = state 
-            };  
-            await Clients.Client(conn).SendAsync("ReceiveState", info);
+            {
+                State = state
+            };
+            await Clients.Group(conn).SendAsync("ReceiveState", info);
             try
             {
                 Func<DownloadInfo, Task> callback = async p =>
@@ -125,7 +140,7 @@ namespace WebDownload.Server.Hubs
                         {
                             Command = p.Command
                         };
-                        await Clients.Client(conn).SendAsync("ReceiveCommand", cinfo);
+                        await Clients.Group(conn).SendAsync("ReceiveCommand", cinfo);
                     }
 
                     var matchFileName = rgxFilePostProc.Match(p.Output);
@@ -133,11 +148,11 @@ namespace WebDownload.Server.Hubs
                     {
                         var destFile = matchFileName.Groups["downloadFileName"].Value;
                         downloadedBaseName ??= System.IO.Path.GetFileNameWithoutExtension(destFile);
-                        DownloadInfo    Finfo = new()
+                        DownloadInfo Finfo = new()
                         {
                             FileName = destFile
                         };
-                        await Clients.Client(conn).SendAsync("ReceiveFileName", Finfo);
+                        await Clients.Group(conn).SendAsync("ReceiveFileName", Finfo);
                         state = "download";
                     }
 
@@ -150,8 +165,8 @@ namespace WebDownload.Server.Hubs
                             {
                                 Frag = match.Groups["TotalFragment"].Value
                             };
-                            
-                            await Clients.Client(conn).SendAsync("ReceiveTotalFragment", tinfo);
+
+                            await Clients.Group(conn).SendAsync("ReceiveTotalFragment", tinfo);
 
                         }
                     }
@@ -175,12 +190,12 @@ namespace WebDownload.Server.Hubs
                                     Frag = match.Groups["fragNumber"].Value,
                                     State = "Downloading"
                                 };
-                                await Clients.Client(conn).SendAsync("ReceiveDownloadInfo", dinfo);
+                                await Clients.Group(conn).SendAsync("ReceiveDownloadInfo", dinfo);
                             }
                             var matchLast = rgxLast.Match(p.Output);
                             if (matchLast.Success)
                             {
-                                var progressPercentage = matchLast.Groups["progress"].Value; 
+                                var progressPercentage = matchLast.Groups["progress"].Value;
                                 progressPercentage = progressPercentage.TrimEnd('%');
                                 DownloadInfo xinfo = new()
                                 {
@@ -190,17 +205,18 @@ namespace WebDownload.Server.Hubs
                                     Size = matchLast.Groups["totalSize"].Value,
                                     State = "Success"
                                 };
-                                await Clients.Client(conn).SendAsync("ReceiveLastDownloadInfo", xinfo);
+                                await Clients.Group(conn).SendAsync("ReceiveLastDownloadInfo", xinfo);
                             }
 
-                        };
+                        }
+                        ;
                         if (p.Output.IndexOf("[Merger] Merging formats into") > -1 || p.Output.IndexOf("Deleting original file") > -1)
                         {
                             DownloadInfo minfo = new()
                             {
                                 State = "Post Processing"
                             };
-                            await Clients.Client(conn).SendAsync("ReceiveState", minfo);
+                            await Clients.Group(conn).SendAsync("ReceiveState", minfo);
 
                         }
                         if (p.Output.Contains("[ExtractAudio]"))
@@ -212,10 +228,11 @@ namespace WebDownload.Server.Hubs
                                 {
                                     FileName = matchExtractFile.Groups["downloadFileName"].Value
                                 };
-                                
-                                await Clients.Client(conn).SendAsync("ReceiveFileName", einfo);
+
+                                await Clients.Group(conn).SendAsync("ReceiveFileName", einfo);
                             }
-                        };
+                        }
+                        ;
                         if (p.Output.Contains("[SplitChapters]"))
                         {
                             var matchChapterFile = rgxChapterAudio.Match(p.Output);
@@ -225,7 +242,7 @@ namespace WebDownload.Server.Hubs
                                 {
                                     Chapter = matchChapterFile.Groups["ChapterFileName"].Value
                                 };
-                                await Clients.Client(conn).SendAsync("ReceiveChapterFileName", sinfo);
+                                await Clients.Group(conn).SendAsync("ReceiveChapterFileName", sinfo);
                             }
                         }
                     }
@@ -233,7 +250,7 @@ namespace WebDownload.Server.Hubs
                     {
                         Output = p.Output
                     };
-                    await Clients.Client(conn).SendAsync("ReceiveOutput", info);
+                    await Clients.Group(conn).SendAsync("ReceiveOutput", info);
                 };
                 await _downloadService.StartDownloadAsync(request, callback);
 
@@ -246,7 +263,7 @@ namespace WebDownload.Server.Hubs
                 {
                     FinishOutput = $"Files saved to {request.OutputFolder}."
                 };
-                await Clients.Client(conn).SendAsync("ReceiveDownloadFinished", Finfo);
+                await Clients.Group(conn).SendAsync("ReceiveDownloadFinished", Finfo);
             }
             catch (UriFormatException)
             {
@@ -254,7 +271,7 @@ namespace WebDownload.Server.Hubs
                 {
                     Error = "Hub The URL format is invalid."
                 };
-                await Clients.Client(conn).SendAsync("ReceiveError", Errinfo);
+                await Clients.Group(conn).SendAsync("ReceiveError", Errinfo);
             }
             catch (IOException)
             {
@@ -262,7 +279,7 @@ namespace WebDownload.Server.Hubs
                 {
                     Error = "Hub An error occurred while accessing the file system."
                 };
-                await Clients.Client(conn).SendAsync("ReceiveError", Errinfo);
+                await Clients.Group(conn).SendAsync("ReceiveError", Errinfo);
             }
             catch (Exception ex)
             {
@@ -270,7 +287,7 @@ namespace WebDownload.Server.Hubs
                 {
                     Error = $"Hub Error during download: {ex.Message}"
                 };
-                await Clients.Client(conn).SendAsync("ReceiveError", Errinfo);
+                await Clients.Group(conn).SendAsync("ReceiveError", Errinfo);
             }
         }
 
@@ -299,9 +316,9 @@ namespace WebDownload.Server.Hubs
                 var sourceLangMatch = System.Text.RegularExpressions.Regex.Match(sourceFile, @"\.([a-zA-Z-]{2,8})\.srt$");
                 var sourceLang = sourceLangMatch.Success ? sourceLangMatch.Groups[1].Value : null;
 
-                await Clients.Client(conn).SendAsync("ReceiveOutput",
+                await Clients.Group(conn).SendAsync("ReceiveOutput",
                     new DownloadInfo { Output = $"[Translate] Starting: {Path.GetFileName(sourceFile)} -> {request.TranslateTo} ..." });
-                await Clients.Client(conn).SendAsync("ReceiveState",
+                await Clients.Group(conn).SendAsync("ReceiveState",
                     new DownloadInfo { State = $"Translating subtitles to {request.TranslateTo}..." });
                 _jobTracker.SetStatus(conn, new TranslationJobStatus { State = "Running", CurrentLine = 0, TotalLines = 0 });
 
@@ -316,7 +333,7 @@ namespace WebDownload.Server.Hubs
                     if (percent != lastReportedPercent && (percent - lastReportedPercent >= 5 || total <= 20))
                     {
                         lastReportedPercent = percent;
-                        await Clients.Client(conn).SendAsync("ReceiveOutput",
+                        await Clients.Group(conn).SendAsync("ReceiveOutput",
                             new DownloadInfo { Output = $"[Translate] {current}/{total} ({percent}%)" });
                     }
                 }
@@ -325,19 +342,19 @@ namespace WebDownload.Server.Hubs
 
                 _jobTracker.SetStatus(conn, new TranslationJobStatus { State = "Completed", TranslatedFile = translatedPath });
 
-                await Clients.Client(conn).SendAsync("ReceiveOutput",
+                await Clients.Group(conn).SendAsync("ReceiveOutput",
                     new DownloadInfo { Output = $"[Translate] Done -> {Path.GetFileName(translatedPath)}" });
 
                 DownloadInfo info = new() { TranslatedFile = translatedPath };
-                await Clients.Client(conn).SendAsync("ReceiveTranslatedFile", info);
+                await Clients.Group(conn).SendAsync("ReceiveTranslatedFile", info);
             }
             catch (Exception ex)
             {
                 _jobTracker.SetStatus(conn, new TranslationJobStatus { State = "Failed", Error = ex.Message });
-                await Clients.Client(conn).SendAsync("ReceiveOutput",
+                await Clients.Group(conn).SendAsync("ReceiveOutput",
                     new DownloadInfo { Output = $"[Translate] Failed: {ex.Message}" });
                 DownloadInfo errInfo = new() { Error = $"Hub Error translating subtitles: {ex.Message}" };
-                await Clients.Client(conn).SendAsync("ReceiveError", errInfo);
+                await Clients.Group(conn).SendAsync("ReceiveError", errInfo);
             }
         }
     }
