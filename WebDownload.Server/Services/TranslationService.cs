@@ -11,8 +11,9 @@ namespace WebDownload.Server.Services
         /// Reads an .srt file, translates each cue's text into targetLangCode,
         /// and writes a sibling file "<name>.<targetLangCode>.srt".
         /// Returns the full path of the file that was written.
+        /// onProgress, if given, is invoked after each cue with (current, total).
         /// </summary>
-        Task<string> TranslateSrtFileAsync(string srtPath, string targetLangCode, string? sourceLangCode = null);
+        Task<string> TranslateSrtFileAsync(string srtPath, string targetLangCode, string? sourceLangCode = null, Func<int, int, Task>? onProgress = null);
     }
 
     // NOTE: This uses Google's public/unofficial translate endpoint so the
@@ -34,7 +35,7 @@ namespace WebDownload.Server.Services
             _httpClient = httpClientFactory.CreateClient(nameof(TranslationService));
         }
 
-        public async Task<string> TranslateSrtFileAsync(string srtPath, string targetLangCode, string? sourceLangCode = null)
+        public async Task<string> TranslateSrtFileAsync(string srtPath, string targetLangCode, string? sourceLangCode = null, Func<int, int, Task>? onProgress = null)
         {
             if (!File.Exists(srtPath))
             {
@@ -44,9 +45,12 @@ namespace WebDownload.Server.Services
             var content = await File.ReadAllTextAsync(srtPath, Encoding.UTF8);
             var blocks = CueBlockSplitter.Split(content.Trim());
             var output = new StringBuilder();
+            var total = blocks.Length;
+            var current = 0;
 
             foreach (var block in blocks)
             {
+                current++;
                 var lines = block.Split('\n').Select(l => l.TrimEnd('\r')).ToList();
                 if (lines.Count == 0)
                 {
@@ -64,6 +68,10 @@ namespace WebDownload.Server.Services
                 {
                     // Not a well-formed cue block, pass it through untouched.
                     output.Append(block).Append("\n\n");
+                    if (onProgress != null)
+                    {
+                        await onProgress(current, total);
+                    }
                     continue;
                 }
 
@@ -79,6 +87,11 @@ namespace WebDownload.Server.Services
                 output.Append(timeLine).Append('\n');
                 output.Append(translatedText).Append('\n');
                 output.Append('\n');
+
+                if (onProgress != null)
+                {
+                    await onProgress(current, total);
+                }
 
                 // Be polite to the free/unofficial endpoint.
                 await Task.Delay(120);

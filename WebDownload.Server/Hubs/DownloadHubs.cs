@@ -287,13 +287,37 @@ namespace WebDownload.Server.Hubs
                 var sourceLangMatch = System.Text.RegularExpressions.Regex.Match(sourceFile, @"\.([a-zA-Z-]{2,8})\.srt$");
                 var sourceLang = sourceLangMatch.Success ? sourceLangMatch.Groups[1].Value : null;
 
-                var translatedPath = await _translationService.TranslateSrtFileAsync(sourceFile, request.TranslateTo!, sourceLang);
+                await Clients.Client(conn).SendAsync("ReceiveOutput",
+                    new DownloadInfo { Output = $"[Translate] Starting: {Path.GetFileName(sourceFile)} -> {request.TranslateTo} ..." });
+                await Clients.Client(conn).SendAsync("ReceiveState",
+                    new DownloadInfo { State = $"Translating subtitles to {request.TranslateTo}..." });
+
+                var lastReportedPercent = -1;
+                async Task OnProgress(int current, int total)
+                {
+                    var percent = total > 0 ? (current * 100) / total : 100;
+                    // Only push a log line every ~5% (or every line for short files) so
+                    // we don't flood the log for a 300+ line subtitle file.
+                    if (percent != lastReportedPercent && (percent - lastReportedPercent >= 5 || total <= 20))
+                    {
+                        lastReportedPercent = percent;
+                        await Clients.Client(conn).SendAsync("ReceiveOutput",
+                            new DownloadInfo { Output = $"[Translate] {current}/{total} ({percent}%)" });
+                    }
+                }
+
+                var translatedPath = await _translationService.TranslateSrtFileAsync(sourceFile, request.TranslateTo!, sourceLang, OnProgress);
+
+                await Clients.Client(conn).SendAsync("ReceiveOutput",
+                    new DownloadInfo { Output = $"[Translate] Done -> {Path.GetFileName(translatedPath)}" });
 
                 DownloadInfo info = new() { TranslatedFile = translatedPath };
                 await Clients.Client(conn).SendAsync("ReceiveTranslatedFile", info);
             }
             catch (Exception ex)
             {
+                await Clients.Client(conn).SendAsync("ReceiveOutput",
+                    new DownloadInfo { Output = $"[Translate] Failed: {ex.Message}" });
                 DownloadInfo errInfo = new() { Error = $"Hub Error translating subtitles: {ex.Message}" };
                 await Clients.Client(conn).SendAsync("ReceiveError", errInfo);
             }
