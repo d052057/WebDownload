@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, inject } from '@angular/core';
 import { SignalrService } from '../services/signalr.service';
 import { FormsModule } from '@angular/forms'
 import { AsyncPipe } from '@angular/common';
@@ -16,6 +16,7 @@ import { signal } from '@angular/core';
 export class Home {
   title = 'webdownload.client';
   signalRService = inject(SignalrService);
+  private cdr = inject(ChangeDetectorRef);
 
   private outputSubject = new BehaviorSubject<string[]>([]);
   output$ = this.outputSubject.asObservable();
@@ -269,25 +270,31 @@ export class Home {
       this.isLoadingTitle = false;
       this.isLoadingSubtitles = false;
       console.log('[DEBUG] ReceiveError -> isLoadingTitle:', this.isLoadingTitle, 'isLoadingSubtitles:', this.isLoadingSubtitles);
+      this.cdr.detectChanges();
     });
 
     // Subscribe to download finished
     this.signalRService.addHandler('ReceiveDownloadFinished', (info: downloadInfo) => {
       this.isDownloading.set(false);
       this.finish = `${info.finishOutput}`;
+      this.cdr.detectChanges();
     });
     this.signalRService.addHandler('ReceiveState', (info: downloadInfo) => {
       this.ReceiveState = `${info.state}`;
+      this.cdr.detectChanges();
     });
 
     this.signalRService.addHandler('ReceiveFileName', (info: downloadInfo) => {
       this.ReceiveFileName = `${info.fileName}`;
       this.isLoadingTitle = false;
       console.log('[DEBUG] ReceiveFileName handler ran -> isLoadingTitle is now:', this.isLoadingTitle, 'isPageBusy():', this.isPageBusy());
+      this.cdr.detectChanges();
+      console.log('[DEBUG] detectChanges() called after ReceiveFileName');
     });
 
     this.signalRService.addHandler('ReceiveChapterFileName', (info: downloadInfo) => {
       this.chapter.update(current => [...current, `${info.chapter}`]);
+      this.cdr.detectChanges();
     });
 
     this.signalRService.addHandler('ReceiveSubtitleList', (info: downloadInfo) => {
@@ -295,6 +302,8 @@ export class Home {
       const tracks = info.subtitleTracks || [];
       this.subtitleOptions = tracks.map(t => ({ ...t, checked: false }));
       console.log('[DEBUG] ReceiveSubtitleList handler ran -> isLoadingSubtitles is now:', this.isLoadingSubtitles, 'isPageBusy():', this.isPageBusy(), 'tracks:', tracks.length);
+      this.cdr.detectChanges();
+      console.log('[DEBUG] detectChanges() called after ReceiveSubtitleList');
     });
 
     this.signalRService.addHandler('ReceiveTranslatedFile', (info: downloadInfo) => {

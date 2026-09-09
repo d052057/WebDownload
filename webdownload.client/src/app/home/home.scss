@@ -21,6 +21,15 @@
   cursor: grabbing;
 }
 
+.arg-list-container.disabled-overlay {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.arg-item.disabled {
+  cursor: not-allowed;
+}
+
 .list-group-item.active {
   background-color: #dc3545;
   border-color: #dc3545;

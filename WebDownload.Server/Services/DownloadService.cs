@@ -244,16 +244,19 @@ namespace WebDownload.Server.Services
                 }
 
                 var code = columns[0].Trim();
-                var name = columns.Length > 1 ? columns[1].Trim() : code;
+                // Real rows are either 3 columns (code, name, formats) or, for a
+                // handful of "no separate name" auto-caption rows, just 2 columns
+                // (code, formats) with no name at all - in that case don't treat
+                // the Formats string (e.g. "vtt") as if it were the Name.
+                var name = columns.Length >= 3 ? columns[1].Trim() : code;
 
                 // YouTube lets yt-dlp report an on-demand auto-translated caption
                 // for essentially every language once a video has ASR captions at
-                // all (yt-dlp names these rows e.g. "Albanian from en", "Zulu from
-                // en", ...). These aren't real files on YouTube and this app does
-                // its own translation step after download, so skip them - only
-                // keep genuine subtitle/caption tracks.
-                bool isTranslatedPseudoTrack = System.Text.RegularExpressions.Regex.IsMatch(
-                    name, @"\bfrom\s+[a-zA-Z-]{2,8}\s*$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                // all (yt-dlp names these rows e.g. "Albanian from Arabic", "Zulu
+                // from English", ...). These aren't real files on YouTube and this
+                // app does its own translation step after download, so skip them -
+                // only keep genuine subtitle/caption tracks.
+                bool isTranslatedPseudoTrack = name.Contains(" from ", StringComparison.OrdinalIgnoreCase);
                 if (isTranslatedPseudoTrack)
                 {
                     continue;
