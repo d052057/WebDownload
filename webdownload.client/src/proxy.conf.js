@@ -35,49 +35,4 @@ const PROXY_CONFIG = [
 ]
 
 module.exports = PROXY_CONFIG;
-//const { env } = require('process');
-
-//if (env.ASPNETCORE_URLS) {
-//  // Find whichever URL in the list starts with http:// instead of https://
-//  const urls = env.ASPNETCORE_URLS.split(';');
-//  const httpUrl = urls.find(url => url.startsWith('http://'));
-//  if (httpUrl) {
-//    target = httpUrl;
-//  }
-//} else if (env.ASPNETCORE_HTTPS_PORT) {
-//  target = `https://localhost:${env.ASPNETCORE_HTTPS_PORT}`;
-//}
-
-//console.log("--> ANGULAR PROXY IS ROUTING TO BACKEND AT:", target);
-
-//const PROXY_CONFIG = [
-//  {
-//    context: ["/downloadHub"],
-//    target,
-//    secure: false,
-//    ws: true,
-//  },
-//  {
-//    context: ["/api"],
-//    target,
-//    secure: false, // Ensure secure: false is present here
-//    changeOrigin: true
-//  },
-//  {
-//    context: ["/webdownload/downloadHub"],
-//    target,
-//    secure: false,
-//    ws: true,
-//    pathRewrite: { "^/webdownload": "" },
-//  },
-//  {
-//    context: ["/webdownload/api"],
-//    target,
-//    secure: false,
-//    changeOrigin: true,
-//    pathRewrite: { "^/webdownload": "" },
-//  },
-//]
-
-//module.exports = PROXY_CONFIG;
 

@@ -1,0 +1,92 @@
+<div class="container">
+  <h1>Restoring Windows Recovery Environment (WinRE) – Reference</h1>
+
+  <p>This document summarizes the process of restoring the Windows Recovery Environment (WinRE) on Windows 10 when the recovery partition is missing.</p>
+
+  <hr>
+
+  <h2>Step 0: Check WinRE status</h2>
+<pre>
+reagentc /info
+</pre>
+  <p><strong>Expected output if missing:</strong> <code>Windows RE status: Disabled</code></p>
+
+  <hr>
+
+  <h2>Step 1: Identify Windows 10 USB Installer</h2>
+<pre>
+dir D:\sources
+</pre>
+  <p>Look for <code>install.wim</code> or <code>install.esd</code>. In this case, we have <code>install.esd</code>.</p>
+
+  <hr>
+
+  <h2>Step 2: Determine Image Index</h2>
+<pre>
+dism /Get-WimInfo /WimFile:D:\sources\install.esd
+</pre>
+  <p>Identify your edition. Example:</p>
+  <ul>
+    <li>Windows 10 Home → Index 1</li>
+    <li>Windows 10 Pro → Index 6</li>
+  </ul>
+
+  <hr>
+
+  <h2>Step 3: Convert ESD to WIM (if using install.esd)</h2>
+<pre>
+mkdir C:\WinREBuild
+dism /Export-Image /SourceImageFile:D:\sources\install.esd /SourceIndex:6 /DestinationImageFile:C:\WinREBuild\install.wim /Compress:max /CheckIntegrity
+</pre>
+
+  <hr>
+
+  <h2>Step 4: Mount the WIM</h2>
+<pre>
+mkdir C:\WinREBuild\mount
+dism /Mount-Image /ImageFile:C:\WinREBuild\install.wim /Index:1 /MountDir:C:\WinREBuild\mount
+</pre>
+
+  <hr>
+
+  <h2>Step 5: Copy WinRE</h2>
+<pre>
+mkdir C:\Windows\System32\Recovery
+copy C:\WinREBuild\mount\Windows\System32\Recovery\winre.wim C:\Windows\System32\Recovery\
+</pre>
+
+  <hr>
+
+  <h2>Step 6: Unmount the WIM</h2>
+<pre>
+dism /Unmount-Image /MountDir:C:\WinREBuild\mount /Discard
+</pre>
+
+  <hr>
+
+  <h2>Step 7: Register WinRE</h2>
+<pre>
+reagentc /setreimage /path C:\Windows\System32\Recovery
+reagentc /enable
+reagentc /info
+</pre>
+
+  <p><strong>Expected output:</strong></p>
+<pre>
+Windows RE status: Enabled
+Windows RE location: \\?\GLOBALROOT\device\harddisk0\partitionX\Recovery\WindowsRE
+</pre>
+
+  <hr>
+
+  <h2>Notes</h2>
+  <ul>
+    <li>Once <code>Windows RE status: Enabled</code>, your Recovery Environment is functional.</li>
+    <li>You can access it via <code>Shift + Restart</code> or through Settings &gt; Update & Security &gt; Recovery.</li>
+    <li>Keep a copy of <code>winre.wim</code> for backup purposes.</li>
+  </ul>
+
+  <hr>
+
+  <p class="note">This procedure applies to Windows 10 and may require adjustments for other versions.</p>
+</div>

@@ -361,3 +361,7 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Local secrets - never commit real values
+WebDownload.Server/appsettings.Local.json
+WebDownload.Server/cookies.txt

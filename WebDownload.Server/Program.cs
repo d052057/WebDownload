@@ -10,7 +10,14 @@ using Microsoft.Extensions.DependencyInjection;
 var builder = WebApplication.CreateBuilder(args);
 
 // 1. REGISTER CONFIGURATION FILES FIRST
-builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
+// Only ever load this in Development. .gitignore keeps it out of git, but
+// that doesn't stop it from being copied to a server by a non-git deploy
+// (xcopy/robocopy/zip-and-upload/etc.) - gating by environment means it
+// can never be read outside Development no matter how it got there.
+if (builder.Environment.IsDevelopment())
+{
+    builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
+}
 
 // 2. ADD SERVICES TO THE CONTAINER
 builder.Services.AddControllers();
@@ -90,7 +97,6 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHub<DownloadHub>("/downloadHub");
-app.MapHub<DownloadHub>("/webdownload/downloadHub");
 app.MapFallbackToFile("/index.html");
 
 app.Run();
