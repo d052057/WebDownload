@@ -1,9 +1,9 @@
-import { Component, ChangeDetectionStrategy, signal, inject } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { DragDropDirective } from '../directives/drag-drop.directive';
-
+import { DOCUMENT } from '@angular/common';
 interface ServerFile {
   name: string;
   type: 'srt' | 'vtt';
@@ -18,7 +18,7 @@ type TranslateResponse = { success: boolean, savedPath: string, detectedSourceLa
   templateUrl: './subtitle-dashboard.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class SubtitleDashboard {
+export class SubtitleDashboard implements OnInit {
   // Signals because these are all mutated from async HTTP callbacks, not just
   // from click handlers in this component's own template - see the comment
   // history in git blame for the OnPush bug this originally fixed.
@@ -31,20 +31,17 @@ export class SubtitleDashboard {
   // Plain property: [(ngModel)] updates it via a template event, which OnPush
   // already handles correctly on its own.
   targetLanguage: string = 'km';
-  http = inject(HttpClient);
-  constructor() {}
+  private http = inject(HttpClient);
+  private document = inject(DOCUMENT);
 
-  // Same '/webdownload' path prefix SignalrService uses for the hub
-  // connection - this app is reached under that virtual path regardless of
-  // which brand hostname (webdownload/webfamily/webangkorlar) served the
-  // page, so plain '/api/...' calls don't get routed here at all.
-  private readonly apiBase = '/webdownload/api/Subtitle';
+  private readonly apiBase = `${this.document.baseURI}api/Subtitle`; // no leading slash, no hardcoded segment
 
   ngOnInit(): void {
     this.loadServerFiles();
   }
 
   loadServerFiles(): void {
+    console.log('Loading server files from API...', `${this.apiBase}/files`);
     this.http.get<ServerFile[]>(`${this.apiBase}/files`)
       .subscribe({
         next: (files) => this.serverFiles.set(files),
