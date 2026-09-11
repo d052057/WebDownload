@@ -11,7 +11,8 @@ const PROXY_CONFIG = [
     target,
     secure: false,
     ws: true,
-  }
+  },
+  { context: ["/api"], target, secure: false, changeOrigin: true }
 ]
 
 module.exports = PROXY_CONFIG;

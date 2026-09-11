@@ -1,0 +1,7 @@
+{
+  "//": "Copy this file to appsettings.Local.json (gitignored) and set your real Cloud Translation API key. Never commit the real file.",
+
+  "GoogleCloud": {
+    "ApiKey": ""
+  }
+}

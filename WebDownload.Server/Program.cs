@@ -1,8 +1,11 @@
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.FileProviders;
+using WebDownload.Server.Models;
+using WebDownload.Server.Services;
 using WebDownload.Server;
 using WebDownload.Server.Hubs;
-using WebDownload.Server.Services;
+using Google.Cloud.Translation.V2;
+using Microsoft.Extensions.Options;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -18,8 +21,30 @@ builder.Services.AddSingleton<ITranslationJobTracker, TranslationJobTracker>();
 //builder.Services.ConfigureSwagger();
 builder.Services.AddCors();
 builder.Services.Configure<ApplicationSettings>(builder.Configuration.GetSection("ApplicationSettings"));
-
+builder.Services.Configure<SubtitleSettings>(builder.Configuration.GetSection("Subtitle"));
 var app = builder.Build();
+if (builder.Environment.IsDevelopment())
+{
+    // NOTE: capitalized to match appsettings.Local.json.example in the repo.
+    // "appsettings.local.json" (lowercase l) and "appsettings.Local.json" are
+    // two different files on case-sensitive filesystems (Linux/macOS/most CI),
+    // even though Windows hides the difference.
+    builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
+}
+var apiKey = builder.Configuration["GoogleCloud:ApiKey"];
+if (string.IsNullOrWhiteSpace(apiKey))
+{
+    throw new InvalidOperationException(
+        "GoogleCloud:ApiKey is missing. Set it in appsettings.Local.json.");
+}
+
+var translationClient = TranslationClient.CreateFromApiKey(apiKey);
+
+builder.Services.AddSingleton(translationClient);
+
+builder.Services.AddScoped<ISubtitleTranslationService, SubtitleTranslationService>();
+
+
 
 // Must run first: trust X-Forwarded-Proto/For/Host from the reverse proxy
 // so HTTPS redirection, HSTS, and Request.Scheme/Host are correct.

@@ -6,6 +6,11 @@ export const routes: Routes = [
       .then(mod => mod.Home)
   },
   {
+    path: 'translate',
+    loadComponent: () => import('./subtitle-dashboard/subtitle-dashboard')
+      .then(mod => mod.SubtitleDashboard)
+  },
+  {
     path: 'guide',
     loadComponent: () => import('./guide/guide')
       .then(mod => mod.Guide),
