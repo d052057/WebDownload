@@ -1,9 +1,14 @@
 import { Routes } from '@angular/router';
 export const routes: Routes = [
   {
-    path: 'ytdlp',  // Default route
+    path: '',  // Default route
     loadComponent: () => import('./home/home')
       .then(mod => mod.Home)
+  },
+  {
+    path: 'ytdlp',  // Default route
+    loadComponent: () => import('./ytdlp/ytdlp')
+      .then(mod => mod.Ytdlp)
   },
   {
     path: 'translate',
