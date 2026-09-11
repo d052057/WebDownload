@@ -1,13 +1,14 @@
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
     <div class="container-fluid" wmAnimate="landing" aos speed="normal">
-        <a class="navbar-brand logo-container" href="/" style="margin-left:1rem; text-transform:capitalize;">
-            <mat-icon svgIcon="logo" class="logo-perfect"></mat-icon><span style="padding-left:.25rem">Home</span>
+        <a class="navbar-brand logo-container" routerLink="/" style="margin-left:1rem; text-transform:capitalize;">
+            <mat-icon svgIcon="logo" class="logo-perfect"></mat-icon><span class="m-1">Home</span>
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item"><a routerLink="/ytdlp" class="nav-link"><i class='bi bi-download me-1'></i>Yt-dlp</a></li>
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="bi bi-translate me-1"></i>Translate
@@ -28,7 +29,7 @@
                     </ul>
                 </li>
 
-                <li class="nav-item"><a routerLink="/guide" class="nav-link"><i class='bi bi-book'></i> Guides</a></li>
+                <li class="nav-item"><a routerLink="/guide" class="nav-link"><i class='bi bi-book m-1'></i>Guides</a></li>
 
             </ul>
         </div>

@@ -1,7 +1,7 @@
 import { Routes } from '@angular/router';
 export const routes: Routes = [
   {
-    path: '',  // Default route
+    path: 'ytdlp',  // Default route
     loadComponent: () => import('./home/home')
       .then(mod => mod.Home)
   },
