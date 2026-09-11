@@ -34,12 +34,18 @@ export class SubtitleDashboard {
   http = inject(HttpClient);
   constructor() {}
 
+  // Same '/webdownload' path prefix SignalrService uses for the hub
+  // connection - this app is reached under that virtual path regardless of
+  // which brand hostname (webdownload/webfamily/webangkorlar) served the
+  // page, so plain '/api/...' calls don't get routed here at all.
+  private readonly apiBase = '/webdownload/api/Subtitle';
+
   ngOnInit(): void {
     this.loadServerFiles();
   }
 
   loadServerFiles(): void {
-    this.http.get<ServerFile[]>('/api/Subtitle/files')
+    this.http.get<ServerFile[]>(`${this.apiBase}/files`)
       .subscribe({
         next: (files) => this.serverFiles.set(files),
         error: (err) => console.error('Failed to look up directory index:', err)
@@ -121,11 +127,11 @@ export class SubtitleDashboard {
     const payload = new FormData();
     payload.append('file', file);
     payload.append('targetLanguage', this.targetLanguage);
-    return this.http.post<TranslateResponse>('/api/Subtitle/translate-and-save', payload);
+    return this.http.post<TranslateResponse>(`${this.apiBase}/translate-and-save`, payload);
   }
 
   private translateServerFile(file: ServerFile) {
-    return this.http.post<TranslateResponse>('/api/Subtitle/translate-server-file', {
+    return this.http.post<TranslateResponse>(`${this.apiBase}/translate-server-file`, {
       fileName: file.name,
       targetLanguage: this.targetLanguage
     });

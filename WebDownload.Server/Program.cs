@@ -6,6 +6,7 @@ using WebDownload.Server;
 using WebDownload.Server.Hubs;
 using Google.Cloud.Translation.V2;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.DependencyInjection;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -25,10 +26,6 @@ builder.Services.Configure<SubtitleSettings>(builder.Configuration.GetSection("S
 var app = builder.Build();
 if (builder.Environment.IsDevelopment())
 {
-    // NOTE: capitalized to match appsettings.Local.json.example in the repo.
-    // "appsettings.local.json" (lowercase l) and "appsettings.Local.json" are
-    // two different files on case-sensitive filesystems (Linux/macOS/most CI),
-    // even though Windows hides the difference.
     builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
 }
 var apiKey = builder.Configuration["GoogleCloud:ApiKey"];
