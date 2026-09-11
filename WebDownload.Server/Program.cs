@@ -57,6 +57,16 @@ forwardedHeadersOptions.KnownNetworks.Clear();
 forwardedHeadersOptions.KnownProxies.Clear();
 app.UseForwardedHeaders(forwardedHeadersOptions);
 
+// This app is reached under a '/webdownload' virtual path in your hosting
+// setup (see SignalrService and SubtitleDashboard on the client, which both
+// assume that prefix). UsePathBase makes the app aware of that prefix
+// itself instead of relying entirely on an external reverse proxy to add
+// or strip it - it's a no-op if a proxy in front already stripped the
+// prefix before the request reaches Kestrel, and it correctly strips it
+// here if the full '/webdownload/...' path arrives unchanged. This must
+// run before UseStaticFiles/MapControllers/MapHub below.
+app.UsePathBase("/webdownload");
+
 app.UseStaticFiles();
 string MediaDrive = builder.Configuration.GetValue("ApplicationSettings:MediaDrive", "*") ?? @"c:/medias";
 app.UseStaticFiles(new StaticFileOptions
