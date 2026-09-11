@@ -11,16 +11,15 @@ section {
   overflow: hidden;
 }
 .angkor {
-  background-image: url("/assets/images/400110244.jpg");
+  background-image: var(--angkor-bg-image);
   height: 100vh;
-  width: 100vw; /* Changed from 100% to 100vw to guarantee full viewport width */
+  width: 100vw;
   background-position: center;
   background-size: cover;
   background-repeat: no-repeat;
   position: relative;
   box-sizing: border-box;
   overflow: hidden;
-  /* Animation properties */
   animation: heroBackgroundScale 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   will-change: transform;
 }

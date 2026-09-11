@@ -1,23 +1,77 @@
+//const { env } = require('process');
+
+//const target = env.ASPNETCORE_HTTPS_PORT ? `https://127.0.0.1:${env.ASPNETCORE_HTTPS_PORT}` :
+//    env.ASPNETCORE_URLS ? env.ASPNETCORE_URLS.split(';')[0] : 'https://localhost:7115';
+
+//const PROXY_CONFIG = [
+//  {
+//    context: [
+//      "/downloadHub"
+//    ],
+//    target,
+//    secure: false,
+//    ws: true,
+//  },
+//  { context: ["/api"], target, secure: false, changeOrigin: true },
+//  // Your SignalrService hardcodes '/webdownload/downloadHub' as the hub URL
+//  // (see signalr.service.ts), and the subtitle dashboard's API calls should
+//  // eventually match that same convention. These two entries cover that
+//  // case for local `ng serve` too, stripping the prefix before forwarding
+//  // since the backend itself doesn't know about it.
+//  {
+//    context: ["/webdownload/downloadHub"],
+//    target,
+//    secure: false,
+//    ws: true,
+//    pathRewrite: { "^/webdownload": "" },
+//  },
+//  {
+//    context: ["/webdownload/api"],
+//    target,
+//    secure: false,
+//    changeOrigin: true,
+//    pathRewrite: { "^/webdownload": "" },
+//  },
+//]
+
+//module.exports = PROXY_CONFIG;
 const { env } = require('process');
 
-const target = env.ASPNETCORE_HTTPS_PORT ? `https://localhost:${env.ASPNETCORE_HTTPS_PORT}` :
-    env.ASPNETCORE_URLS ? env.ASPNETCORE_URLS.split(';')[0] : 'https://localhost:7115';
+// 1. Let's capture exactly what Visual Studio is setting the URL to:
+console.log("=================================================");
+console.log("DEBUG: env.ASPNETCORE_URLS is:", env.ASPNETCORE_URLS);
+console.log("DEBUG: env.ASPNETCORE_HTTPS_PORT is:", env.ASPNETCORE_HTTPS_PORT);
+console.log("=================================================");
+
+// 1. Look for the HTTP url instead of HTTPS to bypass local SSL certificate blockages
+let target = 'http://localhost:5115'; // Default fallback
+
+if (env.ASPNETCORE_URLS) {
+  // Find whichever URL in the list starts with http:// instead of https://
+  const urls = env.ASPNETCORE_URLS.split(';');
+  const httpUrl = urls.find(url => url.startsWith('http://'));
+  if (httpUrl) {
+    target = httpUrl;
+  }
+} else if (env.ASPNETCORE_HTTPS_PORT) {
+  target = `https://localhost:${env.ASPNETCORE_HTTPS_PORT}`;
+}
+
+console.log("--> ANGULAR PROXY IS ROUTING TO BACKEND AT:", target);
 
 const PROXY_CONFIG = [
   {
-    context: [
-      "/downloadHub"
-    ],
+    context: ["/downloadHub"],
     target,
     secure: false,
     ws: true,
   },
-  { context: ["/api"], target, secure: false, changeOrigin: true },
-  // Your SignalrService hardcodes '/webdownload/downloadHub' as the hub URL
-  // (see signalr.service.ts), and the subtitle dashboard's API calls should
-  // eventually match that same convention. These two entries cover that
-  // case for local `ng serve` too, stripping the prefix before forwarding
-  // since the backend itself doesn't know about it.
+  {
+    context: ["/api"],
+    target,
+    secure: false, // Ensure secure: false is present here
+    changeOrigin: true
+  },
   {
     context: ["/webdownload/downloadHub"],
     target,
@@ -35,3 +89,4 @@ const PROXY_CONFIG = [
 ]
 
 module.exports = PROXY_CONFIG;
+
