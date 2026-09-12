@@ -35,7 +35,10 @@ namespace WebDownload.Server.Services
                         RedirectStandardOutput = true,
                         RedirectStandardError = true,
                         UseShellExecute = false,
-                        CreateNoWindow = true
+                        CreateNoWindow = true,
+                        StandardOutputEncoding = System.Text.Encoding.UTF8,
+                        StandardErrorEncoding = System.Text.Encoding.UTF8,
+                        EnvironmentVariables = { ["PYTHONIOENCODING"] = "utf-8" }
                     }
                 };
 
@@ -130,7 +133,10 @@ namespace WebDownload.Server.Services
                         RedirectStandardOutput = true,
                         RedirectStandardError = true,
                         UseShellExecute = false,
-                        CreateNoWindow = true
+                        CreateNoWindow = true,
+                        StandardOutputEncoding = System.Text.Encoding.UTF8,
+                        StandardErrorEncoding = System.Text.Encoding.UTF8,
+                        EnvironmentVariables = { ["PYTHONIOENCODING"] = "utf-8" }
                     }
                 };
 
@@ -191,7 +197,10 @@ namespace WebDownload.Server.Services
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
-                    CreateNoWindow = true
+                    CreateNoWindow = true,
+                    StandardOutputEncoding = System.Text.Encoding.UTF8,
+                    StandardErrorEncoding = System.Text.Encoding.UTF8,
+                    EnvironmentVariables = { ["PYTHONIOENCODING"] = "utf-8" }
                 }
             };
 
