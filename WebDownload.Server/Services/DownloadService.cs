@@ -23,12 +23,12 @@ namespace WebDownload.Server.Services
             sb.AppendFormat(" {0} {1}", "--config-location", configPath);
             sb.AppendFormat(" --progress -o \"{0}\" --restrict-filenames", OutputFileTemplate);
             sb.AppendFormat(" --no-warnings --print filename --skip-download");
-            sb.AppendFormat(" \"{0}\"", request.Url);
+                sb.AppendFormat(" \"{0}\"", request.Url);
             try
             {
                 var process = new Process
                 {
-                    StartInfo = new ProcessStartInfo
+                    StartInfo = new ProcessStartInfo    
                     {
                         FileName = ytDlpPath,
                         Arguments = sb.ToString(),
@@ -86,7 +86,7 @@ namespace WebDownload.Server.Services
 
             // Output folder and template
             sb.AppendFormat(" -P \"{0}\"", request.OutputFolder);
-            sb.AppendFormat(" --progress -o \"{0}\"", OutputFileTemplate);
+            sb.AppendFormat(" --progress -o \"{0}\" --restrict-filenames", OutputFileTemplate);
             if (request.AudioOnly)
             {
                 sb.AppendFormat(" -f {0} ", "bestaudio");
