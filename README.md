@@ -1,1 +1,1 @@
-Yt-dlp and FFmpeg download videos with Angular v19 front end and C# backend.
+Yt-dlp and FFmpeg download videos with Angular v22 front end and C# backend.
