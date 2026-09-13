@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { DragDropDirective } from '../directives/drag-drop.directive';
-import { DOCUMENT } from '@angular/common';
+import { Urlbase } from '../services/urlbase'; 
 interface ServerFile {
   name: string;
   type: 'srt' | 'vtt';
@@ -19,6 +19,9 @@ type TranslateResponse = { success: boolean, savedPath: string, detectedSourceLa
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SubtitleDashboard implements OnInit {
+  private urlbase = inject(Urlbase);
+  private apiBase!: string;
+
   // Signals because these are all mutated from async HTTP callbacks, not just
   // from click handlers in this component's own template - see the comment
   // history in git blame for the OnPush bug this originally fixed.
@@ -32,10 +35,10 @@ export class SubtitleDashboard implements OnInit {
   // already handles correctly on its own.
   targetLanguage: string = 'km';
   private http = inject(HttpClient);
-  private document = inject(DOCUMENT);
-
-  private readonly apiBase = `${this.document.baseURI}api/Subtitle`; // no leading slash, no hardcoded segment
-
+  constructor() {
+    const segment = this.urlbase.baseUrl();
+    this.apiBase = segment ? `/${segment}/api/Subtitle` : '/api/Subtitle';
+  }
   ngOnInit(): void {
     this.loadServerFiles();
   }
