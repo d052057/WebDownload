@@ -3,7 +3,6 @@ import { Component, OnInit, inject, Renderer2, signal } from "@angular/core";
 import { SafeHtml, DomSanitizer } from "@angular/platform-browser";
 import { ActivatedRoute } from "@angular/router";
 import { DOCUMENT } from '@angular/common';
-import { forkJoin } from 'rxjs';
 @Component({
   selector: 'app-display-guide',
   imports: [],
