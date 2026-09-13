@@ -26,7 +26,7 @@ export class Ytdlp {
   // Single source of truth for "lock the whole form" - true while we're
   // waiting on title/subtitle lookups or an actual download/translation.
   isPageBusy(): boolean {
-    return this.isDownloading() || this.isLoadingTitle || this.isLoadingSubtitles;
+    return this.isDownloading() || this.isLoadingTitle() || this.isLoadingSubtitles();
   }
   options: string = '';
   chkAudio: boolean = false;
@@ -40,15 +40,18 @@ export class Ytdlp {
   // Subtitle checkboxes: starts empty, gets filled in once we know what
   // YouTube actually has for the entered URL (see getSubtitles()).
   subtitleOptions: SubtitleTrackOption[] = [];
-  isLoadingSubtitles = false;
-  isLoadingTitle = false;
+  // Signals because these are all mutated from async callbacks (SignalR
+  // pushes and setInterval polling), not just from click handlers in this
+  // component's own template - same reasoning as subtitle-dashboard.ts.
+  isLoadingSubtitles = signal(false);
+  isLoadingTitle = signal(false);
 
   // "Translate to ..." checkboxes, mutually exclusive, same pattern as the
   // cookie checkboxes below.
   translateToKm: boolean = false;
   translateToEn: boolean = false;
-  translatedFile: string = '';
-  translationStatusMessage: string = '';
+  translatedFile = signal('');
+  translationStatusMessage = signal('');
   private translationPollHandle: ReturnType<typeof setInterval> | null = null;
 
   onTranslateToKmChange(): void {
@@ -148,7 +151,7 @@ export class Ytdlp {
     this.ytDlpCommand = '';
     this.chapter.set([]);
     this.outputSubject.next([]);
-    this.translatedFile = '';
+    this.translatedFile.set('');
   }
 
   onUrlChange(): void {
@@ -167,7 +170,7 @@ export class Ytdlp {
     if (!this.chKSubTitleInclude || !this.url || this.url.trim() === '') {
       return;
     }
-    this.isLoadingSubtitles = true;
+    this.isLoadingSubtitles.set(true);
     this.signalRService.ensureConnected().then(async connId => {
       this.connectionId = connId;
       await this.signalRService.joinGroup(this.downloadGroupId);
@@ -286,9 +289,9 @@ export class Ytdlp {
     // Subscribe to error messages
     this.signalRService.addHandler('ReceiveError', (info: downloadInfo) => {
       this.error += `${info.error}` + "\n\n";
-      this.isLoadingTitle = false;
-      this.isLoadingSubtitles = false;
-      console.log('[DEBUG] ReceiveError -> isLoadingTitle:', this.isLoadingTitle, 'isLoadingSubtitles:', this.isLoadingSubtitles);
+      this.isLoadingTitle.set(false);
+      this.isLoadingSubtitles.set(false);
+      console.log('[DEBUG] ReceiveError -> isLoadingTitle:', this.isLoadingTitle(), 'isLoadingSubtitles:', this.isLoadingSubtitles());
       this.cdr.detectChanges();
     });
 
@@ -305,8 +308,8 @@ export class Ytdlp {
 
     this.signalRService.addHandler('ReceiveFileName', (info: downloadInfo) => {
       this.ReceiveFileName = `${info.fileName}`;
-      this.isLoadingTitle = false;
-      console.log('[DEBUG] ReceiveFileName handler ran -> isLoadingTitle is now:', this.isLoadingTitle, 'isPageBusy():', this.isPageBusy());
+      this.isLoadingTitle.set(false);
+      console.log('[DEBUG] ReceiveFileName handler ran -> isLoadingTitle is now:', this.isLoadingTitle(), 'isPageBusy():', this.isPageBusy());
       this.cdr.detectChanges();
       console.log('[DEBUG] detectChanges() called after ReceiveFileName');
     });
@@ -317,17 +320,17 @@ export class Ytdlp {
     });
 
     this.signalRService.addHandler('ReceiveSubtitleList', (info: downloadInfo) => {
-      this.isLoadingSubtitles = false;
+      this.isLoadingSubtitles.set(false);
       const tracks = info.subtitleTracks || [];
       this.subtitleOptions = tracks.map(t => ({ ...t, checked: false }));
-      console.log('[DEBUG] ReceiveSubtitleList handler ran -> isLoadingSubtitles is now:', this.isLoadingSubtitles, 'isPageBusy():', this.isPageBusy(), 'tracks:', tracks.length);
+      console.log('[DEBUG] ReceiveSubtitleList handler ran -> isLoadingSubtitles is now:', this.isLoadingSubtitles(), 'isPageBusy():', this.isPageBusy(), 'tracks:', tracks.length);
       this.cdr.detectChanges();
       console.log('[DEBUG] detectChanges() called after ReceiveSubtitleList');
     });
 
     this.signalRService.addHandler('ReceiveTranslatedFile', (info: downloadInfo) => {
-      this.translatedFile = info.translatedFile || '';
-      this.translationStatusMessage = `Translation completed: ${this.translatedFile}`;
+      this.translatedFile.set(info.translatedFile || '');
+      this.translationStatusMessage.set(`Translation completed: ${this.translatedFile()}`);
       this.stopTranslationStatusPolling();
     });
   }
@@ -352,7 +355,7 @@ export class Ytdlp {
   }
 
   getTitle(): void {
-    this.isLoadingTitle = true;
+    this.isLoadingTitle.set(true);
     this.signalRService.ensureConnected().then(async connId => {
       this.connectionId = connId;
       await this.signalRService.joinGroup(this.downloadGroupId);
@@ -384,7 +387,7 @@ export class Ytdlp {
         outputFolder: `${this.selectedMenuValue}\\${this.outputFolder}`  // Send the user-provided output folder.
       };
       this.isDownloading.set(true);
-      this.translationStatusMessage = '';
+      this.translationStatusMessage.set('');
       if (this.translateTo) {
         this.startTranslationStatusPolling();
       }
@@ -401,18 +404,18 @@ export class Ytdlp {
 
   private applyTranslationStatus(status: any): void {
     if (!status) {
-      this.translationStatusMessage = 'No translation job found yet for this session.';
+      this.translationStatusMessage.set('No translation job found yet for this session.');
       return;
     }
     if (status.state === 'Completed') {
-      this.translationStatusMessage = `Translation completed: ${status.translatedFile}`;
+      this.translationStatusMessage.set(`Translation completed: ${status.translatedFile}`);
       this.stopTranslationStatusPolling();
     } else if (status.state === 'Failed') {
-      this.translationStatusMessage = `Translation failed: ${status.error}`;
+      this.translationStatusMessage.set(`Translation failed: ${status.error}`);
       this.stopTranslationStatusPolling();
     } else {
       const pct = status.totalLines > 0 ? Math.round((status.currentLine * 100) / status.totalLines) : 0;
-      this.translationStatusMessage = `Translating... ${status.currentLine}/${status.totalLines} (${pct}%)`;
+      this.translationStatusMessage.set(`Translating... ${status.currentLine}/${status.totalLines} (${pct}%)`);
     }
   }
 

@@ -388,6 +388,8 @@ namespace WebDownload.Server.Hubs
                 await File.WriteAllTextAsync(translatedPath, result.Content, new System.Text.UTF8Encoding(false));
 
                 _jobTracker.SetStatus(conn, new TranslationJobStatus { State = "Completed", TranslatedFile = translatedPath });
+                await Clients.Group(conn).SendAsync("ReceiveState",
+                    new DownloadInfo { State = $"Translating subtitles to {request.TranslateTo} completed..." });
 
                 var detectedNote = result.DetectedSourceLanguage != null
                     ? $" (detected source language: {result.DetectedSourceLanguage})"

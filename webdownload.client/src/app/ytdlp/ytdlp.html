@@ -11,12 +11,12 @@
            placeholder="Enter YouTube URL"
            (change)="onUrlChange()"
            [disabled]="isPageBusy()">
-    @if (isLoadingTitle || isLoadingSubtitles) {
+    @if (isLoadingTitle() || isLoadingSubtitles()) {
     <div class="text-muted mt-1">
       <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
       <em>
-        @if (isLoadingTitle && isLoadingSubtitles) { Fetching title and subtitle list from YouTube&hellip; }
-        @else if (isLoadingTitle) { Fetching title from YouTube&hellip; }
+        @if (isLoadingTitle() && isLoadingSubtitles()) { Fetching title and subtitle list from YouTube&hellip; }
+        @else if (isLoadingTitle()) { Fetching title from YouTube&hellip; }
         @else { Fetching subtitle list from YouTube&hellip; }
       </em>
     </div>
@@ -117,13 +117,13 @@
 
           @if (chKSubTitleInclude) {
           <div style="margin-left: 4rem; max-width: 30rem;">
-            @if (isLoadingSubtitles) {
+            @if (isLoadingSubtitles()) {
             <div class="text-muted"><em>Looking up available subtitles&hellip;</em></div>
             }
-            @if (!isLoadingSubtitles && subtitleOptions.length === 0) {
+            @if (!isLoadingSubtitles() && subtitleOptions.length === 0) {
             <div class="text-muted"><em>Enter a URL above to see which subtitles are available.</em></div>
             }
-            @if (!isLoadingSubtitles && subtitleOptions.length > 0) {
+            @if (!isLoadingSubtitles() && subtitleOptions.length > 0) {
             <div class="d-flex justify-content-between align-items-center mb-1">
               <small class="text-muted">{{ subtitleOptions.length }} subtitle track(s) available</small>
               <span>
@@ -272,13 +272,13 @@
           </tr>
           <tr>
             <td>Translated Subtitle</td>
-            <td colspan="4" style="color: orange">{{ translatedFile || "-"}}</td>
+            <td colspan="4" style="color: orange">{{ translatedFile() || "-"}}</td>
           </tr>
           @if (translateTo) {
           <tr>
             <td>Translation Status</td>
             <td colspan="4">
-              <span style="color: orange">{{ translationStatusMessage || "Not started yet" }}</span>
+              <span style="color: orange">{{ translationStatusMessage() || "Not started yet" }}</span>
               <button type="button" class="btn btn-sm btn-outline-secondary ms-2" (click)="checkTranslationStatus()">
                 Check now
               </button>
