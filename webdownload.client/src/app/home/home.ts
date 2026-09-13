@@ -1,5 +1,6 @@
 import { Component, inject, ElementRef, AfterViewInit } from '@angular/core';
-import { DOCUMENT } from '@angular/common';
+import { Urlbase } from '../services/urlbase';
+
 @Component({
   selector: 'app-home',
   imports: [],
@@ -7,11 +8,21 @@ import { DOCUMENT } from '@angular/common';
   styleUrl: './home.scss'
 })
 export class Home implements AfterViewInit {
-  private document = inject(DOCUMENT);
+  private urlbase = inject(Urlbase);
+  private apiBase!: string;
   private el = inject(ElementRef);
 
+  constructor() {
+    const segment = this.urlbase.baseUrl();
+    this.apiBase = segment ? `/${segment}` : '';
+  }
+
   ngAfterViewInit(): void {
-    const imageUrl = `${this.document.baseURI}assets/images/400110244.jfif`;
-    this.el.nativeElement.style.setProperty('--angkor-bg-image', `url("${imageUrl}")`);
+    const imageUrl = `${this.apiBase}/assets/images/400110244.jfif`;
+
+    this.el.nativeElement.style.setProperty(
+      '--angkor-bg-image',
+      `url("${imageUrl}")`
+    );
   }
 }
