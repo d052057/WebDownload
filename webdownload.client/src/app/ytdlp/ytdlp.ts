@@ -54,15 +54,42 @@ export class Ytdlp {
   translationStatusMessage = signal('');
   private translationPollHandle: ReturnType<typeof setInterval> | null = null;
 
+  // "Default Translate Location": disabled until a translate direction is
+  // picked. When checked, the translated srt/vtt is written under this
+  // movie's own output folder (in a "closecaption" subfolder) instead of the
+  // shared Subtitle:OutputPath folder the server falls back to by default.
+  useDefaultTranslateLocation: boolean = false;
+  translateOutputFolder: string = '';
+
   onTranslateToKmChange(): void {
     if (this.translateToKm) {
       this.translateToEn = false;
     }
+    this.onTranslationSelectionChange();
   }
 
   onTranslateToEnChange(): void {
     if (this.translateToEn) {
       this.translateToKm = false;
+    }
+    this.onTranslationSelectionChange();
+  }
+
+  // If both translate checkboxes end up unchecked, "Default Translate
+  // Location" goes back to disabled - so reset it and its text box too,
+  // rather than leaving stale state the user can't see or edit.
+  private onTranslationSelectionChange(): void {
+    if (!this.translateTo) {
+      this.useDefaultTranslateLocation = false;
+      this.translateOutputFolder = '';
+    }
+  }
+
+  onUseDefaultTranslateLocationChange(): void {
+    if (this.useDefaultTranslateLocation) {
+      this.translateOutputFolder = `${this.selectedMenuValue}\\${this.outputFolder}\\closecaption`;
+    } else {
+      this.translateOutputFolder = '';
     }
   }
 
@@ -291,7 +318,6 @@ export class Ytdlp {
       this.error += `${info.error}` + "\n\n";
       this.isLoadingTitle.set(false);
       this.isLoadingSubtitles.set(false);
-      console.log('[DEBUG] ReceiveError -> isLoadingTitle:', this.isLoadingTitle(), 'isLoadingSubtitles:', this.isLoadingSubtitles());
       this.cdr.detectChanges();
     });
 
@@ -309,9 +335,7 @@ export class Ytdlp {
     this.signalRService.addHandler('ReceiveFileName', (info: downloadInfo) => {
       this.ReceiveFileName = `${info.fileName}`;
       this.isLoadingTitle.set(false);
-      console.log('[DEBUG] ReceiveFileName handler ran -> isLoadingTitle is now:', this.isLoadingTitle(), 'isPageBusy():', this.isPageBusy());
       this.cdr.detectChanges();
-      console.log('[DEBUG] detectChanges() called after ReceiveFileName');
     });
 
     this.signalRService.addHandler('ReceiveChapterFileName', (info: downloadInfo) => {
@@ -323,9 +347,7 @@ export class Ytdlp {
       this.isLoadingSubtitles.set(false);
       const tracks = info.subtitleTracks || [];
       this.subtitleOptions = tracks.map(t => ({ ...t, checked: false }));
-      console.log('[DEBUG] ReceiveSubtitleList handler ran -> isLoadingSubtitles is now:', this.isLoadingSubtitles(), 'isPageBusy():', this.isPageBusy(), 'tracks:', tracks.length);
       this.cdr.detectChanges();
-      console.log('[DEBUG] detectChanges() called after ReceiveSubtitleList');
     });
 
     this.signalRService.addHandler('ReceiveTranslatedFile', (info: downloadInfo) => {
@@ -384,6 +406,7 @@ export class Ytdlp {
         videoOnly: this.chkVideo,
         subtitleLangs: subtitleLangs,
         translateTo: this.translateTo || null,
+        translateOutputFolder: this.useDefaultTranslateLocation ? this.translateOutputFolder : null,
         outputFolder: `${this.selectedMenuValue}\\${this.outputFolder}`  // Send the user-provided output folder.
       };
       this.isDownloading.set(true);

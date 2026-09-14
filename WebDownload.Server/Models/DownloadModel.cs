@@ -17,6 +17,12 @@
         // to translate the downloaded subtitle into, e.g. "km" or "en".
         public string? TranslateTo { get; set; }
 
+        // Set only when the client's "Default Translate Location" checkbox is
+        // checked. A path relative to MediaDrive (e.g. "MOVIES\9\closecaption")
+        // where the translated srt/vtt should be written instead of the shared
+        // Subtitle:OutputPath folder. Empty/null = use the shared folder as before.
+        public string? TranslateOutputFolder { get; set; }
+
         public string Options { get; set; } = string.Empty;
         public required string DownloadId { get; set; }
         public required string OutputFolder { get; set; }

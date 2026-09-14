@@ -182,7 +182,27 @@
                  [disabled]="isPageBusy()">
           <span class="form-check-label">Translate subtitle to English</span>
         </label>
+        <label class="checkbox-container" style="margin-left: 2rem">
+          <input type="checkbox" class="form-check-input"
+                 [(ngModel)]="useDefaultTranslateLocation"
+                 (change)="onUseDefaultTranslateLocationChange()"
+                 [disabled]="!translateTo || isPageBusy()">
+          <span class="form-check-label">Default Translate Location</span>
+        </label>
       </div>
+
+      @if (useDefaultTranslateLocation) {
+      <div class="input-group mt-2" style="max-width: 30rem; margin-left: 2rem;">
+        <span class="input-group-text"><i class="bi bi-folder-fill"></i></span>
+        <input type="text" class="form-control"
+               [(ngModel)]="translateOutputFolder"
+               [disabled]="isPageBusy()"
+               aria-label="translate output folder">
+      </div>
+      <small class="form-text text-muted" style="margin-left: 2rem;">
+        Translated subtitle will be saved here (under medias\). Leave unchecked to use the default closecaption folder.
+      </small>
+      }
 
     </div>
     <div class="col-md-4 sticky-top" style="top: 1rem;">

@@ -333,10 +333,14 @@ namespace WebDownload.Server.Hubs
                 await Clients.Group(conn).SendAsync("ReceiveOutput",
                     new DownloadInfo { Output = $"[Translate] Searching '{request.OutputFolder}' for '{downloadedBaseName}*.srt' ..." });
 
-                var srtFiles = Directory.GetFiles(request.OutputFolder, $"{downloadedBaseName}*.srt");
+                // Look for either .srt or .vtt - yt-dlp can write either depending on
+                // --sub-format/--convert-subs, and the translated output should match.
+                var srtFiles = Directory.GetFiles(request.OutputFolder, $"{downloadedBaseName}*.srt")
+                    .Concat(Directory.GetFiles(request.OutputFolder, $"{downloadedBaseName}*.vtt"))
+                    .ToArray();
                 if (srtFiles.Length == 0)
                 {
-                    var msg = $"No .srt file matching '{downloadedBaseName}*.srt' was found in '{request.OutputFolder}'. " +
+                    var msg = $"No .srt or .vtt file matching '{downloadedBaseName}*' was found in '{request.OutputFolder}'. " +
                                "Check that a subtitle language was actually selected before downloading.";
                     _jobTracker.SetStatus(conn, new TranslationJobStatus { State = "Failed", Error = msg });
                     await Clients.Group(conn).SendAsync("ReceiveOutput", new DownloadInfo { Output = $"[Translate] {msg}" });
@@ -371,12 +375,23 @@ namespace WebDownload.Server.Hubs
                     result = await _subtitleTranslationService.TranslateSubtitleAsync(stream, request.TranslateTo!);
                 }
 
-                var outputDir = _subtitleSettings.Value.OutputPath;
-                if (string.IsNullOrWhiteSpace(outputDir))
+                string outputDir;
+                if (!string.IsNullOrWhiteSpace(request.TranslateOutputFolder))
                 {
-                    // Fall back to writing next to the source if OutputPath isn't
-                    // configured, rather than failing outright.
-                    outputDir = Path.GetDirectoryName(sourceFile) ?? ".";
+                    // "Default Translate Location" was checked on the client - write
+                    // alongside this movie's own output folder instead of the shared
+                    // Subtitle:OutputPath folder.
+                    outputDir = Path.Combine(_appSettings.Value.MediaDrive, request.TranslateOutputFolder);
+                }
+                else
+                {
+                    outputDir = _subtitleSettings.Value.OutputPath;
+                    if (string.IsNullOrWhiteSpace(outputDir))
+                    {
+                        // Fall back to writing next to the source if OutputPath isn't
+                        // configured, rather than failing outright.
+                        outputDir = Path.GetDirectoryName(sourceFile) ?? ".";
+                    }
                 }
                 Directory.CreateDirectory(outputDir);
 
@@ -384,7 +399,8 @@ namespace WebDownload.Server.Hubs
                 // Strip a trailing ".en" / ".th" etc. language suffix if present so we
                 // don't end up with "video.en.km.srt" style names.
                 fileNameNoExt = Regex.Replace(fileNameNoExt, @"\.[a-zA-Z-]{2,8}$", string.Empty);
-                var translatedPath = Path.Combine(outputDir, $"{fileNameNoExt}.{request.TranslateTo}.srt");
+                var sourceExt = Path.GetExtension(sourceFile); // preserve .srt vs .vtt
+                var translatedPath = Path.Combine(outputDir, $"{fileNameNoExt}.{request.TranslateTo}{sourceExt}");
                 await File.WriteAllTextAsync(translatedPath, result.Content, new System.Text.UTF8Encoding(false));
 
                 _jobTracker.SetStatus(conn, new TranslationJobStatus { State = "Completed", TranslatedFile = translatedPath });
