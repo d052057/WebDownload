@@ -137,6 +137,7 @@
                 <label class="checkbox-container">
                   <input type="checkbox" class="form-check-input"
                          [(ngModel)]="option.checked"
+                         (change)="onSubtitleToggleChanged()"
                          [disabled]="isPageBusy()">
                   <span class="form-check-label">{{ option.name }} ({{ option.code }})</span>
                 </label>
@@ -172,22 +173,21 @@
           <input type="checkbox" class="form-check-input"
                  [(ngModel)]="translateToKm"
                  (change)="onTranslateToKmChange()"
-                 [disabled]="isPageBusy()">
+                 [disabled]="!hasSelectedSubtitles || isPageBusy()">
           <span class="form-check-label">Translate subtitle to Khmer</span>
         </label>
         <label class="checkbox-container" style="margin-left: 2rem">
           <input type="checkbox" class="form-check-input"
                  [(ngModel)]="translateToEn"
                  (change)="onTranslateToEnChange()"
-                 [disabled]="isPageBusy()">
+                 [disabled]="!hasSelectedSubtitles || isPageBusy()">
           <span class="form-check-label">Translate subtitle to English</span>
         </label>
         <label class="checkbox-container" style="margin-left: 2rem">
           <input type="checkbox" class="form-check-input"
                  [(ngModel)]="useDefaultTranslateLocation"
-                 (change)="onUseDefaultTranslateLocationChange()"
                  [disabled]="!translateTo || isPageBusy()">
-          <span class="form-check-label">Default Translate Location</span>
+          <span class="form-check-label">Translate File Folder</span>
         </label>
       </div>
 
@@ -195,12 +195,12 @@
       <div class="input-group mt-2" style="max-width: 30rem; margin-left: 2rem;">
         <span class="input-group-text"><i class="bi bi-folder-fill"></i></span>
         <input type="text" class="form-control"
-               [(ngModel)]="translateOutputFolder"
-               [disabled]="isPageBusy()"
+               [value]="translateOutputFolder"
+               readonly
                aria-label="translate output folder">
       </div>
       <small class="form-text text-muted" style="margin-left: 2rem;">
-        Translated subtitle will be saved here (under medias\). Leave unchecked to use the default closecaption folder.
+        Translated subtitle will be saved here (under medias\). This follows "Output To Server medias" below and can't be edited directly. Leave unchecked to use the default closecaption folder.
       </small>
       }
 

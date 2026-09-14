@@ -54,12 +54,19 @@ export class Ytdlp {
   translationStatusMessage = signal('');
   private translationPollHandle: ReturnType<typeof setInterval> | null = null;
 
-  // "Default Translate Location": disabled until a translate direction is
+  // "Translate File Folder": disabled until a translate direction is
   // picked. When checked, the translated srt/vtt is written under this
   // movie's own output folder (in a "closecaption" subfolder) instead of the
   // shared Subtitle:OutputPath folder the server falls back to by default.
+  // The displayed path is read-only and always derived live from "Output To
+  // Server medias" (selectedMenuValue + outputFolder) - it is never
+  // separately editable, so it can't drift out of sync with that section.
   useDefaultTranslateLocation: boolean = false;
-  translateOutputFolder: string = '';
+
+  get translateOutputFolder(): string {
+    if (!this.useDefaultTranslateLocation) return '';
+    return `${this.selectedMenuValue}\\${this.outputFolder}\\closecaption`;
+  }
 
   onTranslateToKmChange(): void {
     if (this.translateToKm) {
@@ -75,21 +82,12 @@ export class Ytdlp {
     this.onTranslationSelectionChange();
   }
 
-  // If both translate checkboxes end up unchecked, "Default Translate
-  // Location" goes back to disabled - so reset it and its text box too,
-  // rather than leaving stale state the user can't see or edit.
+  // If both translate checkboxes end up unchecked, "Translate File Folder"
+  // goes back to disabled - so reset it too, rather than leaving stale
+  // checked state the user can't see or interact with.
   private onTranslationSelectionChange(): void {
     if (!this.translateTo) {
       this.useDefaultTranslateLocation = false;
-      this.translateOutputFolder = '';
-    }
-  }
-
-  onUseDefaultTranslateLocationChange(): void {
-    if (this.useDefaultTranslateLocation) {
-      this.translateOutputFolder = `${this.selectedMenuValue}\\${this.outputFolder}\\closecaption`;
-    } else {
-      this.translateOutputFolder = '';
     }
   }
 
@@ -184,6 +182,7 @@ export class Ytdlp {
   onUrlChange(): void {
     this.resetDownloadStatus();
     this.subtitleOptions = [];
+    this.onSubtitleSelectionChange();
     this.getTitle();
     if (this.url && this.url.trim() !== '') {
       this.updateAutoOptions();
@@ -211,16 +210,33 @@ export class Ytdlp {
   }
 
   onSubtitleToggleChanged(): void {
-    // Placeholder hook if we need side-effects later; checkbox state is
-    // bound directly via [(ngModel)]="option.checked" in the template.
+    // Translate checkboxes require at least one subtitle track selected -
+    // if the user just unchecked the last one, back translation out too.
+    this.onSubtitleSelectionChange();
+  }
+
+  // "Translate subtitle to Khmer/English" only make sense once at least one
+  // subtitle track is selected to translate. Disabled (and reset) otherwise.
+  get hasSelectedSubtitles(): boolean {
+    return this.subtitleOptions.some(o => o.checked);
+  }
+
+  private onSubtitleSelectionChange(): void {
+    if (!this.hasSelectedSubtitles) {
+      this.translateToKm = false;
+      this.translateToEn = false;
+      this.onTranslationSelectionChange();
+    }
   }
 
   selectAllSubtitles(): void {
     this.subtitleOptions.forEach(o => o.checked = true);
+    this.onSubtitleSelectionChange();
   }
 
   clearAllSubtitles(): void {
     this.subtitleOptions.forEach(o => o.checked = false);
+    this.onSubtitleSelectionChange();
   }
 
   // Phase 2: draggable reference list of common yt-dlp args that can be dropped into the Options box.
