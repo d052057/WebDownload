@@ -9,11 +9,6 @@ using Microsoft.Extensions.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. REGISTER CONFIGURATION FILES FIRST
-// Only ever load this in Development. .gitignore keeps it out of git, but
-// that doesn't stop it from being copied to a server by a non-git deploy
-// (xcopy/robocopy/zip-and-upload/etc.) - gating by environment means it
-// can never be read outside Development no matter how it got there.
 if (builder.Environment.IsDevelopment())
 {
     builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
