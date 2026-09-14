@@ -20,6 +20,7 @@ export class Guide {
     'Yt-dlp Websites',
     'Repair Boot From USB',
     'FFmpeg',
+    'FFmpeg-Embed',
     'create App'
   ]
 

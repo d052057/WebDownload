@@ -1,0 +1,38 @@
+  <div class="container">
+    <h1 class="mb-4 text-center">FFmpeg Subtitle Embedding Guide</h1>
+
+    <p class="lead text-center">
+      Quick reference for embedding subtitles into MP4, WebM, and MKV using FFmpeg.
+    </p>
+
+    <hr class="my-4">
+
+    <!-- MP4 Section -->
+    <h3>Embed Subtitles into MP4 (mov_text)</h3>
+    <p>MP4 requires <strong>mov_text</strong> subtitles. SRT must be converted automatically.</p>
+
+    <pre><code>ffmpeg -i input.mp4 -i subs.srt -c:v copy -c:a copy -c:s mov_text output.mp4</code></pre>
+
+    <hr class="my-4">
+
+    <!-- WebM Section -->
+    <h3>Embed Subtitles into WebM (WebVTT)</h3>
+    <p>WebM only supports <strong>WebVTT</strong>. Convert SRT first if needed.</p>
+
+    <pre><code>ffmpeg -i subs.srt subs.vtt
+ffmpeg -i input.webm -i subs.vtt -c:v copy -c:a copy -c:s webvtt output.webm</code></pre>
+
+    <hr class="my-4">
+
+    <!-- MKV Section -->
+    <h3>Embed Subtitles into MKV (any format)</h3>
+    <p>MKV accepts SRT, ASS, SSA, VTT, PGS, and more.</p>
+
+    <pre><code>ffmpeg -i input.mkv -i subs.srt -c copy output.mkv</code></pre>
+
+    <hr class="my-4">
+
+    <footer class="text-center text-muted">
+      Generated for quick FFmpeg reference — Yitong’s subtitle workflow.
+    </footer>
+  </div>
