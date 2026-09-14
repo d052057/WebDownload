@@ -2,10 +2,12 @@ import { ChangeDetectorRef, Component, inject } from '@angular/core';
 import { SignalrService } from '../services/signalr.service';
 import { FormsModule } from '@angular/forms'
 import { AsyncPipe } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { downloadInfo, SubtitleTrackOption } from '../models/webdownload.model';
 import { BehaviorSubject } from 'rxjs';
 import { LinebreakPipe } from '../pipes/linebreak.pipe';
 import { signal } from '@angular/core';
+import { Urlbase } from '../services/urlbase';
 @Component({
   imports: [FormsModule, LinebreakPipe, AsyncPipe],
   selector: 'app-ytdlp',
@@ -16,6 +18,9 @@ export class Ytdlp {
   title = 'Yt-Dlp Client';
   signalRService = inject(SignalrService);
   private cdr = inject(ChangeDetectorRef);
+  private http = inject(HttpClient);
+  private urlbase = inject(Urlbase);
+  private apiBase!: string;
 
   private outputSubject = new BehaviorSubject<string[]>([]);
   output$ = this.outputSubject.asObservable();
@@ -240,22 +245,24 @@ export class Ytdlp {
   }
 
   // Phase 2: draggable reference list of common yt-dlp args that can be dropped into the Options box.
-  ytDlpArgList: { label: string; arg: string }[] = [
-    { label: 'Embed subtitles (closed captions)', arg: '--embed-subs' },
-    { label: 'Prefer SRT subtitle format', arg: '--sub-format srt/best' },
-    { label: 'Convert subtitles to SRT', arg: '--convert-subs srt' },
-    { label: 'Remux to MP4 container', arg: '--remux-video mp4' },
-    { label: 'Best video+audio merged', arg: '-f bestvideo+bestaudio/best' },
-    { label: 'Cap resolution at 1080p', arg: '-f "bv*[height<=1080]+ba/b[height<=1080]"' },
-    { label: 'Force merged output to MP4', arg: '--merge-output-format mp4' },
-    { label: 'Embed chapters', arg: '--embed-chapters' },
-    { label: 'Embed metadata', arg: '--embed-metadata' },
-    { label: 'Embed thumbnail as cover art', arg: '--embed-thumbnail' },
-    { label: 'Only specific playlist items', arg: '--playlist-items 1-5' },
-    { label: 'Single video, ignore playlist', arg: '--no-playlist' },
-    { label: 'Limit download rate', arg: '--limit-rate 2M' },
-    { label: 'Retry count on network errors', arg: '--retries 10' },
-  ];
+  // Loaded from the server (YtDlp:DragDropArgs in appsettings.json) rather than
+  // hardcoded here, so entries can be added/edited/removed by editing config and
+  // restarting the server - no rebuild of this app needed.
+  ytDlpArgList: { label: string; arg: string }[] = [];
+
+  constructor() {
+    const segment = this.urlbase.baseUrl();
+    this.apiBase = segment ? `/${segment}/api/YtDlpConfig` : '/api/YtDlpConfig';
+  }
+
+  private loadDragDropArgs(): void {
+    this.http.get<{ label: string; arg: string }[]>(`${this.apiBase}/drag-drop-args`)
+      .subscribe({
+        next: (args) => { this.ytDlpArgList = args; this.cdr.detectChanges(); },
+        error: (err) => console.error('Failed to load yt-dlp drag-drop arg list:', err)
+      });
+  }
+
 
   draggingArg: string | null = null;
 
@@ -285,6 +292,8 @@ export class Ytdlp {
 
 
   ngOnInit(): void {
+    this.loadDragDropArgs();
+
     // Initialize SignalR connection
     this.signalRService.startConnection().then(() => {
       this.signalRService.joinGroup(this.downloadGroupId);

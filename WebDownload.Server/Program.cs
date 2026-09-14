@@ -24,6 +24,7 @@ builder.Services.AddSingleton<ITranslationJobTracker, TranslationJobTracker>();
 builder.Services.AddCors();
 builder.Services.Configure<ApplicationSettings>(builder.Configuration.GetSection("ApplicationSettings"));
 builder.Services.Configure<SubtitleSettings>(builder.Configuration.GetSection("Subtitle"));
+builder.Services.Configure<YtDlpSettings>(builder.Configuration.GetSection("YtDlp"));
 
 // 3. INITIALIZE GOOGLE TRANSLATION SAFELY
 var apiKey = builder.Configuration["GoogleCloud:ApiKey"];

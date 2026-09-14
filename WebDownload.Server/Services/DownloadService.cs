@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Text;
+using Microsoft.Extensions.Options;
 using WebDownload.Server.Models;
 namespace WebDownload.Server.Services
 {
@@ -13,24 +14,31 @@ namespace WebDownload.Server.Services
 
     public class DownloadService : IDownloadService
     {
-        private string OutputFileTemplate = @"%(title)s [%(id)s].%(ext)s";
-        private readonly string configPath = @"yt-dlp.conf";
-        private string ytDlpPath = @"yt-dlp.exe";
+        private readonly YtDlpSettings _settings;
         private StringBuilder sb = new StringBuilder();
+
+        public DownloadService(IOptions<YtDlpSettings> ytDlpSettings)
+        {
+            _settings = ytDlpSettings.Value;
+        }
+
         public async Task StartDownloadTitleAsync(DownloadTitleRequest request, Func<DownloadInfo, Task> callback)
         {
             sb.Clear();
-            sb.AppendFormat(" {0} {1}", "--config-location", configPath);
-            sb.AppendFormat(" --progress -o \"{0}\" --restrict-filenames", OutputFileTemplate);
-            sb.AppendFormat(" --no-warnings --print filename --skip-download");
-                sb.AppendFormat(" \"{0}\"", request.Url);
+            sb.AppendFormat(" {0} {1}", "--config-location", _settings.ConfigLocation);
+            sb.AppendFormat(" --progress -o \"{0}\" --restrict-filenames", _settings.OutputFileTemplate);
+            foreach (var arg in _settings.TitleLookupArgs)
+            {
+                sb.Append(' ').Append(arg);
+            }
+            sb.AppendFormat(" \"{0}\"", request.Url);
             try
             {
                 var process = new Process
                 {
                     StartInfo = new ProcessStartInfo    
                     {
-                        FileName = ytDlpPath,
+                        FileName = _settings.ExecutablePath,
                         Arguments = sb.ToString(),
                         RedirectStandardOutput = true,
                         RedirectStandardError = true,
@@ -82,21 +90,27 @@ namespace WebDownload.Server.Services
             //--list-subs  --skip-download --get-title
             sb.Clear();
             // Config location
-            sb.AppendFormat(" --config-location \"{0}\"", configPath);
+            sb.AppendFormat(" --config-location \"{0}\"", _settings.ConfigLocation);
 
             // Output folder and template
             sb.AppendFormat(" -P \"{0}\"", request.OutputFolder);
-            sb.AppendFormat(" --progress -o \"{0}\" --restrict-filenames", OutputFileTemplate);
+            sb.AppendFormat(" --progress -o \"{0}\" --restrict-filenames", _settings.OutputFileTemplate);
             if (request.AudioOnly)
             {
-                sb.AppendFormat(" -f {0} ", "bestaudio");
+                foreach (var arg in _settings.AudioOnlyArgs)
+                {
+                    sb.Append(' ').Append(arg);
+                }
                 if (request.AudioFormat.Length > 0)
                 {
-                    sb.AppendFormat(" -x {0} {1}", "--audio-format", request.AudioFormat);
+                    sb.Append(' ').AppendFormat(_settings.AudioFormatArgsTemplate, request.AudioFormat);
                 }
                 if (request.AudioChapter)
                 {
-                    sb.AppendFormat(" {0} ", "--split-chapters");
+                    foreach (var arg in _settings.AudioChapterArgs)
+                    {
+                        sb.Append(' ').Append(arg);
+                    }
                 }
                
             }
@@ -105,8 +119,7 @@ namespace WebDownload.Server.Services
                 if (request.SubtitleLangs is { Count: > 0 })
                 {
                     var langs = string.Join(",", request.SubtitleLangs);
-                    sb.AppendFormat(" --sub-langs \"{0}\" --write-subs --write-auto-subs --convert-subs srt",
-                        langs);
+                    sb.Append(' ').AppendFormat(_settings.SubtitleArgsTemplate, langs);
                 }
             }
             ;
@@ -117,7 +130,10 @@ namespace WebDownload.Server.Services
                 var customOptions = request.Options.Replace("\r\n", " ").Replace("\n", " ").Replace("\r", " ").Trim();
                 sb.AppendFormat(" {0}", customOptions);
             }
-            sb.Append(" --no-warnings");
+            foreach (var arg in _settings.CommonDownloadArgs)
+            {
+                sb.Append(' ').Append(arg);
+            }
             sb.AppendFormat(" \"{0}\"", request.Url);
 
             Console.WriteLine($"yt-dlp command: {sb}");
@@ -128,7 +144,7 @@ namespace WebDownload.Server.Services
                 {
                     StartInfo = new ProcessStartInfo
                     {
-                        FileName = ytDlpPath,
+                        FileName = _settings.ExecutablePath,
                         Arguments = sb.ToString(),
                         RedirectStandardOutput = true,
                         RedirectStandardError = true,
@@ -184,15 +200,18 @@ namespace WebDownload.Server.Services
         {
             var tracks = new List<SubtitleTrack>();
             var args = new StringBuilder();
-            args.AppendFormat(" --config-location \"{0}\"", configPath);
-            args.Append(" --list-subs --skip-download --no-warnings");
+            args.AppendFormat(" --config-location \"{0}\"", _settings.ConfigLocation);
+            foreach (var arg in _settings.ListSubtitlesArgs)
+            {
+                args.Append(' ').Append(arg);
+            }
             args.AppendFormat(" \"{0}\"", url);
 
             var process = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
-                    FileName = ytDlpPath,
+                    FileName = _settings.ExecutablePath,
                     Arguments = args.ToString(),
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
