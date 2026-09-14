@@ -55,14 +55,17 @@ namespace WebDownload.Server.Models
             "-y -i \"{0}\" -i \"{1}\" -map 0 -map 1 -c copy -c:s {2} \"{3}\"";
 
         // Which subtitle codec ffmpeg needs for a given output container - mp4
-        // containers require "mov_text" for soft subtitles, mkv/webm can just
-        // carry the original text-based subtitle codec.
+        // containers require "mov_text" for soft subtitles, mkv can carry the
+        // original text-based subtitle codec directly, and webm (Matroska-based)
+        // only supports WebVTT - ffmpeg will transcode srt/vtt input to whichever
+        // codec is specified here, so no separate file conversion is needed.
         public Dictionary<string, string> EmbedSubtitleCodecByExtension { get; set; } = new()
         {
             [".mp4"] = "mov_text",
             [".m4v"] = "mov_text",
             [".mov"] = "mov_text",
             [".mkv"] = "srt",
+            [".webm"] = "webvtt",
         };
 
         // Used for any output container not listed in EmbedSubtitleCodecByExtension.

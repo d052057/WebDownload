@@ -491,7 +491,7 @@ namespace WebDownload.Server.Hubs
                     Output = $"[Embed] Merging '{Path.GetFileName(subtitlePath)}' into '{Path.GetFileName(videoPath)}' ..."
                 });
 
-                var ext = Path.GetExtension(videoPath);
+                var ext = Path.GetExtension(videoPath).ToLowerInvariant();
                 var subtitleCodec = _ytDlpSettings.EmbedSubtitleCodecByExtension.TryGetValue(ext, out var codec)
                     ? codec
                     : _ytDlpSettings.EmbedSubtitleDefaultCodec;
