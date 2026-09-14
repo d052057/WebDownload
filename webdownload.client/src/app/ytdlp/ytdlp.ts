@@ -56,6 +56,7 @@ export class Ytdlp {
   translateToKm: boolean = false;
   translateToEn: boolean = false;
   translatedFile = signal('');
+  embeddedFile = signal('');
   translationStatusMessage = signal('');
   private translationPollHandle: ReturnType<typeof setInterval> | null = null;
 
@@ -72,6 +73,14 @@ export class Ytdlp {
     if (!this.useDefaultTranslateLocation) return '';
     return `${this.selectedMenuValue}\\${this.outputFolder}\\closecaption`;
   }
+
+  // "Embed Subtitle": disabled until at least one subtitle track is selected
+  // (same gate as the Translate checkboxes). When checked, the server merges
+  // the closecaption file into the downloaded video via ffmpeg after
+  // download (and translation, if selected) finishes. Which closecaption
+  // file gets used mirrors "Translate File Folder": the per-movie folder if
+  // that's checked, otherwise the shared closecaption folder.
+  embedSubtitle: boolean = false;
 
   onTranslateToKmChange(): void {
     if (this.translateToKm) {
@@ -231,6 +240,7 @@ export class Ytdlp {
       this.translateToKm = false;
       this.translateToEn = false;
       this.onTranslationSelectionChange();
+      this.embedSubtitle = false;
     }
   }
 
@@ -380,6 +390,11 @@ export class Ytdlp {
       this.translationStatusMessage.set(`Translation completed: ${this.translatedFile()}`);
       this.stopTranslationStatusPolling();
     });
+
+    this.signalRService.addHandler('ReceiveEmbeddedFile', (info: downloadInfo) => {
+      this.embeddedFile.set(info.embeddedFile || '');
+      this.cdr.detectChanges();
+    });
   }
   ngOnDestroy(): void {
     this.stopTranslationStatusPolling();
@@ -432,6 +447,7 @@ export class Ytdlp {
         subtitleLangs: subtitleLangs,
         translateTo: this.translateTo || null,
         translateOutputFolder: this.useDefaultTranslateLocation ? this.translateOutputFolder : null,
+        embedSubtitle: this.embedSubtitle,
         outputFolder: `${this.selectedMenuValue}\\${this.outputFolder}`  // Send the user-provided output folder.
       };
       this.isDownloading.set(true);

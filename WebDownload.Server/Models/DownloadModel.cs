@@ -23,6 +23,11 @@
         // Subtitle:OutputPath folder. Empty/null = use the shared folder as before.
         public string? TranslateOutputFolder { get; set; }
 
+        // Set when the client's "Embed Subtitle" checkbox is checked. If true,
+        // after download (and translation, if any) the closecaption file is
+        // muxed into the downloaded video as a subtitle track via ffmpeg.
+        public bool EmbedSubtitle { get; set; }
+
         public string Options { get; set; } = string.Empty;
         public required string DownloadId { get; set; }
         public required string OutputFolder { get; set; }
@@ -58,6 +63,7 @@
         public string? Command { get; set; }
         public List<SubtitleTrack>? SubtitleTracks { get; set; }
         public string? TranslatedFile { get; set; }
+        public string? EmbeddedFile { get; set; }
     }
 
     // Server-side record of where a translation job stands, so the client

@@ -189,6 +189,12 @@
                  [disabled]="!translateTo || isPageBusy()">
           <span class="form-check-label">Translate File Folder</span>
         </label>
+        <label class="checkbox-container" style="margin-left: 2rem">
+          <input type="checkbox" class="form-check-input"
+                 [(ngModel)]="embedSubtitle"
+                 [disabled]="!hasSelectedSubtitles || isPageBusy()">
+          <span class="form-check-label">Embed Subtitle</span>
+        </label>
       </div>
 
       @if (useDefaultTranslateLocation) {
@@ -201,6 +207,12 @@
       </div>
       <small class="form-text text-muted" style="margin-left: 2rem;">
         Translated subtitle will be saved here (under medias\). This follows "Output To Server medias" below and can't be edited directly. Leave unchecked to use the default closecaption folder.
+      </small>
+      }
+
+      @if (embeddedFile()) {
+      <small class="form-text text-muted d-block mt-2" style="margin-left: 2rem;">
+        Embedded video: {{ embeddedFile() }}
       </small>
       }
 

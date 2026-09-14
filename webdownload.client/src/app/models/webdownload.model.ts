@@ -24,6 +24,7 @@ export class downloadInfo {
   command?: string;
   subtitleTracks?: SubtitleTrack[];
   translatedFile?: string;
+  embeddedFile?: string;
   constructor(speed: string, eta: string, size: string, frag: string, state: string, output: string, progress: string, fileName: string, chapter: string, error: string, finishOutput: string, command?: string) {
     this.speed = speed;
     this.eta = eta;

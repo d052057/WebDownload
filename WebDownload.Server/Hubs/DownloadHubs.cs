@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Options;
+using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
 using WebDownload.Server.Models;
@@ -26,13 +27,21 @@ namespace WebDownload.Server.Hubs
 
 
         private readonly IOptions<ApplicationSettings> _appSettings;
+        private readonly YtDlpSettings _ytDlpSettings;
+
+        // Container extensions this app recognizes as a downloaded video file
+        // when hunting for "the file yt-dlp just produced" to embed a subtitle into.
+        private static readonly HashSet<string> VideoFileExtensions =
+            new(StringComparer.OrdinalIgnoreCase) { ".mp4", ".mkv", ".webm", ".mov", ".avi", ".flv", ".m4v" };
+
         public DownloadHub(
             IHttpClientFactory httpClientFactory,
             IDownloadService downloadService,
             ISubtitleTranslationService subtitleTranslationService,
             ITranslationJobTracker jobTracker,
             IOptions<SubtitleSettings> subtitleSettings,
-            IOptions<ApplicationSettings> appSettings
+            IOptions<ApplicationSettings> appSettings,
+            IOptions<YtDlpSettings> ytDlpSettings
             )
         {
             _downloadService = downloadService;
@@ -41,6 +50,7 @@ namespace WebDownload.Server.Hubs
             _subtitleSettings = subtitleSettings;
             //_httpClientFactory = httpClientFactory;
             _appSettings = appSettings;
+            _ytDlpSettings = ytDlpSettings.Value;
         }
 
         public string GetConnectionId() => Context.ConnectionId;
@@ -133,6 +143,7 @@ namespace WebDownload.Server.Hubs
             string conn = request.DownloadId;
             string state = "Pre Processing";
             string? downloadedBaseName = null; // e.g. "My Video [abc123]" (no extension)
+            string? translatedPath = null; // set if TranslateTo produced a file, used by the embed step below
             DownloadInfo info = new()
             {
                 State = state
@@ -277,7 +288,7 @@ namespace WebDownload.Server.Hubs
 
                 if (!string.IsNullOrWhiteSpace(request.TranslateTo) && downloadedBaseName != null)
                 {
-                    await TranslateDownloadedSubtitlesAsync(conn, request, downloadedBaseName);
+                    translatedPath = await TranslateDownloadedSubtitlesAsync(conn, request, downloadedBaseName);
                 }
                 else if (!string.IsNullOrWhiteSpace(request.TranslateTo))
                 {
@@ -286,6 +297,11 @@ namespace WebDownload.Server.Hubs
                         State = "Failed",
                         Error = "Could not determine the downloaded file's base name - the yt-dlp 'Destination:' line was never matched. See the output log above."
                     });
+                }
+
+                if (request.EmbedSubtitle && downloadedBaseName != null)
+                {
+                    await EmbedSubtitleIntoVideoAsync(conn, request, downloadedBaseName, translatedPath);
                 }
 
                 DownloadInfo Finfo = new()
@@ -326,7 +342,21 @@ namespace WebDownload.Server.Hubs
         // than next to the source file. Uses the same ISubtitleTranslationService
         // the subtitle-dashboard page uses (batched official Google Cloud
         // Translation API calls).
-        private async Task TranslateDownloadedSubtitlesAsync(string conn, DownloadRequest request, string downloadedBaseName)
+        // Resolves where translated/embedded closecaption files should live:
+        // the "Translate File Folder" per-movie folder if that checkbox was
+        // checked on the client, otherwise the shared Subtitle:OutputPath
+        // folder used by default.
+        private string ResolveClosecaptionDir(DownloadRequest request, string fallbackDir)
+        {
+            if (!string.IsNullOrWhiteSpace(request.TranslateOutputFolder))
+            {
+                return Path.Combine(_appSettings.Value.MediaDrive, request.TranslateOutputFolder);
+            }
+            var outputDir = _subtitleSettings.Value.OutputPath;
+            return string.IsNullOrWhiteSpace(outputDir) ? fallbackDir : outputDir;
+        }
+
+        private async Task<string?> TranslateDownloadedSubtitlesAsync(string conn, DownloadRequest request, string downloadedBaseName)
         {
             try
             {
@@ -344,7 +374,7 @@ namespace WebDownload.Server.Hubs
                                "Check that a subtitle language was actually selected before downloading.";
                     _jobTracker.SetStatus(conn, new TranslationJobStatus { State = "Failed", Error = msg });
                     await Clients.Group(conn).SendAsync("ReceiveOutput", new DownloadInfo { Output = $"[Translate] {msg}" });
-                    return;
+                    return null;
                 }
 
                 await Clients.Group(conn).SendAsync("ReceiveOutput",
@@ -360,7 +390,7 @@ namespace WebDownload.Server.Hubs
                     var msg = $"Found subtitle file(s) but none usable as a source (they're all already '{request.TranslateTo}').";
                     _jobTracker.SetStatus(conn, new TranslationJobStatus { State = "Failed", Error = msg });
                     await Clients.Group(conn).SendAsync("ReceiveOutput", new DownloadInfo { Output = $"[Translate] {msg}" });
-                    return;
+                    return null;
                 }
 
                 await Clients.Group(conn).SendAsync("ReceiveOutput",
@@ -375,24 +405,7 @@ namespace WebDownload.Server.Hubs
                     result = await _subtitleTranslationService.TranslateSubtitleAsync(stream, request.TranslateTo!);
                 }
 
-                string outputDir;
-                if (!string.IsNullOrWhiteSpace(request.TranslateOutputFolder))
-                {
-                    // "Default Translate Location" was checked on the client - write
-                    // alongside this movie's own output folder instead of the shared
-                    // Subtitle:OutputPath folder.
-                    outputDir = Path.Combine(_appSettings.Value.MediaDrive, request.TranslateOutputFolder);
-                }
-                else
-                {
-                    outputDir = _subtitleSettings.Value.OutputPath;
-                    if (string.IsNullOrWhiteSpace(outputDir))
-                    {
-                        // Fall back to writing next to the source if OutputPath isn't
-                        // configured, rather than failing outright.
-                        outputDir = Path.GetDirectoryName(sourceFile) ?? ".";
-                    }
-                }
+                var outputDir = ResolveClosecaptionDir(request, Path.GetDirectoryName(sourceFile) ?? ".");
                 Directory.CreateDirectory(outputDir);
 
                 var fileNameNoExt = Path.GetFileNameWithoutExtension(sourceFile);
@@ -415,6 +428,7 @@ namespace WebDownload.Server.Hubs
 
                 DownloadInfo info = new() { TranslatedFile = translatedPath };
                 await Clients.Group(conn).SendAsync("ReceiveTranslatedFile", info);
+                return translatedPath;
             }
             catch (Exception ex)
             {
@@ -423,6 +437,111 @@ namespace WebDownload.Server.Hubs
                     new DownloadInfo { Output = $"[Translate] Failed: {ex.Message}" });
                 DownloadInfo errInfo = new() { Error = $"Hub Error translating subtitles: {ex.Message}" };
                 await Clients.Group(conn).SendAsync("ReceiveError", errInfo);
+                return null;
+            }
+        }
+
+        // "Embed Subtitle" checkbox handler: mux the closecaption file into the
+        // downloaded video as a subtitle track using ffmpeg. Runs after
+        // translation (if any) so it can use the just-produced translatedPath;
+        // if no translation happened this run, falls back to looking for an
+        // already-existing closecaption file in the same folder translation
+        // would have used (Translate File Folder if checked, otherwise the
+        // shared Subtitle:OutputPath folder).
+        private async Task EmbedSubtitleIntoVideoAsync(string conn, DownloadRequest request, string downloadedBaseName, string? translatedPath)
+        {
+            try
+            {
+                var subtitlePath = translatedPath;
+                if (subtitlePath == null || !File.Exists(subtitlePath))
+                {
+                    var closecaptionDir = ResolveClosecaptionDir(request, request.OutputFolder);
+                    subtitlePath = Directory.Exists(closecaptionDir)
+                        ? Directory.GetFiles(closecaptionDir, $"{downloadedBaseName}*.srt")
+                            .Concat(Directory.GetFiles(closecaptionDir, $"{downloadedBaseName}*.vtt"))
+                            .FirstOrDefault()
+                        : null;
+                }
+
+                if (subtitlePath == null)
+                {
+                    await Clients.Group(conn).SendAsync("ReceiveOutput", new DownloadInfo
+                    {
+                        Output = $"[Embed] No closecaption file found for '{downloadedBaseName}' to embed. " +
+                                  "Translate a subtitle first, or make sure one already exists in the closecaption folder."
+                    });
+                    return;
+                }
+
+                var videoPath = Directory.GetFiles(request.OutputFolder, $"{downloadedBaseName}.*")
+                    .FirstOrDefault(f => VideoFileExtensions.Contains(Path.GetExtension(f)));
+                if (videoPath == null)
+                {
+                    await Clients.Group(conn).SendAsync("ReceiveOutput", new DownloadInfo
+                    {
+                        Output = $"[Embed] No downloaded video file found matching '{downloadedBaseName}' in '{request.OutputFolder}'."
+                    });
+                    return;
+                }
+
+                await Clients.Group(conn).SendAsync("ReceiveState",
+                    new DownloadInfo { State = "Embedding subtitle into video..." });
+                await Clients.Group(conn).SendAsync("ReceiveOutput", new DownloadInfo
+                {
+                    Output = $"[Embed] Merging '{Path.GetFileName(subtitlePath)}' into '{Path.GetFileName(videoPath)}' ..."
+                });
+
+                var ext = Path.GetExtension(videoPath);
+                var subtitleCodec = _ytDlpSettings.EmbedSubtitleCodecByExtension.TryGetValue(ext, out var codec)
+                    ? codec
+                    : _ytDlpSettings.EmbedSubtitleDefaultCodec;
+
+                var outputPath = Path.Combine(
+                    Path.GetDirectoryName(videoPath) ?? request.OutputFolder,
+                    $"{Path.GetFileNameWithoutExtension(videoPath)}.embedded{Path.GetExtension(videoPath)}");
+
+                var args = string.Format(_ytDlpSettings.EmbedSubtitleArgsTemplate, videoPath, subtitlePath, subtitleCodec, outputPath);
+
+                var process = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = _ytDlpSettings.FfmpegExecutablePath,
+                        Arguments = args,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                        StandardOutputEncoding = System.Text.Encoding.UTF8,
+                        StandardErrorEncoding = System.Text.Encoding.UTF8
+                    }
+                };
+                process.Start();
+                // ffmpeg writes its progress/log to stderr, not stdout.
+                var stderrTask = process.StandardError.ReadToEndAsync();
+                await process.StandardOutput.ReadToEndAsync();
+                var ffmpegLog = await stderrTask;
+                await process.WaitForExitAsync();
+
+                if (process.ExitCode != 0 || !File.Exists(outputPath))
+                {
+                    await Clients.Group(conn).SendAsync("ReceiveOutput",
+                        new DownloadInfo { Output = $"[Embed] ffmpeg failed (exit code {process.ExitCode}):\n{ffmpegLog}" });
+                    await Clients.Group(conn).SendAsync("ReceiveError",
+                        new DownloadInfo { Error = "Embedding subtitle into the video failed. See the output log above for the ffmpeg error." });
+                    return;
+                }
+
+                await Clients.Group(conn).SendAsync("ReceiveOutput",
+                    new DownloadInfo { Output = $"[Embed] Done -> {outputPath}" });
+                await Clients.Group(conn).SendAsync("ReceiveEmbeddedFile", new DownloadInfo { EmbeddedFile = outputPath });
+            }
+            catch (Exception ex)
+            {
+                await Clients.Group(conn).SendAsync("ReceiveOutput",
+                    new DownloadInfo { Output = $"[Embed] Failed: {ex.Message}" });
+                await Clients.Group(conn).SendAsync("ReceiveError",
+                    new DownloadInfo { Error = $"Hub Error embedding subtitle: {ex.Message}" });
             }
         }
     }

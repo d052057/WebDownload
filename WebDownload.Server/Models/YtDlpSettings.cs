@@ -44,5 +44,28 @@ namespace WebDownload.Server.Models
 
         // The drag-and-drop reference chips shown in the ytdlp page UI.
         public List<YtDlpDragDropArg> DragDropArgs { get; set; } = new();
+
+        // Used by the "Embed Subtitle" checkbox to mux the closecaption file
+        // into the downloaded video after translation. ffmpeg is a separate
+        // executable from yt-dlp.exe, typically installed alongside it.
+        public string FfmpegExecutablePath { get; set; } = "ffmpeg.exe";
+
+        // {0}=video path, {1}=subtitle path, {2}=subtitle codec, {3}=output path.
+        public string EmbedSubtitleArgsTemplate { get; set; } =
+            "-y -i \"{0}\" -i \"{1}\" -map 0 -map 1 -c copy -c:s {2} \"{3}\"";
+
+        // Which subtitle codec ffmpeg needs for a given output container - mp4
+        // containers require "mov_text" for soft subtitles, mkv/webm can just
+        // carry the original text-based subtitle codec.
+        public Dictionary<string, string> EmbedSubtitleCodecByExtension { get; set; } = new()
+        {
+            [".mp4"] = "mov_text",
+            [".m4v"] = "mov_text",
+            [".mov"] = "mov_text",
+            [".mkv"] = "srt",
+        };
+
+        // Used for any output container not listed in EmbedSubtitleCodecByExtension.
+        public string EmbedSubtitleDefaultCodec { get; set; } = "srt";
     }
 }
