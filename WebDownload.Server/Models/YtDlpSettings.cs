@@ -50,9 +50,28 @@ namespace WebDownload.Server.Models
         // executable from yt-dlp.exe, typically installed alongside it.
         public string FfmpegExecutablePath { get; set; } = "ffmpeg.exe";
 
-        // {0}=video path, {1}=subtitle path, {2}=subtitle codec, {3}=output path.
+        // {0}=video path, {1}=subtitle path, {2}=subtitle codec, {3}=output path,
+        // {4}=3-letter subtitle language code (see LanguageCodeMap below).
+        // Explicit -c:v/-c:a copy (rather than a blanket -c copy) avoids ffmpeg's
+        // "multiple codec options for stream N" warning when -c:s overrides it.
+        // -disposition:s:0 default marks the embedded subtitle track as the
+        // default one, so players show it automatically instead of requiring
+        // the user to manually enable it from a subtitle menu.
+        // -metadata:s:s:0 language={4} labels the track properly (e.g. "Khmer")
+        // instead of players showing it as "und" (undefined).
         public string EmbedSubtitleArgsTemplate { get; set; } =
-            "-y -i \"{0}\" -i \"{1}\" -map 0 -map 1 -c copy -c:s {2} \"{3}\"";
+            "-y -i \"{0}\" -i \"{1}\" -map 0 -map 1 -c:v copy -c:a copy -c:s {2} -disposition:s:0 default -metadata:s:s:0 language={4} \"{3}\"";
+
+        // Maps the 2-letter language codes used by the Google Translate API
+        // (request.TranslateTo, e.g. "km"/"en") to the 3-letter ISO 639-2 codes
+        // that MKV/MP4 container metadata expects, so players show a proper
+        // language name instead of "und". Add more pairs here as more target
+        // languages are used.
+        public Dictionary<string, string> LanguageCodeMap { get; set; } = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["en"] = "eng",
+            ["km"] = "khm",
+        };
 
         // Which subtitle codec ffmpeg needs for a given output container - mp4
         // containers require "mov_text" for soft subtitles, mkv can carry the

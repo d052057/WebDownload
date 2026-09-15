@@ -132,6 +132,7 @@ export class Ytdlp {
   downloadGroupId: string = (crypto as any)?.randomUUID?.() ??
     `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   ytDlpCommand: string = '';
+  embedCommand: string = '';
 
   useCookiesFromBrowser: boolean = false;
   useCookiesFile: boolean = false;
@@ -188,6 +189,7 @@ export class Ytdlp {
     this.ReceiveFileName = '';
     this.ReceiveState = '';
     this.ytDlpCommand = '';
+    this.embedCommand = '';
     this.chapter.set([]);
     this.outputSubject.next([]);
     this.translatedFile.set('');
@@ -320,6 +322,11 @@ export class Ytdlp {
 
     this.signalRService.addHandler('ReceiveCommand', (info: downloadInfo) => {
       this.ytDlpCommand = info.command || '';
+    });
+
+    this.signalRService.addHandler('ReceiveEmbedCommand', (info: downloadInfo) => {
+      this.embedCommand = info.command || '';
+      this.cdr.detectChanges();
     });
     this.signalRService.addHandler('ReceiveTotalFragment', (info: downloadInfo) => {
       this.TotalFragments = `${info.frag}`;

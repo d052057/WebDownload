@@ -326,6 +326,10 @@
       <div id="ytDlpCommand" class="p-2 bg-light border rounded text-break" style="font-family: monospace; font-size: 0.85rem;">
         {{ ytDlpCommand || "-" }}
       </div>
+      <label for="embedCommand">ffmpeg Embed Subtitle Command:</label>
+      <div id="embedCommand" class="p-2 bg-light border rounded text-break" style="font-family: monospace; font-size: 0.85rem;">
+        {{ embedCommand || "-" }}
+      </div>
       <label for="output">Output Text Processing:</label>
       <section #sectionOutput>
         <article [innerHTML]="output$ | async | linebreak"></article>

@@ -16,8 +16,15 @@ namespace WebDownload.Server.Hubs
         private readonly Regex rgxFilePostProc = new Regex(@"\[download\] Destination:\s+(?<downloadFileName>.+)");
         private readonly Regex rgxExtractAudio = new Regex(@"\[ExtractAudio\] Destination:\s+(?<downloadFileName>.+)");
         private readonly Regex rgxChapterAudio = new Regex(@"\[SplitChapters\] Chapter 0*\d{1,3};\s+Destination:\s+(?<ChapterFileName>.+)");
-        // yt-dlp logs a separate "[download] Destination:" line for EACH stream
-        // it downloads before merging (e.g. "...f137.mp4" video-only, then
+        // yt-dlp logs a separate "[download] Destination:" line for the subtitle
+        // file too (often before the video stream itself), so that line must never
+        // be allowed to set downloadedBaseName - otherwise later lookups for "the
+        // downloaded video" search for the subtitle's own name instead.
+        private static readonly HashSet<string> SubtitleFileExtensions =
+            new(StringComparer.OrdinalIgnoreCase) { ".srt", ".vtt", ".ass", ".ssa", ".sbv", ".ttml" };
+
+        // yt-dlp also logs a separate "[download] Destination:" line for each
+        // stream it downloads before merging (e.g. "...f137.mp4" video-only, then
         // "...f140.m4a" audio-only) - those format-coded names never match the
         // final merged file or its subtitle. This line has the true final name.
         private readonly Regex rgxMerger = new Regex(@"\[Merger\] Merging formats into ""(?<downloadFileName>.+)""");
@@ -165,8 +172,11 @@ namespace WebDownload.Server.Hubs
                     var matchFileName = rgxFilePostProc.Match(p.Output);
                     if (matchFileName.Success)
                     {
-                        var destFile = matchFileName.Groups["downloadFileName"].Value;
-                        downloadedBaseName ??= System.IO.Path.GetFileNameWithoutExtension(destFile);
+                        var destFile = matchFileName.Groups["downloadFileName"].Value.Trim();
+                        if (!SubtitleFileExtensions.Contains(System.IO.Path.GetExtension(destFile)))
+                        {
+                            downloadedBaseName ??= System.IO.Path.GetFileNameWithoutExtension(destFile);
+                        }
                         DownloadInfo Finfo = new()
                         {
                             FileName = destFile
@@ -496,11 +506,20 @@ namespace WebDownload.Server.Hubs
                     ? codec
                     : _ytDlpSettings.EmbedSubtitleDefaultCodec;
 
+                // request.TranslateTo is a 2-letter code ("km"); container metadata
+                // wants a 3-letter ISO 639-2 code ("khm") or players show "und".
+                var langKey = request.TranslateTo?.ToLowerInvariant() ?? string.Empty;
+                var subtitleLanguage = _ytDlpSettings.LanguageCodeMap.TryGetValue(langKey, out var mappedLang)
+                    ? mappedLang
+                    : "und";
+
                 var outputPath = Path.Combine(
                     Path.GetDirectoryName(videoPath) ?? request.OutputFolder,
                     $"{Path.GetFileNameWithoutExtension(videoPath)}.embedded{Path.GetExtension(videoPath)}");
 
-                var args = string.Format(_ytDlpSettings.EmbedSubtitleArgsTemplate, videoPath, subtitlePath, subtitleCodec, outputPath);
+                var args = string.Format(_ytDlpSettings.EmbedSubtitleArgsTemplate, videoPath, subtitlePath, subtitleCodec, outputPath, subtitleLanguage);
+                var fullEmbedCommand = $"{_ytDlpSettings.FfmpegExecutablePath} {args}";
+                await Clients.Group(conn).SendAsync("ReceiveEmbedCommand", new DownloadInfo { Command = fullEmbedCommand });
 
                 var process = new Process
                 {
