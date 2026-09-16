@@ -1,0 +1,92 @@
+<div class="container">
+  <h1>Fix: "Not Secure" on https://localhost:4200 (ng serve HTTPS cert)</h1>
+
+  <p>This guide fixes the case where the browser shows <strong>"Not secure"</strong> with
+    <s>https</s> crossed out on <code>https://localhost:4200</code>, even though
+    <code>ng serve --ssl</code> is running. This also blocks things that require valid HTTPS,
+    like Facebook Login's JavaScript SDK.</p>
+
+  <hr>
+
+  <h2>Why it happens</h2>
+  <p>Angular's dev server uses SSL cert files exported from the ASP.NET Core dev certificate, located at:</p>
+<pre>
+%APPDATA%\ASP.NET\https\&lt;npm_package_name&gt;.pem
+%APPDATA%\ASP.NET\https\&lt;npm_package_name&gt;.key
+</pre>
+  <p>The script that creates these (<code>aspnetcore-https.js</code>, run via <code>npm run prestart</code>)
+    only generates them <strong>if they don't already exist</strong>. If old/untrusted cert files are already
+    sitting in that folder, they never get refreshed automatically &mdash; even after re-running
+    <code>dotnet dev-certs https --trust</code>.</p>
+
+  <hr>
+
+  <h2>Step 1: Clean and re-trust the dev certificate</h2>
+  <p>Open a command prompt and run:</p>
+<pre>
+dotnet dev-certs https --clean
+dotnet dev-certs https --trust
+</pre>
+  <p>Accept the Windows security prompt to trust the new certificate.</p>
+
+  <hr>
+
+  <h2>Step 2: Delete the stale exported cert files</h2>
+  <p>These are the files <code>ng serve --ssl</code> actually uses, and they won't regenerate on their own:</p>
+<pre>
+del /q "%APPDATA%\ASP.NET\https\*.pem"
+del /q "%APPDATA%\ASP.NET\https\*.key"
+</pre>
+
+  <hr>
+
+  <h2>Step 3: Full restart</h2>
+  <ul>
+    <li>Fully close all browser windows (not just the tab) &mdash; Chrome caches HTTPS/certificate state per-session.</li>
+    <li>Fully stop your dev server (<code>Ctrl+C</code> in the terminal, or Stop Debugging in Visual Studio).</li>
+    <li>Restart it &mdash; this re-runs <code>npm run prestart</code> and regenerates fresh <code>.pem</code>/<code>.key</code> files from the newly trusted certificate.</li>
+    <li>Open a <strong>new</strong> browser window and go to <code>https://localhost:4200</code> &mdash; you should see a padlock instead of "Not secure".</li>
+  </ul>
+
+  <hr>
+
+  <h2>All-in-one script</h2>
+  <p>Save this as <code>fix-https-cert-full.bat</code> and run it whenever this comes back:</p>
+<pre>
+@echo off
+echo ===================================================
+echo  Full HTTPS dev certificate reset for localhost
+echo ===================================================
+
+echo.
+echo Step 1: Removing any existing dotnet dev certificates...
+dotnet dev-certs https --clean
+
+echo.
+echo Step 2: Deleting old exported cert files used by Angular's ng serve...
+del /q "%APPDATA%\ASP.NET\https\*.pem" 2>nul
+del /q "%APPDATA%\ASP.NET\https\*.key" 2>nul
+echo    (Old .pem/.key files removed, if any existed.)
+
+echo.
+echo Step 3: Creating and trusting a brand new dev certificate...
+dotnet dev-certs https --trust
+
+echo.
+echo ===================================================
+echo Done! Now fully close your browser, restart your dev
+echo server, and open a NEW window to https://localhost:4200
+echo ===================================================
+pause
+</pre>
+
+  <hr>
+
+  <h2>Notes</h2>
+  <ul>
+    <li>Make sure your <code>package.json</code> uses <code>--host=localhost</code> (not <code>127.0.0.1</code>) in the <code>start:windows</code> / <code>start:default</code> scripts &mdash; some services (like Facebook's JS SDK) distinguish between the two hostnames.</li>
+    <li>The exported cert file name matches your app's <code>package.json</code> <code>"name"</code> field, not always "localhost" itself.</li>
+  </ul>
+
+  <p class="note">This applies to any Angular + ASP.NET Core project using the standard SPA HTTPS dev-cert setup, not just this one.</p>
+</div>

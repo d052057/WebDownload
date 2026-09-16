@@ -21,7 +21,8 @@ export class Guide {
     'Repair Boot From USB',
     'FFmpeg',
     'FFmpeg-Embed',
-    'create App'
+    'create App',
+    'Fix-Https-Cert'
   ]
 
   constructor() { }

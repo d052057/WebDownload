@@ -19,10 +19,11 @@ export class Home implements AfterViewInit {
 
   ngAfterViewInit(): void {
     const imageUrl = `${this.apiBase}/assets/images/400110244.jfif`;
-
-    this.el.nativeElement.style.setProperty(
-      '--angkor-bg-image',
-      `url("${imageUrl}")`
-    );
+    const img = new Image();
+    img.onload = img.onerror = () => {
+      this.el.nativeElement.style.setProperty('--angkor-bg-image', `url("${imageUrl}")`);
+      this.el.nativeElement.querySelector('.angkor')?.classList.add('loaded');
+    };
+    img.src = imageUrl;
   }
 }
