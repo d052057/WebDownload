@@ -185,6 +185,13 @@
         </label>
         <label class="checkbox-container" style="margin-left: 2rem">
           <input type="checkbox" class="form-check-input"
+                 [(ngModel)]="translateToTh"
+                 (change)="onTranslateToThChange()"
+                 [disabled]="!hasSelectedSubtitles || isPageBusy()">
+          <span class="form-check-label">Translate subtitle to Thai</span>
+        </label>
+        <label class="checkbox-container" style="margin-left: 2rem">
+          <input type="checkbox" class="form-check-input"
                  [(ngModel)]="useDefaultTranslateLocation"
                  [disabled]="!translateTo || isPageBusy()">
           <span class="form-check-label">Translate File Folder</span>
@@ -337,5 +344,3 @@
     </div>
   </div>
 </div>
-
-

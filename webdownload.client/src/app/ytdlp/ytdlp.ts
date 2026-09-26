@@ -55,6 +55,7 @@ export class Ytdlp {
   // cookie checkboxes below.
   translateToKm: boolean = false;
   translateToEn: boolean = false;
+  translateToTh: boolean = false;
   translatedFile = signal('');
   embeddedFile = signal('');
   translationStatusMessage = signal('');
@@ -85,6 +86,7 @@ export class Ytdlp {
   onTranslateToKmChange(): void {
     if (this.translateToKm) {
       this.translateToEn = false;
+      this.translateToTh = false;
     }
     this.onTranslationSelectionChange();
   }
@@ -92,11 +94,20 @@ export class Ytdlp {
   onTranslateToEnChange(): void {
     if (this.translateToEn) {
       this.translateToKm = false;
+      this.translateToTh = false;
     }
     this.onTranslationSelectionChange();
   }
 
-  // If both translate checkboxes end up unchecked, "Translate File Folder"
+  onTranslateToThChange(): void {
+    if (this.translateToTh) {
+      this.translateToKm = false;
+      this.translateToEn = false;
+    }
+    this.onTranslationSelectionChange();
+  }
+
+  // If all translate checkboxes end up unchecked, "Translate File Folder"
   // goes back to disabled - so reset it too, rather than leaving stale
   // checked state the user can't see or interact with.
   private onTranslationSelectionChange(): void {
@@ -108,6 +119,7 @@ export class Ytdlp {
   get translateTo(): string {
     if (this.translateToKm) return 'km';
     if (this.translateToEn) return 'en';
+    if (this.translateToTh) return 'th';
     return '';
   }
 
@@ -231,8 +243,8 @@ export class Ytdlp {
     this.onSubtitleSelectionChange();
   }
 
-  // "Translate subtitle to Khmer/English" only make sense once at least one
-  // subtitle track is selected to translate. Disabled (and reset) otherwise.
+  // "Translate subtitle to Khmer/English/Thai" only make sense once at least
+  // one subtitle track is selected to translate. Disabled (and reset) otherwise.
   get hasSelectedSubtitles(): boolean {
     return this.subtitleOptions.some(o => o.checked);
   }
@@ -241,6 +253,7 @@ export class Ytdlp {
     if (!this.hasSelectedSubtitles) {
       this.translateToKm = false;
       this.translateToEn = false;
+      this.translateToTh = false;
       this.onTranslationSelectionChange();
       this.embedSubtitle = false;
     }

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Options;
 using System.Diagnostics;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using WebDownload.Server.Models;
 using WebDownload.Server.Services;
@@ -62,31 +63,16 @@ namespace WebDownload.Server.Hubs
 
         public string GetConnectionId() => Context.ConnectionId;
 
-        // Called by the client right after connecting, and again after every
-        // automatic reconnect. groupId is the client's stable downloadGroupId
-        // (a GUID the client generates once and reuses for the life of a
-        // download job, independent of the underlying SignalR ConnectionId,
-        // which changes on every reconnect). Adding the *current* connection
-        // into that group lets the server keep sending progress updates to
-        // "whichever connection currently represents this browser tab" via
-        // Clients.Group(groupId), even after a reconnect swaps the
-        // ConnectionId out from under it.
         public async Task JoinGroup(string groupId)
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, groupId);
         }
 
-        // On-demand check for "is my translation done yet?" - independent of
-        // the live SignalR push, so it still works after a page reload or if
-        // a message got missed during a reconnect. groupId is the client's
-        // stable downloadGroupId (same value it uses as DownloadId).
         public Task<TranslationJobStatus?> GetTranslationStatus(string groupId)
         {
             return Task.FromResult(_jobTracker.GetStatus(groupId));
         }
 
-        // Called when the URL field changes (or on demand) to populate the
-        // subtitle checkbox list from what YouTube actually has available.
         public async Task HubGetSubtitlesAsync(DownloadTitleRequest request)
         {
             string conn = request.DownloadId;
@@ -346,16 +332,6 @@ namespace WebDownload.Server.Hubs
             }
         }
 
-        // Finds the .srt file(s) yt-dlp just wrote for this video and translates
-        // one of them (preferring "en") into request.TranslateTo, writing the
-        // result into the shared Subtitle.OutputPath "translate" folder rather
-        // than next to the source file. Uses the same ISubtitleTranslationService
-        // the subtitle-dashboard page uses (batched official Google Cloud
-        // Translation API calls).
-        // Resolves where translated/embedded closecaption files should live:
-        // the "Translate File Folder" per-movie folder if that checkbox was
-        // checked on the client, otherwise the shared Subtitle:OutputPath
-        // folder used by default.
         private string ResolveClosecaptionDir(DownloadRequest request, string fallbackDir)
         {
             if (!string.IsNullOrWhiteSpace(request.TranslateOutputFolder))
@@ -373,8 +349,6 @@ namespace WebDownload.Server.Hubs
                 await Clients.Group(conn).SendAsync("ReceiveOutput",
                     new DownloadInfo { Output = $"[Translate] Searching '{request.OutputFolder}' for '{downloadedBaseName}*.srt' ..." });
 
-                // Look for either .srt or .vtt - yt-dlp can write either depending on
-                // --sub-format/--convert-subs, and the translated output should match.
                 var srtFiles = Directory.GetFiles(request.OutputFolder, $"{downloadedBaseName}*.srt")
                     .Concat(Directory.GetFiles(request.OutputFolder, $"{downloadedBaseName}*.vtt"))
                     .ToArray();
@@ -390,8 +364,6 @@ namespace WebDownload.Server.Hubs
                 await Clients.Group(conn).SendAsync("ReceiveOutput",
                     new DownloadInfo { Output = $"[Translate] Found {srtFiles.Length} .srt file(s): {string.Join(", ", srtFiles.Select(Path.GetFileName))}" });
 
-                // Prefer an English source track if one was downloaded; otherwise
-                // just take the first subtitle file that isn't already the target language.
                 var sourceFile = srtFiles.FirstOrDefault(f => f.Contains(".en.", StringComparison.OrdinalIgnoreCase))
                                   ?? srtFiles.FirstOrDefault(f => !f.Contains($".{request.TranslateTo}.", StringComparison.OrdinalIgnoreCase));
 
@@ -419,10 +391,8 @@ namespace WebDownload.Server.Hubs
                 Directory.CreateDirectory(outputDir);
 
                 var fileNameNoExt = Path.GetFileNameWithoutExtension(sourceFile);
-                // Strip a trailing ".en" / ".th" etc. language suffix if present so we
-                // don't end up with "video.en.km.srt" style names.
                 fileNameNoExt = Regex.Replace(fileNameNoExt, @"\.[a-zA-Z-]{2,8}$", string.Empty);
-                var sourceExt = Path.GetExtension(sourceFile); // preserve .srt vs .vtt
+                var sourceExt = Path.GetExtension(sourceFile);
                 var translatedPath = Path.Combine(outputDir, $"{fileNameNoExt}.{request.TranslateTo}{sourceExt}");
                 await File.WriteAllTextAsync(translatedPath, result.Content, new System.Text.UTF8Encoding(false));
 
@@ -452,14 +422,17 @@ namespace WebDownload.Server.Hubs
         }
 
         // "Embed Subtitle" checkbox handler: mux the closecaption file into the
-        // downloaded video as a subtitle track using ffmpeg. Runs after
-        // translation (if any) so it can use the just-produced translatedPath;
-        // if no translation happened this run, falls back to looking for an
-        // already-existing closecaption file in the same folder translation
-        // would have used (Translate File Folder if checked, otherwise the
-        // shared Subtitle:OutputPath folder).
+        // downloaded video as a subtitle track using ffmpeg. Complex-script
+        // languages (Khmer, Thai, ...) take the hardsub path: the srt/vtt is
+        // first converted to a proper ASS file with an explicit style block,
+        // matching the proven-working native Khmer subtitle app exactly
+        // (fixed PlayResX 1080 / PlayResY 1920 / Fontsize 54), rather than
+        // relying on force_style overrides applied directly to a raw .srt via
+        // the `subtitles` filter, which doesn't shape complex scripts as
+        // reliably. Everything else uses the normal soft-mux path.
         private async Task EmbedSubtitleIntoVideoAsync(string conn, DownloadRequest request, string downloadedBaseName, string? translatedPath)
         {
+            string? tempAssPath = null;
             try
             {
                 var subtitlePath = translatedPath;
@@ -506,8 +479,6 @@ namespace WebDownload.Server.Hubs
                     ? codec
                     : _ytDlpSettings.EmbedSubtitleDefaultCodec;
 
-                // request.TranslateTo is a 2-letter code ("km"); container metadata
-                // wants a 3-letter ISO 639-2 code ("khm") or players show "und".
                 var langKey = request.TranslateTo?.ToLowerInvariant() ?? string.Empty;
                 var subtitleLanguage = _ytDlpSettings.LanguageCodeMap.TryGetValue(langKey, out var mappedLang)
                     ? mappedLang
@@ -517,7 +488,42 @@ namespace WebDownload.Server.Hubs
                     Path.GetDirectoryName(videoPath) ?? request.OutputFolder,
                     $"{Path.GetFileNameWithoutExtension(videoPath)}.embedded{Path.GetExtension(videoPath)}");
 
-                var args = string.Format(_ytDlpSettings.EmbedSubtitleArgsTemplate, videoPath, subtitlePath, subtitleCodec, outputPath, subtitleLanguage);
+                bool needsHardsub = _ytDlpSettings.ComplexScriptLanguages.Contains(langKey);
+
+                string args;
+                if (needsHardsub)
+                {
+                    var fontName = _ytDlpSettings.HardsubFontByLanguage.TryGetValue(langKey, out var font)
+                        ? font
+                        : _ytDlpSettings.HardsubFontDefault;
+
+                    // Resolve FontsDirectory relative to the app's base directory
+                    // if it isn't already an absolute path - "." (the configured
+                    // default) resolves to AppContext.BaseDirectory itself, which
+                    // is also where yt-dlp.exe/ffmpeg.exe live in this project.
+                    var fontsDir = Path.IsPathRooted(_ytDlpSettings.FontsDirectory)
+                        ? _ytDlpSettings.FontsDirectory
+                        : Path.Combine(AppContext.BaseDirectory, _ytDlpSettings.FontsDirectory);
+
+                    tempAssPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.ass");
+                    ConvertSubtitleToAss(subtitlePath, tempAssPath, fontName);
+
+                    var escapedAssPath = EscapeForSubtitlesFilter(tempAssPath);
+                    var escapedFontsDir = EscapeForSubtitlesFilter(fontsDir);
+
+                    args = string.Format(_ytDlpSettings.HardsubEmbedArgsTemplate,
+                        videoPath, escapedAssPath, escapedFontsDir, outputPath);
+
+                    await Clients.Group(conn).SendAsync("ReceiveOutput", new DownloadInfo
+                    {
+                        Output = $"[Embed] '{langKey}' needs shaped-script rendering - converted to ASS and burning in with font '{fontName}' from '{fontsDir}' (this re-encodes video and will take longer)."
+                    });
+                }
+                else
+                {
+                    args = string.Format(_ytDlpSettings.EmbedSubtitleArgsTemplate, videoPath, subtitlePath, subtitleCodec, outputPath, subtitleLanguage);
+                }
+
                 var fullEmbedCommand = $"{_ytDlpSettings.FfmpegExecutablePath} {args}";
                 await Clients.Group(conn).SendAsync("ReceiveEmbedCommand", new DownloadInfo { Command = fullEmbedCommand });
 
@@ -536,7 +542,6 @@ namespace WebDownload.Server.Hubs
                     }
                 };
                 process.Start();
-                // ffmpeg writes its progress/log to stderr, not stdout.
                 var stderrTask = process.StandardError.ReadToEndAsync();
                 await process.StandardOutput.ReadToEndAsync();
                 var ffmpegLog = await stderrTask;
@@ -562,6 +567,99 @@ namespace WebDownload.Server.Hubs
                 await Clients.Group(conn).SendAsync("ReceiveError",
                     new DownloadInfo { Error = $"Hub Error embedding subtitle: {ex.Message}" });
             }
+            finally
+            {
+                if (tempAssPath != null && File.Exists(tempAssPath))
+                {
+                    try { File.Delete(tempAssPath); } catch { /* best-effort cleanup */ }
+                }
+            }
+        }
+
+        // Converts an SRT (or VTT) subtitle file into a minimal but complete ASS
+        // file with an explicit [V4+ Styles] block, mirroring the proven-working
+        // native Khmer subtitle app exactly: fixed PlayResX 1080 / PlayResY 1920
+        // and a fixed Fontsize of 54, regardless of the actual video's
+        // resolution. This renders complex scripts (Khmer, Thai, ...) correctly
+        // via libass, which force_style overrides applied directly to a raw
+        // .srt do not reliably do.
+        private static void ConvertSubtitleToAss(string sourcePath, string assPath, string fontName)
+        {
+            var assContent = new StringBuilder();
+            assContent.AppendLine("[Script Info]");
+            assContent.AppendLine("ScriptType: v4.00+");
+            assContent.AppendLine("PlayResX: 1080");
+            assContent.AppendLine("PlayResY: 1920");
+            assContent.AppendLine("ScaledBorderAndShadow: yes");
+            assContent.AppendLine();
+            assContent.AppendLine("[V4+ Styles]");
+            assContent.AppendLine("Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding");
+            assContent.AppendLine($"Style: Default,{fontName},54,&Hffffff,&Hffffff,&H000000,&H0,0,0,0,0,100,100,0,0,1,4,0,2,50,50,120,1");
+            assContent.AppendLine();
+            assContent.AppendLine("[Events]");
+            assContent.AppendLine("Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text");
+
+            var lines = File.ReadAllLines(sourcePath, Encoding.UTF8);
+            string startTime = "", endTime = "", textCollector = "";
+
+            foreach (var rawLine in lines)
+            {
+                var trimmed = rawLine.Trim();
+                if (trimmed.StartsWith("WEBVTT", StringComparison.OrdinalIgnoreCase)) continue;
+
+                if (string.IsNullOrEmpty(trimmed))
+                {
+                    if (!string.IsNullOrEmpty(startTime) && !string.IsNullOrEmpty(textCollector))
+                    {
+                        assContent.AppendLine($"Dialogue: 0,{startTime},{endTime},Default,,0,0,0,,{textCollector.Trim()}");
+                    }
+                    startTime = ""; endTime = ""; textCollector = "";
+                    continue;
+                }
+
+                if (trimmed.Contains("-->"))
+                {
+                    var parts = trimmed.Split(new[] { "-->" }, StringSplitOptions.None);
+                    startTime = FormatSubtitleTimeToAss(parts[0].Trim());
+                    // VTT end-time cells can carry trailing cue settings
+                    // ("00:00:05.000 align:start line:0%") - keep only the
+                    // timestamp itself.
+                    endTime = FormatSubtitleTimeToAss(parts[1].Trim().Split(' ')[0]);
+                }
+                else if (!int.TryParse(trimmed, out _))
+                {
+                    textCollector += (string.IsNullOrEmpty(textCollector) ? "" : "\\N") + trimmed;
+                }
+            }
+
+            if (!string.IsNullOrEmpty(startTime) && !string.IsNullOrEmpty(textCollector))
+            {
+                assContent.AppendLine($"Dialogue: 0,{startTime},{endTime},Default,,0,0,0,,{textCollector.Trim()}");
+            }
+
+            File.WriteAllText(assPath, assContent.ToString(), new UTF8Encoding(false));
+        }
+
+        private static string FormatSubtitleTimeToAss(string time)
+        {
+            var formatted = time.Replace(',', '.');
+            if (formatted.StartsWith("00:")) formatted = "0:" + formatted.Substring(3);
+            if (formatted.Length > 10) formatted = formatted.Substring(0, 10);
+            return formatted;
+        }
+
+        // The ffmpeg `ass` filter's argument is itself parsed with its own
+        // escaping rules: ':' separates filter options and '\' is an escape
+        // character, so a raw Windows path like "D:\temp\sub.ass" must have
+        // both escaped, plus the whole thing wrapped in single quotes (already
+        // done by the caller) which requires escaping literal apostrophes too.
+        // The same escaping applies to fontsdir's value.
+        private static string EscapeForSubtitlesFilter(string path)
+        {
+            return path
+                .Replace(@"\", @"\\")
+                .Replace(":", @"\:")
+                .Replace("'", @"\'");
         }
     }
 }
