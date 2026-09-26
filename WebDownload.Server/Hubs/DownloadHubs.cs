@@ -279,6 +279,11 @@ namespace WebDownload.Server.Hubs
                 };
                 await _downloadService.StartDownloadAsync(request, callback);
 
+                if (downloadedBaseName != null)
+                {
+                    await MoveDownloadedSubtitlesToClosecaptionAsync(conn, request, downloadedBaseName);
+                }
+
                 await Clients.Group(conn).SendAsync("ReceiveOutput",
                     new DownloadInfo { Output = $"[Translate] Post-download check: TranslateTo='{request.TranslateTo}', downloadedBaseName='{downloadedBaseName ?? "(null - destination line was never matched)"}', OutputFolder='{request.OutputFolder}'" });
 
@@ -332,6 +337,10 @@ namespace WebDownload.Server.Hubs
             }
         }
 
+        // Resolves where translated/embedded closecaption files should live:
+        // the "Translate File Folder" per-movie folder if that checkbox was
+        // checked on the client, otherwise the shared Subtitle:OutputPath
+        // folder used by default.
         private string ResolveClosecaptionDir(DownloadRequest request, string fallbackDir)
         {
             if (!string.IsNullOrWhiteSpace(request.TranslateOutputFolder))
@@ -342,19 +351,73 @@ namespace WebDownload.Server.Hubs
             return string.IsNullOrWhiteSpace(outputDir) ? fallbackDir : outputDir;
         }
 
+        // Moves the .srt/.vtt file(s) yt-dlp just wrote (into request.OutputFolder,
+        // alongside the video) into the closecaption folder, so every subtitle -
+        // original and translated alike - ends up in one place rather than the
+        // original staying next to the video and only the translation moving
+        // there. Runs once per download, right after yt-dlp finishes and before
+        // any translation, so TranslateDownloadedSubtitlesAsync can search the
+        // closecaption folder directly instead of the video's output folder.
+        private async Task MoveDownloadedSubtitlesToClosecaptionAsync(string conn, DownloadRequest request, string downloadedBaseName)
+        {
+            try
+            {
+                var subtitleFiles = Directory.GetFiles(request.OutputFolder, $"{downloadedBaseName}*.srt")
+                    .Concat(Directory.GetFiles(request.OutputFolder, $"{downloadedBaseName}*.vtt"))
+                    .ToArray();
+
+                if (subtitleFiles.Length == 0) return;
+
+                var closecaptionDir = ResolveClosecaptionDir(request, request.OutputFolder);
+                Directory.CreateDirectory(closecaptionDir);
+
+                var movedCount = 0;
+                foreach (var file in subtitleFiles)
+                {
+                    var dest = Path.Combine(closecaptionDir, Path.GetFileName(file));
+                    if (string.Equals(Path.GetFullPath(file), Path.GetFullPath(dest), StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue; // closecaptionDir resolved to the same folder as the video - nothing to move
+                    }
+                    File.Copy(file, dest, overwrite: true);
+                    File.Delete(file);
+                    movedCount++;
+                }
+
+                if (movedCount > 0)
+                {
+                    await Clients.Group(conn).SendAsync("ReceiveOutput", new DownloadInfo
+                    {
+                        Output = $"[Subtitles] Moved {movedCount} downloaded subtitle file(s) to '{closecaptionDir}'."
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                await Clients.Group(conn).SendAsync("ReceiveOutput", new DownloadInfo
+                {
+                    Output = $"[Subtitles] Failed to move downloaded subtitle files to closecaption folder: {ex.Message}"
+                });
+            }
+        }
+
         private async Task<string?> TranslateDownloadedSubtitlesAsync(string conn, DownloadRequest request, string downloadedBaseName)
         {
             try
             {
-                await Clients.Group(conn).SendAsync("ReceiveOutput",
-                    new DownloadInfo { Output = $"[Translate] Searching '{request.OutputFolder}' for '{downloadedBaseName}*.srt' ..." });
+                var closecaptionDir = ResolveClosecaptionDir(request, request.OutputFolder);
 
-                var srtFiles = Directory.GetFiles(request.OutputFolder, $"{downloadedBaseName}*.srt")
-                    .Concat(Directory.GetFiles(request.OutputFolder, $"{downloadedBaseName}*.vtt"))
+                await Clients.Group(conn).SendAsync("ReceiveOutput",
+                    new DownloadInfo { Output = $"[Translate] Searching '{closecaptionDir}' for '{downloadedBaseName}*.srt' ..." });
+
+                // Look for either .srt or .vtt - yt-dlp can write either depending on
+                // --sub-format/--convert-subs, and the translated output should match.
+                var srtFiles = Directory.GetFiles(closecaptionDir, $"{downloadedBaseName}*.srt")
+                    .Concat(Directory.GetFiles(closecaptionDir, $"{downloadedBaseName}*.vtt"))
                     .ToArray();
                 if (srtFiles.Length == 0)
                 {
-                    var msg = $"No .srt or .vtt file matching '{downloadedBaseName}*' was found in '{request.OutputFolder}'. " +
+                    var msg = $"No .srt or .vtt file matching '{downloadedBaseName}*' was found in '{closecaptionDir}'. " +
                                "Check that a subtitle language was actually selected before downloading.";
                     _jobTracker.SetStatus(conn, new TranslationJobStatus { State = "Failed", Error = msg });
                     await Clients.Group(conn).SendAsync("ReceiveOutput", new DownloadInfo { Output = $"[Translate] {msg}" });
@@ -364,6 +427,8 @@ namespace WebDownload.Server.Hubs
                 await Clients.Group(conn).SendAsync("ReceiveOutput",
                     new DownloadInfo { Output = $"[Translate] Found {srtFiles.Length} .srt file(s): {string.Join(", ", srtFiles.Select(Path.GetFileName))}" });
 
+                // Prefer an English source track if one was downloaded; otherwise
+                // just take the first subtitle file that isn't already the target language.
                 var sourceFile = srtFiles.FirstOrDefault(f => f.Contains(".en.", StringComparison.OrdinalIgnoreCase))
                                   ?? srtFiles.FirstOrDefault(f => !f.Contains($".{request.TranslateTo}.", StringComparison.OrdinalIgnoreCase));
 
@@ -391,8 +456,10 @@ namespace WebDownload.Server.Hubs
                 Directory.CreateDirectory(outputDir);
 
                 var fileNameNoExt = Path.GetFileNameWithoutExtension(sourceFile);
+                // Strip a trailing ".en" / ".th" etc. language suffix if present so we
+                // don't end up with "video.en.km.srt" style names.
                 fileNameNoExt = Regex.Replace(fileNameNoExt, @"\.[a-zA-Z-]{2,8}$", string.Empty);
-                var sourceExt = Path.GetExtension(sourceFile);
+                var sourceExt = Path.GetExtension(sourceFile); // preserve .srt vs .vtt
                 var translatedPath = Path.Combine(outputDir, $"{fileNameNoExt}.{request.TranslateTo}{sourceExt}");
                 await File.WriteAllTextAsync(translatedPath, result.Content, new System.Text.UTF8Encoding(false));
 
@@ -422,14 +489,18 @@ namespace WebDownload.Server.Hubs
         }
 
         // "Embed Subtitle" checkbox handler: mux the closecaption file into the
-        // downloaded video as a subtitle track using ffmpeg. Complex-script
-        // languages (Khmer, Thai, ...) take the hardsub path: the srt/vtt is
-        // first converted to a proper ASS file with an explicit style block,
-        // matching the proven-working native Khmer subtitle app exactly
-        // (fixed PlayResX 1080 / PlayResY 1920 / Fontsize 54), rather than
-        // relying on force_style overrides applied directly to a raw .srt via
-        // the `subtitles` filter, which doesn't shape complex scripts as
-        // reliably. Everything else uses the normal soft-mux path.
+        // downloaded video as a subtitle track using ffmpeg. Runs after
+        // translation (if any) so it can use the just-produced translatedPath;
+        // if no translation happened this run, falls back to looking for an
+        // already-existing closecaption file in the closecaption folder (now
+        // where ALL downloaded subtitles land, per MoveDownloadedSubtitlesToClosecaptionAsync).
+        //
+        // Complex-script languages (Khmer, Thai, ...) take a different path:
+        // soft mov_text subtitles render those scripts' shaping incorrectly, so
+        // those languages get burned in as hardsubs via libass instead, using
+        // an ASS file matching the proven-working native app's style block
+        // exactly (fixed PlayResX 1080 / PlayResY 1920 / Fontsize 54).
+        // Everything else uses the normal soft-mux path.
         private async Task EmbedSubtitleIntoVideoAsync(string conn, DownloadRequest request, string downloadedBaseName, string? translatedPath)
         {
             string? tempAssPath = null;
@@ -479,16 +550,25 @@ namespace WebDownload.Server.Hubs
                     ? codec
                     : _ytDlpSettings.EmbedSubtitleDefaultCodec;
 
+                // request.TranslateTo is a 2-letter code ("km"); container metadata
+                // wants a 3-letter ISO 639-2 code ("khm") or players show "und".
                 var langKey = request.TranslateTo?.ToLowerInvariant() ?? string.Empty;
                 var subtitleLanguage = _ytDlpSettings.LanguageCodeMap.TryGetValue(langKey, out var mappedLang)
                     ? mappedLang
                     : "und";
 
+                bool needsHardsub = _ytDlpSettings.ComplexScriptLanguages.Contains(langKey);
+
+                // The hardsub path always re-encodes video as libx264, which
+                // cannot be muxed into a WebM container (WebM only allows
+                // VP8/VP9/AV1) - so a hardsub output must always be .mp4
+                // regardless of the source file's container, even though the
+                // soft-mux path below correctly preserves the original
+                // extension (its codec is chosen per-extension above).
+                var outputExtension = needsHardsub ? ".mp4" : Path.GetExtension(videoPath);
                 var outputPath = Path.Combine(
                     Path.GetDirectoryName(videoPath) ?? request.OutputFolder,
-                    $"{Path.GetFileNameWithoutExtension(videoPath)}.embedded{Path.GetExtension(videoPath)}");
-
-                bool needsHardsub = _ytDlpSettings.ComplexScriptLanguages.Contains(langKey);
+                    $"{Path.GetFileNameWithoutExtension(videoPath)}.embedded{outputExtension}");
 
                 string args;
                 if (needsHardsub)
@@ -542,6 +622,7 @@ namespace WebDownload.Server.Hubs
                     }
                 };
                 process.Start();
+                // ffmpeg writes its progress/log to stderr, not stdout.
                 var stderrTask = process.StandardError.ReadToEndAsync();
                 await process.StandardOutput.ReadToEndAsync();
                 var ffmpegLog = await stderrTask;
