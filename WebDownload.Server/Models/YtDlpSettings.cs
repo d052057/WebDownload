@@ -105,9 +105,10 @@ namespace WebDownload.Server.Models
         // re-encode - can't -c:v copy while burning pixels, so this is slower
         // than the soft-mux path and there's no user-facing toggle to turn
         // subtitles off afterward, by design.
-        public string HardsubEmbedArgsTemplate { get; set; } =
-            "-y -i \"{0}\" -vf \"ass='{1}':fontsdir='{2}'\" -c:v libx264 -crf 22 -c:a copy -movflags +faststart \"{3}\"";
 
+        public string HardsubEmbedArgsTemplate { get; set; } =
+            "-y -i \"{0}\" -vf \"ass='{1}':fontsdir='{2}'\" -c:v libx264 -crf 22 -c:a aac -b:a 192k -movflags +faststart \"{3}\"";
+       
         // Maps the 2-letter language codes used by the Google Translate API
         // (request.TranslateTo, e.g. "km"/"en") to the 3-letter ISO 639-2 codes
         // that MKV/MP4 container metadata expects, so players show a proper

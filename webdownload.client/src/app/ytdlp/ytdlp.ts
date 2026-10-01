@@ -450,6 +450,7 @@ export class Ytdlp {
     });
   }
   startDownload(): void {
+    
     this.signalRService.ensureConnected().then(async connId => {
       this.connectionId = connId;
       await this.signalRService.joinGroup(this.downloadGroupId);
@@ -466,6 +467,7 @@ export class Ytdlp {
         videoOnly: this.chkVideo,
         subtitleLangs: subtitleLangs,
         translateTo: this.translateTo || null,
+        useSharedClosecaptionFolder: this.useDefaultTranslateLocation,
         translateOutputFolder: this.useDefaultTranslateLocation ? this.translateOutputFolder : null,
         embedSubtitle: this.embedSubtitle,
         outputFolder: `${this.selectedMenuValue}\\${this.outputFolder}`  // Send the user-provided output folder.
