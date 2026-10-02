@@ -32,6 +32,17 @@ public class VoiceoverSettings
     public List<VoiceoverVoice>? Voices { get; set; }
     public string DefaultVoice { get; set; } = "km-KH-PisethNeural";
 
+    // "Match the voice to the video" picks one of these from the speaker's detected pitch.
+    public string MaleVoice { get; set; } = "km-KH-PisethNeural";
+    public string FemaleVoice { get; set; } = "km-KH-SreymomNeural";
+    // How much of the video's audio (from the start) is sampled when no per-cue result is available.
+    public int AnalysisSeconds { get; set; } = 30;
+
+    // Original speech with a median pitch below this is treated as a male speaker, above it female.
+    // If women are being given the male voice, lower it (for example 150); if men are being
+    // given the female voice, raise it (for example 180).
+    public int GenderThresholdHz { get; set; } = 165;
+
     public string IgnoreWordsFile { get; set; } = "ignore_words.txt";
     public bool CleanSubtitles { get; set; } = true;
 
@@ -43,6 +54,9 @@ public class VoiceoverSettings
     // Longest speed-up applied to squeeze a clip into its cue. Beyond this the clip
     // overruns into the gap after it rather than turning unintelligible.
     public double MaxSpeedUp { get; set; } = 2.0;
+
+    // A clip may also use up to this much of the silent gap after its cue before the next cue starts.
+    public double MaxBorrowSeconds { get; set; } = 1.0;
     public int MaxSynthesisRetries { get; set; } = 3;
     public int MaxConcurrentJobs { get; set; } = 1;
 
@@ -52,7 +66,7 @@ public class VoiceoverSettings
     public bool MakeVoiceTrackDefault { get; set; } = true;
 
     private static readonly string[] DefaultMenus = { "movies", "videos" };
-    private static readonly string[] DefaultVideoExtensions = { ".mp4", ".m4v", ".mov", ".mkv" };
+    private static readonly string[] DefaultVideoExtensions = { ".mp4", ".m4v", ".mov", ".mkv", ".webm" };
     private static readonly VoiceoverVoice[] DefaultVoices =
     {
         new() { Id = "km-KH-PisethNeural", Label = "Piseth (male)" },

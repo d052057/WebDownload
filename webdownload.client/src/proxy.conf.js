@@ -6,7 +6,8 @@ const target = env.ASPNETCORE_HTTPS_PORT ? `https://127.0.0.1:${env.ASPNETCORE_H
 const PROXY_CONFIG = [
   {
     context: [
-      "/downloadHub"
+      "/downloadHub",
+      "/convertHub"
     ],
     target,
     secure: false,
@@ -20,6 +21,13 @@ const PROXY_CONFIG = [
   // since the backend itself doesn't know about it.
   {
     context: ["/webdownload/downloadHub"],
+    target,
+    secure: false,
+    ws: true,
+    pathRewrite: { "^/webdownload": "" },
+  },
+  {
+    context: ["/webdownload/convertHub"],
     target,
     secure: false,
     ws: true,

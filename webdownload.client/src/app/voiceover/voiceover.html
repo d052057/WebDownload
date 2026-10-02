@@ -123,7 +123,7 @@
     <div class="row g-3 align-items-end">
       <div class="col-md-3">
         <label class="form-label fw-semibold small" for="voiceSelect">Voice</label>
-        <select id="voiceSelect" class="form-select" [disabled]="isRunning()"
+        <select id="voiceSelect" class="form-select" [disabled]="isRunning() || matchVoice()"
                 [ngModel]="voice()" (ngModelChange)="voice.set($event)">
           @for (v of config()?.voices ?? []; track v.id) {
           <option [value]="v.id">{{ v.label }}</option>
@@ -154,6 +154,28 @@
                 [disabled]="!canReset()" (click)="cancelOrReset()">
           {{ isRunning() ? 'Cancel' : 'Reset' }}
         </button>
+      </div>
+    </div>
+    <div class="row g-3 align-items-center mt-1">
+      <div class="col-md-4">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="matchVoice" [disabled]="isRunning()"
+                 [ngModel]="matchVoice()" (ngModelChange)="matchVoice.set($event)" />
+          <label class="form-check-label small fw-semibold" for="matchVoice">Match the voice to the video</label>
+        </div>
+        <small class="text-muted d-block">Listens to the video's speakers cue by cue and uses a male or female Khmer voice to match each one, with a pitch to suit.</small>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label small fw-semibold mb-0" for="rateRange">Speed {{ ratePercent() > 0 ? '+' : '' }}{{ ratePercent() }}%</label>
+        <input id="rateRange" type="range" class="form-range" min="-25" max="25" step="1"
+               [disabled]="isRunning() || matchVoice()"
+               [ngModel]="ratePercent()" (ngModelChange)="ratePercent.set($event)" />
+      </div>
+      <div class="col-md-4">
+        <label class="form-label small fw-semibold mb-0" for="pitchRange">Pitch {{ pitchPercent() > 0 ? '+' : '' }}{{ pitchPercent() }}%</label>
+        <input id="pitchRange" type="range" class="form-range" min="-25" max="25" step="1"
+               [disabled]="isRunning() || matchVoice()"
+               [ngModel]="pitchPercent()" (ngModelChange)="pitchPercent.set($event)" />
       </div>
     </div>
     @if (hint()) {

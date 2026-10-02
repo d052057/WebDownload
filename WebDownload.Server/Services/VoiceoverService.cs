@@ -9,12 +9,16 @@ namespace WebDownload.Server.Services;
 
 /// <summary>
 /// srt/vtt -> Edge TTS clip per cue -> sample-accurate timeline -> one MP3,
-/// then optionally the MP3 is added to the video as a second audio track.
+/// then optionally the MP3 is added to the video as an extra audio track.
 ///
 /// Differences from the WPF version, on purpose:
-///  - The timeline is raw PCM written in C#, so every cue starts at its exact sample and
-///    nothing drifts. The WPF flow concatenated hundreds of separately encoded MP3 files,
-///    and each encode adds a few tens of ms of padding that accumulates.
+///  - The timeline is raw PCM written in C#, so every cue starts at its exact sample. The WPF
+///    flow concatenated hundreds of separately encoded MP3 files, and each encode adds a few
+///    tens of ms of padding that accumulates.
+///  - Each clip is fitted to the time that is actually left for it. If an earlier clip ran late,
+///    the next one is sped up to catch up, so lateness can't pile up over a long file.
+///  - A pitch change also changes speed (asetrate); that is cancelled out so the clip keeps the
+///    length it was fitted to. The WPF filter did not, so pitched clips came out the wrong length.
 ///  - The MP3 is encoded once, at the end.
 ///  - Every ffmpeg run has its exit code checked and can be cancelled.
 ///  - The embed step never uses -shortest, so a short voice track can't truncate the video.
@@ -30,17 +34,23 @@ public sealed class VoiceoverService
     private static readonly Regex LangSuffix =
         new(@"\.[a-z]{2,3}(-[a-z]{2,4})?$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+    // Edge TTS returns 24 kHz mono audio (the WPF app assumed the same).
+    private const int TtsSampleRate = 24000;
+
     private readonly VoiceoverSettings _s;
     private readonly FfmpegRunner _ffmpeg;
+    private readonly VoiceAnalysisService _analysis;
     private readonly ILogger<VoiceoverService> _logger;
 
     public VoiceoverService(
         IOptions<VoiceoverSettings> settings,
         FfmpegRunner ffmpeg,
+        VoiceAnalysisService analysis,
         ILogger<VoiceoverService> logger)
     {
         _s = settings.Value;
         _ffmpeg = ffmpeg;
+        _analysis = analysis;
         _logger = logger;
     }
 
@@ -79,15 +89,88 @@ public sealed class VoiceoverService
             throw new InvalidOperationException("No usable subtitle cues were found in this file.");
         await ReportLog($"{cues.Count} cues to voice.");
 
-        // 2. Voice every cue and lay it on the timeline ------------------------------------
-        var voice = await EdgeTts.GetVoice(job.Voice);
+        // 2. Choose the voice, speed and pitch -------------------------------------------------
+        // Either as set in the UI, or detected from the video's speaker (like "Analyze MP4" in the WPF app).
+        var voiceId = job.Voice;
+        var pitchPercent = job.PitchPercent;
+        var ratePercent = job.RatePercent;
+        SpeakerMap? speakers = null;
+
+        if (job.MatchVoice && job.VideoPath is not null)
+        {
+            await ReportState("Analyzing the video's speakers", 3);
+            try
+            {
+                // Per cue: a man and a woman in the video get a male and a female Khmer voice.
+                var lastReported = -1;
+                speakers = await _analysis.AnalyzeCuesAsync(job.VideoPath, cues, job.WorkDir, async (done, total) =>
+                {
+                    var percent = 3 + (int)(6.0 * done / total);
+                    if (percent == lastReported) return;
+                    lastReported = percent;
+                    await ReportState($"Analyzing speakers (cue {done} of {total})", percent);
+                }, ct);
+
+                if (speakers is not null)
+                {
+                    ratePercent = 0;
+                    await ReportLog(
+                        $"Matched voices cue by cue: {speakers.MaleCues} male and {speakers.FemaleCues} female" +
+                        (speakers.UnclearCues > 0 ? $" ({speakers.UnclearCues} cues had no clear voice and kept the previous speaker)" : "") + ". " +
+                        (speakers.MalePitchHz is { } mh ? $"Male speech averages {mh:F0} Hz (pitch {speakers.MalePitchPercent:+#;-#;0}%). " : "") +
+                        (speakers.FemalePitchHz is { } fh ? $"Female speech averages {fh:F0} Hz (pitch {speakers.FemalePitchPercent:+#;-#;0}%)." : ""));
+                }
+                else
+                {
+                    // No cue had a clear voice: fall back to one voice for the whole video, like the WPF app.
+                    var found = await _analysis.AnalyzeAsync(job.VideoPath, ct);
+                    if (found is null)
+                    {
+                        await ReportLog("No clear speech was found in the video, so the selected voice and sliders are used.");
+                    }
+                    else
+                    {
+                        voiceId = found.IsMale ? _s.MaleVoice : _s.FemaleVoice;
+                        pitchPercent = found.PitchPercent;
+                        ratePercent = 0;
+                        await ReportLog(
+                            $"Could not match cue by cue. Detected a {(found.IsMale ? "male" : "female")} voice overall (average pitch {found.AveragePitchHz:F0} Hz): " +
+                            $"using {voiceId} with pitch {found.PitchPercent:+#;-#;0}%.");
+                    }
+                }
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                speakers = null;
+                await ReportLog($"Voice analysis skipped: {ex.Message}");
+            }
+        }
+
+        var rateFactor = 1.0 + ratePercent / 100.0;
+        var pitchFactor = 1.0 + pitchPercent / 100.0;
+
+        // 3. Voice every cue and lay it on the timeline ------------------------------------
+        // Edge TTS voices. With speaker matching there is one male and one female voice, used per cue.
+        var defaultVoice = await EdgeTts.GetVoice(voiceId);
+        Func<string, string, Task> saveDefault = async (text, path) => await defaultVoice.SaveAudioToFile(text, path);
+        var saveMale = saveDefault;
+        var saveFemale = saveDefault;
+        if (speakers is not null)
+        {
+            var maleVoice = await EdgeTts.GetVoice(_s.MaleVoice);
+            var femaleVoice = await EdgeTts.GetVoice(_s.FemaleVoice);
+            saveMale = async (text, path) => await maleVoice.SaveAudioToFile(text, path);
+            saveFemale = async (text, path) => await femaleVoice.SaveAudioToFile(text, path);
+        }
+        var malePitch = 1.0 + (speakers?.MalePitchPercent ?? 0) / 100.0;
+        var femalePitch = 1.0 + (speakers?.FemalePitchPercent ?? 0) / 100.0;
         var sampleRate = _s.SampleRate;
         var pcmPath = Path.Combine(job.WorkDir, "timeline.pcm");
         var cuePath = Path.Combine(job.WorkDir, "cue.mp3");
         long writtenSamples = 0;
         var overruns = 0;
 
-        async Task SynthesizeAsync(string text)
+        async Task SynthesizeAsync(Func<string, string, Task> save, string text)
         {
             for (var attempt = 1; ; attempt++)
             {
@@ -95,7 +178,7 @@ public sealed class VoiceoverService
                 try
                 {
                     if (File.Exists(cuePath)) File.Delete(cuePath);
-                    await voice.SaveAudioToFile(text, cuePath);
+                    await save(text, cuePath);
                     if (File.Exists(cuePath) && new FileInfo(cuePath).Length > 0) return;
                     throw new IOException("The voice service returned no audio.");
                 }
@@ -115,23 +198,36 @@ public sealed class VoiceoverService
                 ct.ThrowIfCancellationRequested();
                 var cue = cues[i];
 
-                await SynthesizeAsync(cue.Text);
+                var save = speakers is null ? saveDefault : speakers.IsMale[i] ? saveMale : saveFemale;
+                var cuePitch = speakers is null ? pitchFactor : speakers.IsMale[i] ? malePitch : femalePitch;
+
+                await SynthesizeAsync(save, cue.Text);
 
                 using var clip = new MemoryStream();
-                await _ffmpeg.RunAsync(DecodeArgs(cuePath, null), ct, clip);
-
+                await _ffmpeg.RunAsync(DecodeArgs(cuePath), ct, clip);
                 var natural = clip.Length / 2.0 / sampleRate;
-                var target = cue.TargetSeconds;
-                if (target > 0 && natural > target * 1.02)
-                {
-                    var ratio = Math.Min(natural / target, _s.MaxSpeedUp);
-                    clip.SetLength(0);
-                    await _ffmpeg.RunAsync(DecodeArgs(cuePath, ratio), ct, clip);
-                    if (clip.Length / 2.0 / sampleRate > target + 0.1) overruns++;
-                }
 
-                // Pad with silence up to this cue's start. If the previous clip overran,
-                // the cue simply starts as soon as the timeline is free.
+                // The clip starts when its cue starts, or as soon as the timeline is free if an
+                // earlier clip ran late. It should end by its cue's end, plus up to MaxBorrowSeconds
+                // of the silent gap before the next cue.
+                var from = Math.Max(cue.Start.TotalSeconds, writtenSamples / (double)sampleRate);
+                var deadline = cue.End.TotalSeconds;
+                if (i + 1 < cues.Count)
+                    deadline = Math.Max(deadline, Math.Min(cues[i + 1].Start.TotalSeconds, deadline + _s.MaxBorrowSeconds));
+                var slot = Math.Max(deadline - from, 0.3);
+
+                var afterRate = natural / rateFactor;
+                var fit = afterRate > slot * 1.02 ? afterRate / slot : 1.0;
+                var tempo = Math.Clamp(rateFactor * fit, 0.5, _s.MaxSpeedUp);
+
+                if (Math.Abs(tempo - 1.0) > 0.005 || Math.Abs(cuePitch - 1.0) > 0.001)
+                {
+                    clip.SetLength(0);
+                    await _ffmpeg.RunAsync(DecodeArgs(cuePath, tempo, cuePitch), ct, clip);
+                }
+                if (clip.Length / 2.0 / sampleRate > slot + 0.1) overruns++;
+
+                // Pad with silence up to this cue's start (nothing to pad if it is already late).
                 var startSample = (long)Math.Round(cue.Start.TotalSeconds * sampleRate);
                 if (startSample > writtenSamples)
                 {
@@ -143,7 +239,7 @@ public sealed class VoiceoverService
                 await clip.CopyToAsync(pcm, ct);
                 writtenSamples += clip.Length / 2;
 
-                var percent = 5 + (int)(85.0 * (i + 1) / cues.Count);
+                var percent = 10 + (int)(80.0 * (i + 1) / cues.Count);
                 if (percent != lastPercent)
                 {
                     lastPercent = percent;
@@ -152,10 +248,12 @@ public sealed class VoiceoverService
             }
         }
 
+        var audioSeconds = writtenSamples / (double)sampleRate;
+        await ReportLog($"Voice track is {Fmt(audioSeconds)} long; the subtitles end at {Fmt(cues[^1].End.TotalSeconds)}.");
         if (overruns > 0)
-            await ReportLog($"{overruns} cue(s) were still longer than their time slot at the maximum speed-up and run into the gap after them.");
+            await ReportLog($"{overruns} cue(s) are still longer than their time slot at the maximum speed-up ({_s.MaxSpeedUp:0.#}x), so they run into the gap after them. Shorter translations or a higher MaxSpeedUp would tighten this.");
 
-        // 3. Encode the MP3 once ------------------------------------------------------------
+        // 4. Encode the MP3 once ------------------------------------------------------------
         await ReportState("Encoding MP3", 92);
         var baseName = BaseNameFor(job);
         var mp3Final = UniquePath(Path.Combine(_s.OutputFolder, "mp3"), baseName + "_Voice", ".mp3");
@@ -182,7 +280,7 @@ public sealed class VoiceoverService
         if (job.Mode == VoiceoverMode.Mp3)
             return new VoiceoverResult(mp3Final, null);
 
-        // 4. Add the MP3 to the video as an extra audio track -------------------------------
+        // 5. Add the MP3 to the video as an extra audio track -------------------------------
         await ReportState("Reading video", 94);
         var probe = await _ffmpeg.ProbeAsync(job.VideoPath!, ct);
         var ext = Path.GetExtension(job.VideoPath!).ToLowerInvariant();
@@ -197,6 +295,8 @@ public sealed class VoiceoverService
         await ReportLog(probe.AudioStreams == 0
             ? "The video has no audio track; the voice track will be its only audio."
             : $"Keeping the video's {probe.AudioStreams} original audio track(s) and adding the {_s.VoiceTrackTitle} track.");
+        if (probe.Duration is { } videoLength && audioSeconds > videoLength.TotalSeconds + 1)
+            await ReportLog($"The voice track is {Fmt(audioSeconds - videoLength.TotalSeconds)} longer than the video, so its end is trimmed to the video's length.");
 
         try
         {
@@ -217,24 +317,48 @@ public sealed class VoiceoverService
         return new VoiceoverResult(mp3Final, videoFinal);
     }
 
-    // ffmpeg decodes a TTS clip to raw mono 16-bit PCM on stdout, optionally sped up.
-    private IEnumerable<string> DecodeArgs(string input, double? tempo)
+    // ffmpeg decodes a TTS clip to raw mono 16-bit PCM on stdout, with optional speed and pitch changes.
+    private IEnumerable<string> DecodeArgs(string input, double tempo = 1.0, double pitch = 1.0)
     {
         var args = new List<string> { "-i", input };
-        if (tempo is > 1.0)
+        var filter = BuildFilter(tempo, pitch);
+        if (filter is not null)
         {
             args.Add("-filter:a");
-            args.Add(TempoFilter(tempo.Value));
+            args.Add(filter);
         }
         args.AddRange(new[] { "-f", "s16le", "-ar", _s.SampleRate.ToString(CultureInfo.InvariantCulture), "-ac", "1", "-" });
         return args;
     }
 
-    // Chained so ratios above 2.0 work on older ffmpeg builds too.
+    private string? BuildFilter(double tempo, double pitch)
+    {
+        string F(double v) => v.ToString("F4", CultureInfo.InvariantCulture);
+        var parts = new List<string>();
+
+        if (Math.Abs(pitch - 1.0) > 0.001)
+        {
+            // Relabelling the sample rate shifts pitch, but speeds the clip up by the same factor.
+            parts.Add($"aresample={TtsSampleRate}");
+            parts.Add($"asetrate={F(TtsSampleRate * pitch)}");
+            parts.Add($"aresample={_s.SampleRate}");
+            tempo /= pitch; // take that side effect back out, so the clip keeps its fitted length
+        }
+
+        tempo = Math.Clamp(tempo, 0.25, 4.0);
+        if (Math.Abs(tempo - 1.0) > 0.005)
+            parts.Add(TempoFilter(tempo));
+
+        return parts.Count == 0 ? null : string.Join(",", parts);
+    }
+
+    // atempo accepts 0.5 to 2.0 per stage on older ffmpeg builds, so wider ratios are chained.
     private static string TempoFilter(double ratio)
     {
         string F(double v) => v.ToString("F4", CultureInfo.InvariantCulture);
-        return ratio <= 2.0 ? $"atempo={F(ratio)}" : $"atempo=2.0,atempo={F(ratio / 2.0)}";
+        if (ratio > 2.0) return $"atempo=2.0,atempo={F(ratio / 2.0)}";
+        if (ratio < 0.5) return $"atempo=0.5,atempo={F(ratio / 0.5)}";
+        return $"atempo={F(ratio)}";
     }
 
     private IEnumerable<string> BuildEmbedArgs(string video, string mp3, string output, string ext, MediaProbe probe)
@@ -246,7 +370,11 @@ public sealed class VoiceoverService
         args.AddRange(new[] { "-map", "1:a:0", "-c:v", "copy" });
 
         for (var k = 0; k < n; k++) args.AddRange(new[] { $"-c:a:{k}", "copy" });
-        args.AddRange(new[] { $"-c:a:{n}", "aac", $"-b:a:{n}", _s.EmbeddedAudioBitrate });
+
+        // WebM only allows Opus or Vorbis audio, so a .webm video gets an Opus voice track;
+        // every other supported container takes AAC.
+        var voiceCodec = ext == ".webm" ? "libopus" : "aac";
+        args.AddRange(new[] { $"-c:a:{n}", voiceCodec, $"-b:a:{n}", _s.EmbeddedAudioBitrate });
 
         if (n == 1) args.AddRange(new[] { "-metadata:s:a:0", $"title={_s.OriginalTrackTitle}" });
         args.AddRange(new[]
@@ -323,6 +451,9 @@ public sealed class VoiceoverService
         var name = Path.GetFileNameWithoutExtension(job.SrtPath);
         return Sanitize(LangSuffix.Replace(name, ""));
     }
+
+    private static string Fmt(double seconds) =>
+        TimeSpan.FromSeconds(Math.Max(0, seconds)).ToString(@"h\:mm\:ss");
 
     private static string Sanitize(string name)
     {

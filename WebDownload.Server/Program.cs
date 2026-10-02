@@ -21,11 +21,14 @@ builder.Services.AddDbContext<DBWebDownload>(o => o
     .UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
     .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
 builder.Services.AddSingleton<FfmpegRunner>();
+builder.Services.AddSingleton<VoiceAnalysisService>();
 builder.Services.AddSingleton<MediaPathResolver>();
 builder.Services.AddSingleton<VoiceoverJobRegistry>();
 builder.Services.AddSingleton<VoiceoverService>();
 builder.Services.AddSingleton<VoiceoverJobRunner>();
 builder.Services.AddScoped<MediaBrowseService>();
+
+
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
 builder.Services.AddHttpClient();

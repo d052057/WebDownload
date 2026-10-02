@@ -26,7 +26,10 @@ public record VoiceoverJob(
     string SrtPath,
     string? VideoPath,
     string Voice,
-    string WorkDir);
+    string WorkDir,
+    bool MatchVoice = false,
+    int RatePercent = 0,    // -25..25, speeds up or slows down every clip
+    int PitchPercent = 0);  // -25..25
 
 public record VoiceoverResult(string Mp3Path, string? VideoPath);
 

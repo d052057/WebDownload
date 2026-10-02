@@ -76,9 +76,16 @@ export class Voiceover implements OnInit, OnDestroy {
   errorMessage = signal('');
   inputError = signal('');
 
+  // Voice options. With matchVoice on, the server detects male/female and pitch from the video
+  // and ignores the voice select and both sliders.
+  matchVoice = signal(false);
+  ratePercent = signal(0);
+  pitchPercent = signal(0);
+
   hasSrt = computed(() => !!this.selectedSrt() || !!this.uploadedSrt());
   hasVideo = computed(() => !!this.selectedVideo() || !!this.uploadedVideo());
-  canConvert = computed(() => this.hasSrt() && !this.isRunning());
+  canConvert = computed(() =>
+    this.hasSrt() && !this.isRunning() && (!this.matchVoice() || this.hasVideo()));
   canEmbed = computed(() => this.hasSrt() && this.hasVideo() && !this.isRunning());
   canReset = computed(() =>
     this.isRunning() || this.hasSrt() || this.hasVideo() || !!this.result() ||
@@ -86,6 +93,7 @@ export class Voiceover implements OnInit, OnDestroy {
 
   hint = computed(() => {
     if (!this.hasSrt()) return 'Select or drop an srt file to convert it to MP3.';
+    if (this.matchVoice() && !this.hasVideo()) return 'Select or drop a video to match the voice to, or turn off voice matching.';
     if (!this.hasVideo()) return 'Select or drop an mp4 file as well to enable embedding.';
     return '';
   });
@@ -244,6 +252,10 @@ export class Voiceover implements OnInit, OnDestroy {
     form.append('jobId', jobId);
     form.append('mode', mode);
     form.append('voice', this.voice());
+    const useMatch = this.matchVoice() && this.hasVideo();
+    form.append('matchVoice', String(useMatch));
+    form.append('ratePercent', String(this.ratePercent()));
+    form.append('pitchPercent', String(this.pitchPercent()));
 
     const srtUpload = this.uploadedSrt();
     const srtServer = this.selectedSrt();
@@ -251,7 +263,7 @@ export class Voiceover implements OnInit, OnDestroy {
     else if (srtServer) form.append('srtServerName', srtServer.name);
 
     let hasUpload = !!srtUpload;
-    if (mode === 'mp3-embed') {
+    if (mode === 'mp3-embed' || useMatch) {
       const videoUpload = this.uploadedVideo();
       const videoServer = this.selectedVideo();
       if (videoUpload) { form.append('videoFile', videoUpload, videoUpload.name); hasUpload = true; }

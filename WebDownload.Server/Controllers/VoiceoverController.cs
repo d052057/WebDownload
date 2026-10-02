@@ -11,11 +11,17 @@ public class VoiceoverConvertForm
     public string Mode { get; set; } = "";          // "mp3" | "mp3-embed"
     public string? Voice { get; set; }
 
+    // MatchVoice: detect male/female and pitch from the video instead of using Voice and the sliders.
+    public bool MatchVoice { get; set; }
+    public int RatePercent { get; set; }    // -25..25
+    public int PitchPercent { get; set; }   // -25..25
+
     // Exactly one subtitle source: a file from the folder list OR an upload.
     public string? SrtServerName { get; set; }
     public IFormFile? SrtFile { get; set; }
 
-    // Only for "mp3-embed": exactly one video source. VideoServerPath is relative to the media drive.
+    // Needed for "mp3-embed" and whenever MatchVoice is on: exactly one video source.
+    // VideoServerPath is relative to the media drive.
     public string? VideoServerPath { get; set; }
     public IFormFile? VideoFile { get; set; }
 }
@@ -117,11 +123,13 @@ public class VoiceoverController : ControllerBase
         if (hasSrtUpload == hasSrtServer)
             return BadRequest("Choose one subtitle source: a file from the list, or an uploaded file.");
 
-        var needVideo = mode == VoiceoverMode.Mp3AndEmbed;
+        var needVideo = mode == VoiceoverMode.Mp3AndEmbed || form.MatchVoice;
         var hasVideoUpload = form.VideoFile is { Length: > 0 };
         var hasVideoServer = !string.IsNullOrWhiteSpace(form.VideoServerPath);
         if (needVideo && hasVideoUpload == hasVideoServer)
-            return BadRequest("Choose one video source: a file from the list, or an uploaded file.");
+            return BadRequest(mode == VoiceoverMode.Mp3AndEmbed
+                ? "Choose one video source: a file from the list, or an uploaded file."
+                : "Voice matching needs a video: choose one, or turn voice matching off.");
 
         var videoExtensions = new HashSet<string>(_s.GetVideoExtensions(), StringComparer.OrdinalIgnoreCase);
 
@@ -170,7 +178,11 @@ public class VoiceoverController : ControllerBase
             return Conflict("That job id is already in use.");
         }
 
-        _runner.Start(new VoiceoverJob(form.JobId, mode, srtPath!, videoPath, voice, workDir), token);
+        _runner.Start(new VoiceoverJob(
+            form.JobId, mode, srtPath!, videoPath, voice, workDir,
+            form.MatchVoice,
+            Math.Clamp(form.RatePercent, -25, 25),
+            Math.Clamp(form.PitchPercent, -25, 25)), token);
         return Accepted(new { jobId = form.JobId });
     }
 
