@@ -6,6 +6,7 @@ using WebDownload.Server;
 using WebDownload.Server.Hubs;
 using Google.Cloud.Translation.V2;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +16,16 @@ if (builder.Environment.IsDevelopment())
 }
 
 // 2. ADD SERVICES TO THE CONTAINER
+builder.Services.Configure<VoiceoverSettings>(builder.Configuration.GetSection("Voiceover"));
+builder.Services.AddDbContext<DBWebDownload>(o => o
+    .UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
+    .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
+builder.Services.AddSingleton<FfmpegRunner>();
+builder.Services.AddSingleton<MediaPathResolver>();
+builder.Services.AddSingleton<VoiceoverJobRegistry>();
+builder.Services.AddSingleton<VoiceoverService>();
+builder.Services.AddSingleton<VoiceoverJobRunner>();
+builder.Services.AddScoped<MediaBrowseService>();
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
 builder.Services.AddHttpClient();
@@ -53,6 +64,7 @@ app.UseForwardedHeaders(forwardedHeadersOptions);
 
 // 6. MIDDLEWARE PIPELINE
 app.UsePathBase("/webdownload");
+app.MapHub<ConvertHub>("/convertHub");
 app.UseStaticFiles();
 
 string MediaDrive = builder.Configuration.GetValue("ApplicationSettings:MediaDrive", "*") ?? @"c:/medias";

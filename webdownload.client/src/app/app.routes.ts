@@ -11,6 +11,9 @@ export const routes: Routes = [
       .then(mod => mod.Ytdlp)
   },
   {
+    path: 'voiceover', loadComponent: () => import('./voiceover/voiceover')
+      .then(mod => mod.Voiceover) },
+  {
     path: 'translate',
     loadComponent: () => import('./subtitle-dashboard/subtitle-dashboard')
       .then(mod => mod.SubtitleDashboard)
