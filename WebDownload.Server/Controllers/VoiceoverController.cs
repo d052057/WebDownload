@@ -178,6 +178,10 @@ public class VoiceoverController : ControllerBase
             return Conflict("That job id is already in use.");
         }
 
+        _logger.LogInformation(
+            "Voiceover job {JobId}: mode {Mode}, match voice {MatchVoice}, video {Video}",
+            form.JobId, mode, form.MatchVoice, videoPath is null ? "none" : Path.GetFileName(videoPath));
+
         _runner.Start(new VoiceoverJob(
             form.JobId, mode, srtPath!, videoPath, voice, workDir,
             form.MatchVoice,

@@ -76,25 +76,26 @@ export class Voiceover implements OnInit, OnDestroy {
   errorMessage = signal('');
   inputError = signal('');
 
-  // Voice options. With matchVoice on, the server detects male/female and pitch from the video
-  // and ignores the voice select and both sliders.
-  matchVoice = signal(false);
+  // Voice options. With matchVoice on (the default), the server detects male/female and pitch
+  // from the video and ignores the voice select and both sliders.
+  matchVoice = signal(true);
   ratePercent = signal(0);
   pitchPercent = signal(0);
 
   hasSrt = computed(() => !!this.selectedSrt() || !!this.uploadedSrt());
   hasVideo = computed(() => !!this.selectedVideo() || !!this.uploadedVideo());
-  canConvert = computed(() =>
-    this.hasSrt() && !this.isRunning() && (!this.matchVoice() || this.hasVideo()));
-  canEmbed = computed(() => this.hasSrt() && this.hasVideo() && !this.isRunning());
+  // The voice-matching checkbox and both convert buttons need a subtitle file AND a video file.
+  canConvert = computed(() => this.hasSrt() && this.hasVideo() && !this.isRunning());
+  canEmbed = computed(() => this.canConvert());
   canReset = computed(() =>
     this.isRunning() || this.hasSrt() || this.hasVideo() || !!this.result() ||
-    !!this.errorMessage() || this.logLines().length > 0 || !!this.stateText());
+    !!this.errorMessage() || this.logLines().length > 0 || !!this.stateText() ||
+    !this.matchVoice() || this.ratePercent() !== 0 || this.pitchPercent() !== 0);
 
   hint = computed(() => {
-    if (!this.hasSrt()) return 'Select or drop an srt file to convert it to MP3.';
-    if (this.matchVoice() && !this.hasVideo()) return 'Select or drop a video to match the voice to, or turn off voice matching.';
-    if (!this.hasVideo()) return 'Select or drop an mp4 file as well to enable embedding.';
+    if (!this.hasSrt() && !this.hasVideo()) return 'Select a subtitle file and a video file to enable conversion.';
+    if (!this.hasSrt()) return 'Select a subtitle file to enable conversion.';
+    if (!this.hasVideo()) return 'Select a video file to enable conversion.';
     return '';
   });
 
@@ -398,6 +399,13 @@ export class Voiceover implements OnInit, OnDestroy {
     this.uploadedVideo.set(null);
     this.videoFilter.set('');
     this.jobId = null;
+
+    // Back to the defaults: voice matching on, sliders centred, default voice.
+    this.matchVoice.set(true);
+    this.ratePercent.set(0);
+    this.pitchPercent.set(0);
+    const cfg = this.config();
+    if (cfg) this.voice.set(cfg.defaultVoice);
   }
 
   // ---- misc -----------------------------------------------------------------------------------

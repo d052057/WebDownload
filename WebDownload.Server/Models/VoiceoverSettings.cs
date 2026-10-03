@@ -43,7 +43,11 @@ public class VoiceoverSettings
     // given the female voice, raise it (for example 180).
     public int GenderThresholdHz { get; set; } = 165;
 
-    public string IgnoreWordsFile { get; set; } = "ignore_words.txt";
+    // Text to strip from every cue before it is spoken, such as "[music]". Case-insensitive.
+    // The list lives only in appsettings.json ("Voiceover:IgnoreWords"); nothing is built in,
+    // so an empty or missing list means nothing is removed. Changes need an app restart.
+    public List<string>? IgnoreWords { get; set; }
+
     public bool CleanSubtitles { get; set; } = true;
 
     // Timeline is built as raw PCM at this rate, then encoded to MP3 once at the end.
@@ -72,6 +76,13 @@ public class VoiceoverSettings
         new() { Id = "km-KH-PisethNeural", Label = "Piseth (male)" },
         new() { Id = "km-KH-SreymomNeural", Label = "Sreymom (female)" },
     };
+
+    public IReadOnlyList<string> GetIgnoreWords() =>
+        (IgnoreWords ?? new List<string>())
+            .Select(w => w?.Trim() ?? "")
+            .Where(w => w.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
 
     public IReadOnlyList<string> GetMenus() => Menus is { Count: > 0 } ? Menus : DefaultMenus;
     public IReadOnlyList<string> GetVideoExtensions() => VideoExtensions is { Count: > 0 } ? VideoExtensions : DefaultVideoExtensions;

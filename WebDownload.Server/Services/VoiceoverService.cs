@@ -25,12 +25,6 @@ namespace WebDownload.Server.Services;
 /// </summary>
 public sealed class VoiceoverService
 {
-    private static readonly string[] DefaultIgnoreWords =
-    {
-        "[music]", "(music)", "[applause]", "(applause)", "[noise]", "(noise)",
-        "[laughter]", "(laughter)", "[sighs]", "[clears throat]"
-    };
-
     private static readonly Regex LangSuffix =
         new(@"\.[a-z]{2,3}(-[a-z]{2,4})?$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
@@ -95,6 +89,14 @@ public sealed class VoiceoverService
         var pitchPercent = job.PitchPercent;
         var ratePercent = job.RatePercent;
         SpeakerMap? speakers = null;
+
+        // Always shown in Details, so it is clear whether voice matching actually reached the server.
+        await ReportLog(
+            $"Options: {job.Mode}, voice matching {(job.MatchVoice ? "on" : "off")}, " +
+            $"video {(job.VideoPath is null ? "none" : Path.GetFileName(job.VideoPath))}, voice {job.Voice}, " +
+            $"speed {job.RatePercent:+#;-#;0}%, pitch {job.PitchPercent:+#;-#;0}%.");
+        if (job.MatchVoice && job.VideoPath is null)
+            await ReportLog("Voice matching was requested but no video reached the server, so it is skipped.");
 
         if (job.MatchVoice && job.VideoPath is not null)
         {
@@ -415,31 +417,11 @@ public sealed class VoiceoverService
 
     private Regex? BuildIgnoreRegex()
     {
-        var words = LoadIgnoreWords();
+        var words = _s.GetIgnoreWords();
         if (words.Count == 0) return null;
         // Longest first, so "[clears throat]" wins over any shorter overlapping entry.
         var pattern = string.Join("|", words.OrderByDescending(w => w.Length).Select(Regex.Escape));
         return new Regex(pattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-    }
-
-    private List<string> LoadIgnoreWords()
-    {
-        try
-        {
-            var path = Path.Combine(AppContext.BaseDirectory, _s.IgnoreWordsFile);
-            if (!File.Exists(path))
-                File.WriteAllLines(path, DefaultIgnoreWords, new UTF8Encoding(false));
-
-            return File.ReadAllLines(path, Encoding.UTF8)
-                .Select(l => l.Trim())
-                .Where(l => l.Length > 0)
-                .ToList();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Could not read {File}; using the built-in ignore list.", _s.IgnoreWordsFile);
-            return DefaultIgnoreWords.ToList();
-        }
     }
 
     // MP3-only jobs are named after the subtitle; embed jobs after the video, so the pair stays together.

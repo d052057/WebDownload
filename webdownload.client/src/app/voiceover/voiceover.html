@@ -1,4 +1,4 @@
-<div class="container jumbotron fade-in-out py-4 mt-1">
+<div class="container-fluid jumbotron fade-in-out py-4 mt-1">
   <div class="row g-4">
 
     <!-- Subtitles: select list + drop zone -->
@@ -120,8 +120,17 @@
 
   <!-- Actions -->
   <div class="card border-0 shadow-sm bg-body-tertiary p-4 rounded-3 mt-4">
-    <div class="row g-3 align-items-end">
-      <div class="col-md-3">
+    <!-- Voice options: matching checkbox and Voice drop-down share this row -->
+    <div class="row g-3 align-items-start">
+      <div class="col-lg-4">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="matchVoice" [disabled]="!canConvert()"
+                 [ngModel]="matchVoice()" (ngModelChange)="matchVoice.set($event)" />
+          <label class="form-check-label small fw-semibold" for="matchVoice">Match the voice to the video</label>
+        </div>
+        <small class="text-muted d-block">Listens to the video's speakers cue by cue and uses a male or female Khmer voice to match each one, with a pitch to suit.</small>
+      </div>
+      <div class="col-lg-4">
         <label class="form-label fw-semibold small" for="voiceSelect">Voice</label>
         <select id="voiceSelect" class="form-select" [disabled]="isRunning() || matchVoice()"
                 [ngModel]="voice()" (ngModelChange)="voice.set($event)">
@@ -130,7 +139,23 @@
           }
         </select>
       </div>
-      <div class="col-md-3">
+      <div class="col-lg-2">
+        <label class="form-label small fw-semibold mb-0" for="rateRange">Speed {{ ratePercent() > 0 ? '+' : '' }}{{ ratePercent() }}%</label>
+        <input id="rateRange" type="range" class="form-range" min="-25" max="25" step="1"
+               [disabled]="isRunning() || matchVoice()"
+               [ngModel]="ratePercent()" (ngModelChange)="ratePercent.set($event)" />
+      </div>
+      <div class="col-lg-2">
+        <label class="form-label small fw-semibold mb-0" for="pitchRange">Pitch {{ pitchPercent() > 0 ? '+' : '' }}{{ pitchPercent() }}%</label>
+        <input id="pitchRange" type="range" class="form-range" min="-25" max="25" step="1"
+               [disabled]="isRunning() || matchVoice()"
+               [ngModel]="pitchPercent()" (ngModelChange)="pitchPercent.set($event)" />
+      </div>
+    </div>
+
+    <!-- Buttons -->
+    <div class="row g-3 align-items-end mt-1">
+      <div class="col-md-4">
         <button type="button" class="btn btn-primary w-100 py-2 fw-bold" [disabled]="!canConvert()" (click)="start('mp3')">
           @if (isRunning() && activeMode() === 'mp3') {
           <span class="spinner-border spinner-border-sm me-2"></span>Converting...
@@ -139,7 +164,7 @@
           }
         </button>
       </div>
-      <div class="col-md-4">
+      <div class="col-md-5">
         <button type="button" class="btn btn-success w-100 py-2 fw-bold" [disabled]="!canEmbed()" (click)="start('mp3-embed')">
           @if (isRunning() && activeMode() === 'mp3-embed') {
           <span class="spinner-border spinner-border-sm me-2"></span>Converting...
@@ -148,34 +173,12 @@
           }
         </button>
       </div>
-      <div class="col-md-2">
+      <div class="col-md-3">
         <button type="button" class="btn w-100 py-2 fw-bold"
                 [class.btn-outline-danger]="isRunning()" [class.btn-outline-secondary]="!isRunning()"
                 [disabled]="!canReset()" (click)="cancelOrReset()">
           {{ isRunning() ? 'Cancel' : 'Reset' }}
         </button>
-      </div>
-    </div>
-    <div class="row g-3 align-items-center mt-1">
-      <div class="col-md-4">
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="matchVoice" [disabled]="isRunning()"
-                 [ngModel]="matchVoice()" (ngModelChange)="matchVoice.set($event)" />
-          <label class="form-check-label small fw-semibold" for="matchVoice">Match the voice to the video</label>
-        </div>
-        <small class="text-muted d-block">Listens to the video's speakers cue by cue and uses a male or female Khmer voice to match each one, with a pitch to suit.</small>
-      </div>
-      <div class="col-md-4">
-        <label class="form-label small fw-semibold mb-0" for="rateRange">Speed {{ ratePercent() > 0 ? '+' : '' }}{{ ratePercent() }}%</label>
-        <input id="rateRange" type="range" class="form-range" min="-25" max="25" step="1"
-               [disabled]="isRunning() || matchVoice()"
-               [ngModel]="ratePercent()" (ngModelChange)="ratePercent.set($event)" />
-      </div>
-      <div class="col-md-4">
-        <label class="form-label small fw-semibold mb-0" for="pitchRange">Pitch {{ pitchPercent() > 0 ? '+' : '' }}{{ pitchPercent() }}%</label>
-        <input id="pitchRange" type="range" class="form-range" min="-25" max="25" step="1"
-               [disabled]="isRunning() || matchVoice()"
-               [ngModel]="pitchPercent()" (ngModelChange)="pitchPercent.set($event)" />
       </div>
     </div>
     @if (hint()) {
