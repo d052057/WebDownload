@@ -1,0 +1,39 @@
+.list-group-item {
+  transition: background-color 0.2s ease, color 0.15s ease;
+  cursor: pointer;
+
+  &.active {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+  }
+
+  &:hover:not(.active):not(:disabled) {
+    background-color: rgba(var(--bs-black-rgb), 0.03);
+  }
+
+  // Folder headings in the media list are not clickable.
+  &.bg-body-tertiary {
+    cursor: default;
+  }
+}
+
+.source-list {
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.log {
+  max-height: 200px;
+  overflow: auto;
+  font-size: 0.75rem;
+  white-space: pre-wrap;
+  background: rgba(var(--bs-black-rgb), 0.04);
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .list-group-item {
+    transition: none;
+  }
+}

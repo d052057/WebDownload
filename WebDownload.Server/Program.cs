@@ -27,7 +27,13 @@ builder.Services.AddSingleton<VoiceoverJobRegistry>();
 builder.Services.AddSingleton<VoiceoverService>();
 builder.Services.AddSingleton<VoiceoverJobRunner>();
 builder.Services.AddScoped<MediaBrowseService>();
-
+//splitter
+builder.Services.Configure<SplitterSettings>(builder.Configuration.GetSection("Splitter"));
+builder.Services.AddSingleton<DeviceDetector>();
+builder.Services.AddSingleton<DemucsRunner>();
+builder.Services.AddSingleton<SplitterService>();
+builder.Services.AddSingleton<SplitterJobRunner>();
+//
 
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
@@ -67,7 +73,6 @@ app.UseForwardedHeaders(forwardedHeadersOptions);
 
 // 6. MIDDLEWARE PIPELINE
 app.UsePathBase("/webdownload");
-app.MapHub<ConvertHub>("/convertHub");
 app.UseStaticFiles();
 
 string MediaDrive = builder.Configuration.GetValue("ApplicationSettings:MediaDrive", "*") ?? @"c:/medias";
@@ -107,6 +112,8 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHub<DownloadHub>("/downloadHub");
+app.MapHub<SplitterHub>("/splitterHub");
+app.MapHub<ConvertHub>("/convertHub");
 app.MapFallbackToFile("/index.html");
 
 app.Run();

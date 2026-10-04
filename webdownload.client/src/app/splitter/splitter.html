@@ -1,0 +1,191 @@
+<div class="container-fluid jumbotron fade-in-out py-4 mt-1">
+  <div class="row g-4">
+
+    <!-- Media list -->
+    <div class="col-lg-7">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <div>
+          <h5 class="mb-0 text-dark fw-bold">Media Folder</h5>
+          <small class="text-muted text-monospace">//medias/{{ menu() }}</small>
+        </div>
+        <div class="d-flex gap-2">
+          <div class="btn-group btn-group-sm" role="group" aria-label="Media folder">
+            @for (m of config()?.menus ?? []; track m) {
+            <button type="button" class="btn btn-outline-secondary text-capitalize"
+                    [class.active]="menu() === m" [attr.aria-pressed]="menu() === m"
+                    [disabled]="isRunning()" (click)="setMenu(m)">{{ m }}</button>
+            }
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-secondary" aria-label="Refresh media list"
+                  [disabled]="isRunning()" (click)="loadMedia()">
+            <i class="bi bi-arrow-clockwise"></i>
+          </button>
+        </div>
+      </div>
+
+      <input type="search" class="form-control form-control-sm mb-2" placeholder="Filter media" aria-label="Filter media"
+             [ngModel]="filter()" (ngModelChange)="filter.set($event)" />
+
+      <div class="list-group list-group-flush shadow-sm rounded border source-list">
+        @for (g of groups(); track g.folder) {
+        <div class="list-group-item bg-body-tertiary small text-muted text-truncate py-1">{{ g.folder }}</div>
+        @for (m of g.items; track m.id) {
+        <button type="button" class="list-group-item list-group-item-action py-2 text-start"
+                [class.active]="selected()?.id === m.id" [disabled]="isRunning()" (click)="select(m)">
+          <span class="text-truncate small fw-semibold d-block">{{ m.fileName }}</span>
+        </button>
+        }
+        } @empty {
+        <div class="text-center py-4 text-muted small">
+          <p class="mb-0">No media files found.</p>
+        </div>
+        }
+      </div>
+    </div>
+
+    <!-- Hardware, quality and selection -->
+    <div class="col-lg-5">
+      <div class="card border-0 shadow-sm bg-body-tertiary p-4 rounded-3">
+        <h6 class="fw-bold mb-2">Hardware</h6>
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <span class="small" aria-live="polite">
+            @if (deviceLoading()) {
+            <span class="spinner-border spinner-border-sm me-2"></span>Checking the hardware...
+            } @else if (device(); as d) {
+            <i class="bi me-1" [class.bi-gpu-card]="d.device === 'cuda'" [class.bi-cpu]="d.device !== 'cuda'"></i>
+            Running on: <strong>{{ d.name }}</strong>
+            }
+          </span>
+          <button type="button" class="btn btn-sm btn-outline-secondary" aria-label="Check the hardware again"
+                  [disabled]="deviceLoading() || isRunning()" (click)="loadDevice(true)">
+            <i class="bi bi-arrow-clockwise"></i>
+          </button>
+        </div>
+        @if (device()?.note) {
+        <small class="text-muted d-block mb-3">{{ device()!.note }}</small>
+        }
+
+        <label class="form-label fw-semibold small mt-2" for="qualitySelect">Quality</label>
+        <select id="qualitySelect" class="form-select" [disabled]="isRunning()"
+                [ngModel]="quality()" (ngModelChange)="quality.set($event)">
+          @for (q of config()?.qualities ?? []; track q.id) {
+          <option [value]="q.id">{{ q.label }}</option>
+          }
+        </select>
+
+        <hr />
+        <div class="small text-muted">Selected</div>
+        @if (selected(); as s) {
+        <div class="fw-semibold text-break">{{ s.fileName }}</div>
+        } @else {
+        <div class="text-muted">Nothing selected</div>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="card border-0 shadow-sm bg-body-tertiary p-4 rounded-3 mt-4">
+    <div class="row g-3">
+      <div class="col-6 col-lg">
+        <button type="button" class="btn btn-primary w-100 py-2 fw-bold" [disabled]="!canRun()" (click)="start('voice')">
+          @if (isRunning() && activeMode() === 'voice') {
+          <span class="spinner-border spinner-border-sm me-2"></span>Working...
+          } @else {
+          <i class="bi bi-mic-fill me-2"></i>Keep voice
+          }
+        </button>
+      </div>
+      <div class="col-6 col-lg">
+        <button type="button" class="btn btn-primary w-100 py-2 fw-bold" [disabled]="!canRun()" (click)="start('music')">
+          @if (isRunning() && activeMode() === 'music') {
+          <span class="spinner-border spinner-border-sm me-2"></span>Working...
+          } @else {
+          <i class="bi bi-music-note-beamed me-2"></i>Keep music
+          }
+        </button>
+      </div>
+      <div class="col-6 col-lg">
+        <button type="button" class="btn btn-success w-100 py-2 fw-bold" [disabled]="!canRun()" (click)="start('both')">
+          @if (isRunning() && activeMode() === 'both') {
+          <span class="spinner-border spinner-border-sm me-2"></span>Working...
+          } @else {
+          <i class="bi bi-layers-fill me-2"></i>Keep both
+          }
+        </button>
+      </div>
+      <div class="col-6 col-lg">
+        <button type="button" class="btn btn-success w-100 py-2 fw-bold" [disabled]="!canRun()" (click)="start('cleanup')">
+          @if (isRunning() && activeMode() === 'cleanup') {
+          <span class="spinner-border spinner-border-sm me-2"></span>Working...
+          } @else {
+          <i class="bi bi-magic me-2"></i>Voice cleanup
+          }
+        </button>
+      </div>
+      <div class="col-12 col-lg">
+        <button type="button" class="btn w-100 py-2 fw-bold"
+                [class.btn-outline-danger]="isRunning()" [class.btn-outline-secondary]="!isRunning()"
+                [disabled]="!canReset()" (click)="cancelOrReset()">
+          {{ isRunning() ? 'Cancel' : 'Reset' }}
+        </button>
+      </div>
+    </div>
+
+    <ul class="small text-muted mt-3 mb-0 ps-3">
+      <li><strong>Keep voice:</strong> a video and an MP3 with only the voice.</li>
+      <li><strong>Keep music:</strong> a video and an MP3 with only the music (karaoke).</li>
+      <li><strong>Keep both:</strong> one video with a music track and a voice track, plus an MP3 of each.</li>
+      <li><strong>Voice cleanup:</strong> the voice only, with noise reduced and the volume levelled, as a video and an MP3.</li>
+    </ul>
+    @if (hint()) {
+    <small class="text-muted d-block mt-2">{{ hint() }}</small>
+    }
+  </div>
+
+  <!-- Progress -->
+  @if (isRunning() || stateText() || logLines().length > 0) {
+  <div class="card border-0 shadow-sm p-4 rounded-3 mt-4" aria-live="polite">
+    <div class="d-flex justify-content-between small fw-semibold mb-1">
+      <span>{{ stateText() }}</span>
+      <span>{{ percent() }}%</span>
+    </div>
+    <div class="progress" role="progressbar" aria-label="Job progress"
+         [attr.aria-valuenow]="percent()" aria-valuemin="0" aria-valuemax="100">
+      <div class="progress-bar" [class.bg-success]="stateText() === 'Done'" [style.width.%]="percent()"></div>
+    </div>
+    @if (logLines().length > 0) {
+    <details class="mt-3">
+      <summary class="small text-muted">Details</summary>
+      <pre class="log mt-2 mb-0">{{ logLines().join('\n') }}</pre>
+    </details>
+    }
+  </div>
+  }
+
+  @if (errorMessage()) {
+  <div class="alert alert-danger d-flex align-items-start shadow-sm mt-4 mb-0" role="alert">
+    <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+    <div>{{ errorMessage() }}</div>
+  </div>
+  }
+
+  @if (files(); as list) {
+  <div class="alert alert-success shadow-sm mt-4 mb-0" role="alert">
+    <div class="d-flex align-items-center mb-2">
+      <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+      <strong>Finished.</strong>
+    </div>
+    <ul class="list-unstyled mb-0">
+      @for (f of list; track f.name) {
+      <li>
+        {{ f.label }}:
+        @if (f.url) { <a [href]="fileUrl(f.url)" target="_blank" rel="noopener">{{ f.name }}</a> }
+        @else { <strong>{{ f.name }}</strong> }
+      </li>
+      }
+    </ul>
+    <small class="text-muted d-block mt-2">Saved in <strong>{{ config()?.outputFolder }}/</strong></small>
+  </div>
+  }
+</div>

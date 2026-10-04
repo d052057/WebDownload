@@ -11,8 +11,13 @@ export const routes: Routes = [
       .then(mod => mod.Ytdlp)
   },
   {
+    path: 'splitter', loadComponent: () => import('./splitter/splitter')
+      .then(mod => mod.Splitter)
+  },
+  {
     path: 'voiceover', loadComponent: () => import('./voiceover/voiceover')
-      .then(mod => mod.Voiceover) },
+      .then(mod => mod.Voiceover)
+  },
   {
     path: 'translate',
     loadComponent: () => import('./subtitle-dashboard/subtitle-dashboard')
@@ -29,9 +34,9 @@ export const routes: Routes = [
           .then(mod => mod.Windows11)
       },
       {
-      path: ':item',
-      loadComponent: () => import('./guide/display-guide/display-guide')
-        .then(mod => mod.DisplayGuide)
+        path: ':item',
+        loadComponent: () => import('./guide/display-guide/display-guide')
+          .then(mod => mod.DisplayGuide)
       }
     ]
   }

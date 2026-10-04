@@ -7,7 +7,8 @@ const PROXY_CONFIG = [
   {
     context: [
       "/downloadHub",
-      "/convertHub"
+      "/convertHub",
+      "/splitterHub"
     ],
     target,
     secure: false,

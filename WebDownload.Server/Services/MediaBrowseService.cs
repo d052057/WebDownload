@@ -37,9 +37,14 @@ public sealed class MediaBrowseService
     /// drive. Folder paths are rebuilt the same way MediaFolderTreeService does it: a top-level
     /// folder starts at its own RootPath/Name and nested folders extend their parent.
     /// </summary>
-    public async Task<List<VideoFileItem>> GetVideosAsync(string menu, CancellationToken ct)
+    public Task<List<VideoFileItem>> GetVideosAsync(string menu, CancellationToken ct) =>
+        GetVideosAsync(menu, _s.GetMenus(), _s.GetVideoExtensions(), ct);
+
+    /// <summary>The same listing with the allowed menus and file extensions supplied by the caller (used by Splitter).</summary>
+    public async Task<List<VideoFileItem>> GetVideosAsync(
+        string menu, IReadOnlyList<string> allowedMenus, IReadOnlyList<string> allowedExtensions, CancellationToken ct)
     {
-        var canonical = _s.GetMenus().FirstOrDefault(m => string.Equals(m, menu, StringComparison.OrdinalIgnoreCase))
+        var canonical = allowedMenus.FirstOrDefault(m => string.Equals(m, menu, StringComparison.OrdinalIgnoreCase))
             ?? throw new ArgumentException($"'{menu}' is not a supported menu.");
 
         var menuId = await _db.MediaMenus
@@ -90,7 +95,7 @@ public sealed class MediaBrowseService
             return result;
         }
 
-        var extensions = new HashSet<string>(_s.GetVideoExtensions(), StringComparer.OrdinalIgnoreCase);
+        var extensions = new HashSet<string>(allowedExtensions, StringComparer.OrdinalIgnoreCase);
         var items = new List<VideoFileItem>();
         foreach (var t in tracks)
         {
