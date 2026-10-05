@@ -10,7 +10,7 @@ namespace WebDownload.Server.Controllers;
 public class SplitterController : ControllerBase
 {
     private readonly SplitterSettings _s;
-    private readonly MediaBrowseService _browse;
+    private readonly MediaTreeService _tree;
     private readonly MediaPathResolver _paths;
     private readonly DeviceDetector _device;
     private readonly VoiceoverJobRegistry _registry;
@@ -19,7 +19,7 @@ public class SplitterController : ControllerBase
 
     public SplitterController(
         IOptions<SplitterSettings> settings,
-        MediaBrowseService browse,
+        MediaTreeService tree,
         MediaPathResolver paths,
         DeviceDetector device,
         VoiceoverJobRegistry registry,
@@ -27,7 +27,7 @@ public class SplitterController : ControllerBase
         ILogger<SplitterController> logger)
     {
         _s = settings.Value;
-        _browse = browse;
+        _tree = tree;
         _paths = paths;
         _device = device;
         _registry = registry;
@@ -44,7 +44,8 @@ public class SplitterController : ControllerBase
             new SplitterQualityDto("standard", "Standard (faster)"),
             new SplitterQualityDto("high", "High (about 4 times slower)")
         },
-        _s.OutputFolder.Replace('\\', '/')));
+        _s.OutputFolder.Replace('\\', '/'),
+        (_s.RpmFolder ?? "").Replace('\\', '/').Trim('/')));
 
     // GET api/splitter/hardware?refresh=true
     // The first call can take a few seconds (PyTorch is loaded to ask it); the answer is then cached.
@@ -52,13 +53,14 @@ public class SplitterController : ControllerBase
     public async Task<IActionResult> GetHardware([FromQuery] bool refresh, CancellationToken ct) =>
         Ok(await _device.GetAsync(refresh, ct));
 
-    // GET api/splitter/media?menu=movies
-    [HttpGet("media")]
-    public async Task<IActionResult> GetMedia([FromQuery] string menu, CancellationToken ct)
+    // GET api/splitter/tree?menu=movies   (menu: movies | videos | rpm)
+    // Folder names and file lists only, shaped for the folder-node component.
+    [HttpGet("tree")]
+    public async Task<IActionResult> GetTree([FromQuery] string menu, CancellationToken ct)
     {
         try
         {
-            return Ok(await _browse.GetVideosAsync(menu, _s.GetMenus(), _s.GetMediaExtensions(), ct));
+            return Ok(await _tree.GetTreeAsync(menu, ct));
         }
         catch (ArgumentException ex)
         {
@@ -68,7 +70,7 @@ public class SplitterController : ControllerBase
 
     // POST api/splitter/jobs  { jobId, mode, quality, mediaPath }
     // Validates, then starts the job in the background and returns 202. Progress arrives over SignalR
-    // (SplitterHub) in the group named by jobId.
+    // (SplitterHub) in the group named by jobId. mediaPath is the track's url from the tree.
     [HttpPost("jobs")]
     public IActionResult StartJob([FromBody] SplitterStartRequest request)
     {

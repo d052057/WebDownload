@@ -22,6 +22,15 @@
   overflow-y: auto;
 }
 
+.folder-card {
+  border-radius: 0.5rem;
+}
+
+.tree-wrap {
+  max-height: 340px;
+  overflow-y: auto;
+}
+
 .drop-zone-wrapper {
   border-style: dashed !important;
   border-color: #dee2e6;

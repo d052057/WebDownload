@@ -1,3 +1,4 @@
+// Search results use Bootstrap's list-group; the folder tree (folder-node) brings its own styles.
 .list-group-item {
   transition: background-color 0.2s ease, color 0.15s ease;
   cursor: pointer;
@@ -10,15 +11,14 @@
   &:hover:not(.active):not(:disabled) {
     background-color: rgba(var(--bs-black-rgb), 0.03);
   }
-
-  // Folder headings in the media list are not clickable.
-  &.bg-body-tertiary {
-    cursor: default;
-  }
 }
 
-.source-list {
-  max-height: 340px;
+.folder-card {
+  border-radius: 0.5rem;
+}
+
+.tree-wrap {
+  max-height: 440px;
   overflow-y: auto;
 }
 

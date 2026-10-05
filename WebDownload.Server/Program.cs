@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.FileProviders;
 using WebDownload.Server.Models;
 using WebDownload.Server.Services;
-using WebDownload.Server;
 using WebDownload.Server.Hubs;
 using Google.Cloud.Translation.V2;
 using Microsoft.Extensions.DependencyInjection;
@@ -33,6 +32,7 @@ builder.Services.AddSingleton<DeviceDetector>();
 builder.Services.AddSingleton<DemucsRunner>();
 builder.Services.AddSingleton<SplitterService>();
 builder.Services.AddSingleton<SplitterJobRunner>();
+builder.Services.AddScoped<MediaTreeService>();
 //
 
 builder.Services.AddControllers();
@@ -58,6 +58,7 @@ if (string.IsNullOrWhiteSpace(apiKey))
 var translationClient = TranslationClient.CreateFromApiKey(apiKey);
 builder.Services.AddSingleton(translationClient);
 builder.Services.AddScoped<ISubtitleTranslationService, SubtitleTranslationService>();
+
 
 // 4. FORWARDED HEADERS
 var forwardedHeadersOptions = new ForwardedHeadersOptions

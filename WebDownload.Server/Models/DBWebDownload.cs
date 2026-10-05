@@ -10,6 +10,9 @@ public partial class DBWebDownload : DbContext
     public virtual DbSet<MediaFolder> MediaFolders { get; set; }
     public virtual DbSet<MediaTrack> MediaTracks { get; set; }
     public virtual DbSet<MediaSubtitle> MediaSubtitles { get; set; }
+    public virtual DbSet<Rpm> Rpms { get; set; }
+
+    public virtual DbSet<RpmTrack> RpmTracks { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -64,7 +67,61 @@ public partial class DBWebDownload : DbContext
                 .HasForeignKey(d => d.MediaMetaDataRecordId)
                 .OnDelete(DeleteBehavior.ClientSetNull);
         });
+        modelBuilder.Entity<Rpm>(entity =>
+        {
+            entity.HasKey(e => e.RecordId).HasName("PK_rpm");
 
+            entity.ToTable("Rpm");
+
+            entity.Property(e => e.RecordId)
+                .HasDefaultValueSql("(newid())")
+                .HasAnnotation("Relational:DefaultConstraintName", "DF_rpm_recordId")
+                .HasColumnName("recordId");
+            entity.Property(e => e.Artist)
+                .HasMaxLength(250)
+                .HasColumnName("artist");
+            entity.Property(e => e.AudioType)
+                .HasMaxLength(50)
+                .HasColumnName("audioType");
+            entity.Property(e => e.DateTime)
+                .HasDefaultValueSql("(getdate())")
+                .HasAnnotation("Relational:DefaultConstraintName", "DF_rpm_dateTime")
+                .HasColumnType("datetime")
+                .HasColumnName("dateTime");
+            entity.Property(e => e.Title)
+                .HasMaxLength(250)
+                .HasColumnName("title");
+        });
+
+        modelBuilder.Entity<RpmTrack>(entity =>
+        {
+            entity.HasKey(e => e.RecordId);
+
+            entity.ToTable("RpmTrack");
+
+            entity.Property(e => e.RecordId)
+                .HasDefaultValueSql("(newid())")
+                .HasAnnotation("Relational:DefaultConstraintName", "DF_RpmTrack_recordId")
+                .HasColumnName("recordId");
+            entity.Property(e => e.Artist)
+                .HasMaxLength(250)
+                .HasColumnName("artist");
+            entity.Property(e => e.DateTime)
+                .HasDefaultValueSql("(getdate())")
+                .HasAnnotation("Relational:DefaultConstraintName", "DF_RpmTrack_dateTime")
+                .HasColumnType("datetime")
+                .HasColumnName("dateTime");
+            entity.Property(e => e.DurationSeconds).HasColumnName("durationSeconds");
+            entity.Property(e => e.RpmId).HasColumnName("rpmId");
+            entity.Property(e => e.Title)
+                .HasMaxLength(250)
+                .HasColumnName("title");
+            entity.Property(e => e.TrackNumber).HasColumnName("trackNumber");
+
+            entity.HasOne(d => d.Rpm).WithMany(p => p.RpmTracks)
+                .HasForeignKey(d => d.RpmId)
+                .HasConstraintName("FK_RpmTrack_rpm");
+        });
         OnModelCreatingPartial(modelBuilder);
     }
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder);

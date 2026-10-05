@@ -8,31 +8,18 @@ const PROXY_CONFIG = [
     context: [
       "/downloadHub",
       "/convertHub",
-      "/splitterHub"
+      "/splitterHub",
     ],
     target,
     secure: false,
     ws: true,
-  },
-  { context: ["/api"], target, secure: false, changeOrigin: true },
-  // Your SignalrService hardcodes '/webdownload/downloadHub' as the hub URL
-  // (see signalr.service.ts), and the subtitle dashboard's API calls should
-  // eventually match that same convention. These two entries cover that
-  // case for local `ng serve` too, stripping the prefix before forwarding
-  // since the backend itself doesn't know about it.
-  {
-    context: ["/webdownload/downloadHub"],
-    target,
-    secure: false,
-    ws: true,
     pathRewrite: { "^/webdownload": "" },
   },
   {
-    context: ["/webdownload/convertHub"],
+    context: ["/api"],
     target,
     secure: false,
-    ws: true,
-    pathRewrite: { "^/webdownload": "" },
+    changeOrigin: true
   },
   {
     context: ["/webdownload/api"],

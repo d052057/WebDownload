@@ -6,9 +6,13 @@ import { Subscription } from 'rxjs';
 import * as signalR from '@microsoft/signalr';
 import { DragDropDirective } from '../directives/drag-drop.directive';
 import { Urlbase } from '../services/urlbase';
+import { FolderNodeComponent } from '../folder-node/folder-node.component';
+import { SearchBoxComponent } from '../shared/search-box/search-box.component';
+import { MediaFolderTreeDto, MediaTrackDto } from '../models/media-folder-tree.model';
 
 interface SrtFile { name: string; type: string; sizeBytes: number; modifiedUtc: string; }
-interface VideoFile { id: string; fileName: string; folder: string; relativePath: string; }
+interface VideoTree { menu: string; fileCount: number; folders: MediaFolderTreeDto[]; tracks: MediaTrackDto[]; }
+interface SearchHit { track: MediaTrackDto; folder: string; }
 interface VoiceOption { id: string; label: string; }
 interface VoiceoverConfig {
   voices: VoiceOption[];
@@ -33,7 +37,7 @@ interface JobResult { mp3Name?: string; mp3Url?: string; videoName?: string; vid
 type ConvertMode = 'mp3' | 'mp3-embed';
 
 @Component({
-  imports: [CommonModule, FormsModule, DragDropDirective],
+  imports: [CommonModule, FormsModule, DragDropDirective, FolderNodeComponent, SearchBoxComponent],
   selector: 'app-voiceover',
   styleUrl: './voiceover.scss',
   templateUrl: './voiceover.html',
@@ -61,9 +65,11 @@ export class Voiceover implements OnInit, OnDestroy {
   uploadedSrt = signal<File | null>(null);
 
   videoMenu = signal('movies');
-  videoFiles = signal<VideoFile[]>([]);
-  videoFilter = signal('');
-  selectedVideo = signal<VideoFile | null>(null);
+  tree = signal<VideoTree | null>(null);
+  treeLoading = signal(false);
+  // Text from the shared search box. The box keeps its own text, so it is never cleared from here.
+  query = signal('');
+  selectedVideo = signal<MediaTrackDto | null>(null);
   uploadedVideo = signal<File | null>(null);
 
   activeMode = signal<ConvertMode | null>(null);
@@ -101,15 +107,43 @@ export class Voiceover implements OnInit, OnDestroy {
 
   videoAccept = computed(() => (this.config()?.videoExtensions ?? ['.mp4']).join(','));
 
-  videoGroups = computed(() => {
-    const q = this.videoFilter().trim().toLowerCase();
-    const groups = new Map<string, VideoFile[]>();
-    for (const v of this.videoFiles()) {
-      if (q && !v.fileName.toLowerCase().includes(q) && !v.folder.toLowerCase().includes(q)) continue;
-      const list = groups.get(v.folder);
-      if (list) list.push(v); else groups.set(v.folder, [v]);
+  // Header of the folder card: "Movies" / "Videos" with a count badge.
+  menuTitle = computed(() => this.titleOf(this.videoMenu()));
+  countLabel = computed(() => {
+    const n = this.tree()?.fileCount ?? 0;
+    return `${n} ${n === 1 ? 'video' : 'videos'}`;
+  });
+  folderPath = computed(() => `//medias/${this.videoMenu()}`);
+
+  // While something is typed in the search box, matches are shown as one flat list (with their folder
+  // path) instead of the collapsed tree, so a hit is never hidden inside a closed folder.
+  searchResults = computed(() => {
+    const q = this.query().trim().toLocaleLowerCase();
+    if (!q) return null;
+
+    const hits: SearchHit[] = [];
+    let total = 0;
+    const visit = (tracks: MediaTrackDto[], path: string) => {
+      for (const t of tracks) {
+        if (!`${t.displayTitle} ${t.fileName} ${path}`.toLocaleLowerCase().includes(q)) continue;
+        total++;
+        if (hits.length < 200) hits.push({ track: t, folder: path });
+      }
+    };
+    const walk = (folders: MediaFolderTreeDto[], prefix: string) => {
+      for (const f of folders) {
+        const path = prefix ? `${prefix} / ${f.name}` : f.name;
+        visit(f.tracks, path);
+        walk(f.folders, path);
+      }
+    };
+
+    const t = this.tree();
+    if (t) {
+      visit(t.tracks, '');
+      walk(t.folders, '');
     }
-    return [...groups].map(([folder, files]) => ({ folder, files }));
+    return { hits, total };
   });
 
   constructor() {
@@ -125,7 +159,7 @@ export class Voiceover implements OnInit, OnDestroy {
         this.config.set(cfg);
         this.voice.set(cfg.defaultVoice);
         if (cfg.menus.length > 0) this.videoMenu.set(cfg.menus[0]);
-        this.loadVideos();
+        this.loadTree();
       },
       error: (err) => console.error('Failed to load Voiceover settings:', err)
     });
@@ -146,21 +180,27 @@ export class Voiceover implements OnInit, OnDestroy {
     });
   }
 
-  loadVideos(): void {
-    this.http.get<VideoFile[]>(`${this.apiBase}/mp4`, { params: { menu: this.videoMenu() } }).subscribe({
-      next: (files) => this.videoFiles.set(files),
+  loadTree(): void {
+    this.treeLoading.set(true);
+    this.http.get<VideoTree>(`${this.apiBase}/tree`, { params: { menu: this.videoMenu() } }).subscribe({
+      next: (t) => { this.tree.set(t); this.treeLoading.set(false); },
       error: (err) => {
-        console.error('Failed to list video files:', err);
-        this.videoFiles.set([]);
+        console.error('Failed to load the video tree:', err);
+        this.tree.set(null);
+        this.treeLoading.set(false);
       }
     });
+  }
+
+  titleOf(menu: string): string {
+    return menu.charAt(0).toUpperCase() + menu.slice(1);
   }
 
   setMenu(menu: string): void {
     if (menu === this.videoMenu()) return;
     this.videoMenu.set(menu);
-    this.videoFilter.set('');
-    this.loadVideos();
+    this.tree.set(null);
+    this.loadTree();
   }
 
   // A file from the list and an uploaded file are mutually exclusive sources for the same
@@ -171,8 +211,10 @@ export class Voiceover implements OnInit, OnDestroy {
     this.clearMessages();
   }
 
-  selectVideo(file: VideoFile): void {
-    this.selectedVideo.set(file);
+  // Called by folder-node (any depth) and by the search results.
+  selectVideo(track: MediaTrackDto): void {
+    if (this.isRunning()) return;
+    this.selectedVideo.set(track);
     this.uploadedVideo.set(null);
     this.clearMessages();
   }
@@ -268,7 +310,7 @@ export class Voiceover implements OnInit, OnDestroy {
       const videoUpload = this.uploadedVideo();
       const videoServer = this.selectedVideo();
       if (videoUpload) { form.append('videoFile', videoUpload, videoUpload.name); hasUpload = true; }
-      else if (videoServer) form.append('videoServerPath', videoServer.relativePath);
+      else if (videoServer) form.append('videoServerPath', videoServer.url);
     }
 
     this.stateText.set(hasUpload ? 'Uploading' : 'Starting');
@@ -397,7 +439,6 @@ export class Voiceover implements OnInit, OnDestroy {
     this.uploadedSrt.set(null);
     this.selectedVideo.set(null);
     this.uploadedVideo.set(null);
-    this.videoFilter.set('');
     this.jobId = null;
 
     // Back to the defaults: voice matching on, sliders centred, default voice.

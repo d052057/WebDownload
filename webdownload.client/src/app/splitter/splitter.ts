@@ -4,10 +4,14 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import * as signalR from '@microsoft/signalr';
 import { Urlbase } from '../services/urlbase';
+import { FolderNodeComponent } from '../folder-node/folder-node.component';
+import { SearchBoxComponent } from '../shared/search-box/search-box.component';
+import { MediaFolderTreeDto, MediaTrackDto } from '../models/media-folder-tree.model';
 
-interface MediaItem { id: string; fileName: string; folder: string; relativePath: string; }
 interface QualityOption { id: string; label: string; }
-interface SplitterConfig { menus: string[]; qualities: QualityOption[]; outputFolder: string; }
+interface SplitterConfig { menus: string[]; qualities: QualityOption[]; outputFolder: string; rpmFolder: string; }
+interface SplitterTree { menu: string; fileCount: number; folders: MediaFolderTreeDto[]; tracks: MediaTrackDto[]; }
+interface SearchHit { track: MediaTrackDto; folder: string; }
 interface DeviceInfo { device: 'cuda' | 'cpu'; name: string; note?: string | null; }
 interface OutputFile { label: string; name: string; url?: string | null; }
 interface SplitterUpdate {
@@ -20,8 +24,10 @@ interface SplitterUpdate {
 }
 type SplitMode = 'voice' | 'music' | 'both' | 'cleanup';
 
+const MAX_SEARCH_RESULTS = 200;
+
 @Component({
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, FolderNodeComponent, SearchBoxComponent],
   selector: 'app-splitter',
   styleUrl: './splitter.scss',
   templateUrl: './splitter.html',
@@ -44,9 +50,11 @@ export class Splitter implements OnInit, OnDestroy {
   deviceLoading = signal(true);
 
   menu = signal('movies');
-  mediaFiles = signal<MediaItem[]>([]);
-  filter = signal('');
-  selected = signal<MediaItem | null>(null);
+  tree = signal<SplitterTree | null>(null);
+  treeLoading = signal(false);
+  // Text from the shared search box. The box keeps its own text, so this is never cleared from here.
+  query = signal('');
+  selected = signal<MediaTrackDto | null>(null);
   quality = signal('standard');
 
   activeMode = signal<SplitMode | null>(null);
@@ -64,15 +72,46 @@ export class Splitter implements OnInit, OnDestroy {
     this.logLines().length > 0 || !!this.stateText() || this.quality() !== 'standard');
   hint = computed(() => (this.selected() ? '' : 'Select a media file to enable the buttons.'));
 
-  groups = computed(() => {
-    const q = this.filter().trim().toLowerCase();
-    const map = new Map<string, MediaItem[]>();
-    for (const m of this.mediaFiles()) {
-      if (q && !m.fileName.toLowerCase().includes(q) && !m.folder.toLowerCase().includes(q)) continue;
-      const list = map.get(m.folder);
-      if (list) list.push(m); else map.set(m.folder, [m]);
+  // Header of the folder card: "Movies" / "Videos" / "RPM", with a count badge like "86 songs".
+  menuTitle = computed(() => this.titleOf(this.menu()));
+  countLabel = computed(() => {
+    const n = this.tree()?.fileCount ?? 0;
+    const noun = this.menu() === 'rpm' ? 'song' : 'file';
+    return `${n} ${noun}${n === 1 ? '' : 's'}`;
+  });
+  folderPath = computed(() =>
+    this.menu() === 'rpm' ? `//medias/${this.config()?.rpmFolder ?? 'rpm'}` : `//medias/${this.menu()}`);
+
+  // While something is typed in the search box, matches are shown as one flat list (with their folder
+  // path) instead of the collapsed tree, so a hit is never hidden inside a closed folder.
+  searchResults = computed(() => {
+    const q = this.query().trim().toLocaleLowerCase();
+    if (!q) return null;
+
+    const hits: SearchHit[] = [];
+    let total = 0;
+    const visit = (tracks: MediaTrackDto[], path: string) => {
+      for (const t of tracks) {
+        const haystack = `${t.displayTitle} ${t.fileName} ${t.artist ?? ''} ${path}`.toLocaleLowerCase();
+        if (!haystack.includes(q)) continue;
+        total++;
+        if (hits.length < MAX_SEARCH_RESULTS) hits.push({ track: t, folder: path });
+      }
+    };
+    const walk = (folders: MediaFolderTreeDto[], prefix: string) => {
+      for (const f of folders) {
+        const path = prefix ? `${prefix} / ${f.name}` : f.name;
+        visit(f.tracks, path);
+        walk(f.folders, path);
+      }
+    };
+
+    const t = this.tree();
+    if (t) {
+      visit(t.tracks, '');
+      walk(t.folders, '');
     }
-    return [...map].map(([folder, items]) => ({ folder, items }));
+    return { hits, total };
   });
 
   constructor() {
@@ -87,7 +126,7 @@ export class Splitter implements OnInit, OnDestroy {
       next: (cfg) => {
         this.config.set(cfg);
         if (cfg.menus.length > 0) this.menu.set(cfg.menus[0]);
-        this.loadMedia();
+        this.loadTree();
       },
       error: (err) => console.error('Failed to load Splitter settings:', err)
     });
@@ -98,14 +137,20 @@ export class Splitter implements OnInit, OnDestroy {
     void this.hub?.stop();
   }
 
-  // ---- lists and hardware ---------------------------------------------------------------
+  titleOf(menu: string): string {
+    return menu === 'rpm' ? 'RPM' : menu.charAt(0).toUpperCase() + menu.slice(1);
+  }
 
-  loadMedia(): void {
-    this.http.get<MediaItem[]>(`${this.apiBase}/media`, { params: { menu: this.menu() } }).subscribe({
-      next: (items) => this.mediaFiles.set(items),
+  // ---- tree and hardware -------------------------------------------------------------------
+
+  loadTree(): void {
+    this.treeLoading.set(true);
+    this.http.get<SplitterTree>(`${this.apiBase}/tree`, { params: { menu: this.menu() } }).subscribe({
+      next: (t) => { this.tree.set(t); this.treeLoading.set(false); },
       error: (err) => {
-        console.error('Failed to list media files:', err);
-        this.mediaFiles.set([]);
+        console.error('Failed to load the media tree:', err);
+        this.tree.set(null);
+        this.treeLoading.set(false);
       }
     });
   }
@@ -113,12 +158,14 @@ export class Splitter implements OnInit, OnDestroy {
   setMenu(menu: string): void {
     if (menu === this.menu()) return;
     this.menu.set(menu);
-    this.filter.set('');
-    this.loadMedia();
+    this.tree.set(null);
+    this.loadTree();
   }
 
-  select(item: MediaItem): void {
-    this.selected.set(item);
+  // Called by folder-node (any depth) and by the search results.
+  select(track: MediaTrackDto): void {
+    if (this.isRunning()) return;
+    this.selected.set(track);
     this.clearResults();
   }
 
@@ -135,7 +182,7 @@ export class Splitter implements OnInit, OnDestroy {
     });
   }
 
-  // ---- running a job --------------------------------------------------------------------
+  // ---- running a job -------------------------------------------------------------------------
 
   async start(mode: SplitMode): Promise<void> {
     const media = this.selected();
@@ -163,7 +210,7 @@ export class Splitter implements OnInit, OnDestroy {
       jobId,
       mode,
       quality: this.quality(),
-      mediaPath: media.relativePath
+      mediaPath: media.url   // relative to the media drive, as built by the server
     }).subscribe({
       next: () => {
         // Accepted: the job runs on the server and reports over SignalR.
@@ -251,7 +298,7 @@ export class Splitter implements OnInit, OnDestroy {
     this.activeMode.set(null);
   }
 
-  // ---- reset helpers ------------------------------------------------------------------------
+  // ---- reset helpers ---------------------------------------------------------------------------
 
   private clearResults(): void {
     this.errorMessage.set('');
@@ -268,12 +315,11 @@ export class Splitter implements OnInit, OnDestroy {
   private resetAll(): void {
     this.resetProgress();
     this.selected.set(null);
-    this.filter.set('');
     this.quality.set('standard');
     this.jobId = null;
   }
 
-  // ---- misc -------------------------------------------------------------------------------------
+  // ---- misc ---------------------------------------------------------------------------------------
 
   // Result URLs from the server start with /medias/..., which sits under the app's path base.
   fileUrl(url: string): string {

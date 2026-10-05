@@ -1,45 +1,73 @@
 <div class="container-fluid jumbotron fade-in-out py-4 mt-1">
   <div class="row g-4">
 
-    <!-- Media list -->
+    <!-- Media folders: title, count, Khmer voice search, collapsible folders -->
     <div class="col-lg-7">
       <div class="d-flex justify-content-between align-items-center mb-2">
         <div>
           <h5 class="mb-0 text-dark fw-bold">Media Folder</h5>
-          <small class="text-muted text-monospace">//medias/{{ menu() }}</small>
+          <small class="text-muted text-monospace">{{ folderPath() }}</small>
         </div>
         <div class="d-flex gap-2">
           <div class="btn-group btn-group-sm" role="group" aria-label="Media folder">
             @for (m of config()?.menus ?? []; track m) {
-            <button type="button" class="btn btn-outline-secondary text-capitalize"
+            <button type="button" class="btn btn-outline-secondary"
                     [class.active]="menu() === m" [attr.aria-pressed]="menu() === m"
-                    [disabled]="isRunning()" (click)="setMenu(m)">{{ m }}</button>
+                    [disabled]="isRunning()" (click)="setMenu(m)">{{ titleOf(m) }}</button>
             }
           </div>
-          <button type="button" class="btn btn-sm btn-outline-secondary" aria-label="Refresh media list"
-                  [disabled]="isRunning()" (click)="loadMedia()">
+          <button type="button" class="btn btn-sm btn-outline-secondary" aria-label="Refresh the list"
+                  [disabled]="isRunning() || treeLoading()" (click)="loadTree()">
             <i class="bi bi-arrow-clockwise"></i>
           </button>
         </div>
       </div>
 
-      <input type="search" class="form-control form-control-sm mb-2" placeholder="Filter media" aria-label="Filter media"
-             [ngModel]="filter()" (ngModelChange)="filter.set($event)" />
-
-      <div class="list-group list-group-flush shadow-sm rounded border source-list">
-        @for (g of groups(); track g.folder) {
-        <div class="list-group-item bg-body-tertiary small text-muted text-truncate py-1">{{ g.folder }}</div>
-        @for (m of g.items; track m.id) {
-        <button type="button" class="list-group-item list-group-item-action py-2 text-start"
-                [class.active]="selected()?.id === m.id" [disabled]="isRunning()" (click)="select(m)">
-          <span class="text-truncate small fw-semibold d-block">{{ m.fileName }}</span>
-        </button>
-        }
-        } @empty {
-        <div class="text-center py-4 text-muted small">
-          <p class="mb-0">No media files found.</p>
+      <div class="card border shadow-sm folder-card">
+        <div class="card-body pb-2">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="fw-semibold text-secondary">{{ menuTitle() }}</span>
+            @if (tree()) {
+            <span class="badge bg-light text-dark border">{{ countLabel() }}</span>
+            }
+          </div>
+          <app-search-box label="Search the media list" (searchChange)="query.set($event)"></app-search-box>
         </div>
-        }
+
+        <div class="tree-wrap px-3 pb-3" [class.pe-none]="isRunning()" [class.opacity-50]="isRunning()">
+          @if (treeLoading()) {
+          <div class="text-center py-4 text-muted small">
+            <span class="spinner-border spinner-border-sm me-2"></span>Loading...
+          </div>
+          } @else if (searchResults(); as r) {
+          <div class="list-group list-group-flush">
+            @for (h of r.hits; track h.track.id) {
+            <button type="button" class="list-group-item list-group-item-action py-2 text-start"
+                    [class.active]="selected()?.url === h.track.url" (click)="select(h.track)">
+              <span class="d-block small fw-semibold text-truncate">{{ h.track.displayTitle }}</span>
+              @if (h.folder) {
+              <small class="d-block text-truncate opacity-75">{{ h.folder }}</small>
+              }
+            </button>
+            } @empty {
+            <div class="text-center py-4 text-muted small">No matches.</div>
+            }
+          </div>
+          @if (r.total > r.hits.length) {
+          <small class="text-muted d-block mt-2">Showing the first {{ r.hits.length }} of {{ r.total }} matches. Type more to narrow them.</small>
+          }
+          } @else if (tree(); as t) {
+          <app-folder-node
+            [folders]="t.folders"
+            [tracks]="t.tracks"
+            [groupId]="'splitter-' + menu()"
+            [playingUrl]="selected()?.url ?? null"
+            (trackSelected)="select($event)">
+          </app-folder-node>
+          } @else {
+          <div class="text-center py-4 text-muted small">The list could not be loaded.</div>
+          }
+        </div>
       </div>
     </div>
 
@@ -77,6 +105,9 @@
         <div class="small text-muted">Selected</div>
         @if (selected(); as s) {
         <div class="fw-semibold text-break">{{ s.fileName }}</div>
+        @if (s.album) {
+        <small class="text-muted text-break">{{ s.album }}</small>
+        }
         } @else {
         <div class="text-muted">Nothing selected</div>
         }
@@ -137,6 +168,7 @@
       <li><strong>Keep music:</strong> a video and an MP3 with only the music (karaoke).</li>
       <li><strong>Keep both:</strong> one video with a music track and a voice track, plus an MP3 of each.</li>
       <li><strong>Voice cleanup:</strong> the voice only, with noise reduced and the volume levelled, as a video and an MP3.</li>
+      <li>RPM songs are audio only, so they give MP3 files and no video.</li>
     </ul>
     @if (hint()) {
     <small class="text-muted d-block mt-2">{{ hint() }}</small>

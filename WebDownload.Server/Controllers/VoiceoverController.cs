@@ -35,6 +35,7 @@ public class VoiceoverController : ControllerBase
 
     private readonly VoiceoverSettings _s;
     private readonly MediaBrowseService _browse;
+    private readonly MediaTreeService _tree;
     private readonly MediaPathResolver _paths;
     private readonly VoiceoverJobRegistry _registry;
     private readonly VoiceoverJobRunner _runner;
@@ -43,6 +44,7 @@ public class VoiceoverController : ControllerBase
     public VoiceoverController(
         IOptions<VoiceoverSettings> settings,
         MediaBrowseService browse,
+        MediaTreeService tree,
         MediaPathResolver paths,
         VoiceoverJobRegistry registry,
         VoiceoverJobRunner runner,
@@ -50,6 +52,7 @@ public class VoiceoverController : ControllerBase
     {
         _s = settings.Value;
         _browse = browse;
+        _tree = tree;
         _paths = paths;
         _registry = registry;
         _runner = runner;
@@ -88,6 +91,22 @@ public class VoiceoverController : ControllerBase
         try
         {
             return Ok(await _browse.GetVideosAsync(menu, ct));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    // GET api/voiceover/tree?menu=movies
+    // The same videos as /mp4, as a folder tree for the folder-node component (folder names and file lists).
+    // mediaPath-style relative paths come back in each track's url.
+    [HttpGet("tree")]
+    public async Task<IActionResult> GetVideoTree([FromQuery] string menu, CancellationToken ct)
+    {
+        try
+        {
+            return Ok(await _tree.GetMediaTreeAsync(menu, _s.GetMenus(), _s.GetVideoExtensions(), ct));
         }
         catch (ArgumentException ex)
         {

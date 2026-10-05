@@ -29,7 +29,11 @@ public class SplitterSettings
     // Scratch space for the extracted audio and Demucs's output. Empty = system temp folder.
     public string TempFolder { get; set; } = "";
 
-    // MediaMenu.Menu values shown in the list. Add "rpm" later when that source is wired up.
+    // Where the rpm albums live, relative to ApplicationSettings:MediaDrive. Each sub-folder is one album
+    // and holds its track files; the Rpm / RpmTrack tables store the album folder name and the file names.
+    public string RpmFolder { get; set; } = @"musics\rpm";
+
+    // Menus shown in the list: MediaMenu.Menu values ("movies", "videos") plus the special "rpm".
     public List<string>? Menus { get; set; }
     public List<string>? VideoExtensions { get; set; }   // files that have a picture
     public List<string>? AudioExtensions { get; set; }   // audio-only files (no video is built for these)
@@ -51,9 +55,9 @@ public class SplitterSettings
     public int MaxConcurrentJobs { get; set; } = 1;
     public int HardwareCheckTimeoutSeconds { get; set; } = 60;
 
-    private static readonly string[] DefaultMenus = { "movies", "videos" };
+    private static readonly string[] DefaultMenus = { "movies", "videos", "rpm" };
     private static readonly string[] DefaultVideoExtensions = { ".mp4", ".m4v", ".mov", ".mkv", ".webm" };
-    private static readonly string[] DefaultAudioExtensions = { ".mp3", ".flac", ".wav", ".m4a", ".aac", ".ogg", ".wma" };
+    private static readonly string[] DefaultAudioExtensions = { ".mp3", ".flac", ".wav", ".m4a", ".aac", ".ogg", ".wma", ".aiff" };
 
     public IReadOnlyList<string> GetMenus() => Menus is { Count: > 0 } ? Menus : DefaultMenus;
     public IReadOnlyList<string> GetVideoExtensions() => VideoExtensions is { Count: > 0 } ? VideoExtensions : DefaultVideoExtensions;
