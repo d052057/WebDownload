@@ -1,2 +1,9 @@
-// .circle (mic icon styling) is defined globally in styles.scss - no
-// component-scoped styles needed here.
+// .circle (mic icon styling) is defined globally in styles.scss - the only styling needed here is the
+// small inset below.
+
+// In this app the text field's left padding is missing, so typed text and the placeholder touch the
+// left border. The right side already has 1rem of padding (set inline on the suffix in the template);
+// this gives the left side the same.
+.app-search-box input {
+  padding-left: 1rem;
+}
