@@ -76,7 +76,7 @@ app.UseForwardedHeaders(forwardedHeadersOptions);
 app.UsePathBase("/webdownload");
 app.UseStaticFiles();
 
-string MediaDrive = builder.Configuration.GetValue("ApplicationSettings:MediaDrive", "*") ?? @"c:/medias";
+string MediaDrive = builder.Configuration.GetValue("ApplicationSettings:MediaDrive", "*") ?? @"d:/medias";
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(MediaDrive),

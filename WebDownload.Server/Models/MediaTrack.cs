@@ -8,10 +8,30 @@ namespace WebDownload.Server.Models;
 public partial class MediaTrack
 {
     public Guid RecordId { get; set; }
+
     public Guid FolderId { get; set; }
-    public string FileName { get; set; } = "";
+
+    public string FileName { get; set; } = null!;
+
     public string? Title { get; set; }
 
-    public MediaFolder Folder { get; set; } = null!;
-    public ICollection<MediaSubtitle> MediaSubtitles { get; set; } = new List<MediaSubtitle>();
+    public string? Artist { get; set; }
+
+    public string? Album { get; set; }
+
+    public int? TrackNumber { get; set; }
+
+    public int? Year { get; set; }
+
+    public string? Genre { get; set; }
+
+    public string? Duration { get; set; }
+
+    public string Type { get; set; } = null!;
+
+    public DateTime Datetime { get; set; }
+
+    public virtual MediaFolder Folder { get; set; } = null!;
+
+    public virtual ICollection<MediaSubtitle> MediaSubtitles { get; set; } = new List<MediaSubtitle>();
 }

@@ -7,12 +7,17 @@ namespace WebDownload.Server.Models;
 
 public partial class MediaSubtitle
 {
-    public Guid RecordId { get; set; }
     public Guid MediaMetaDataRecordId { get; set; }
-    public string FileName { get; set; } = "";
-    public string? Label { get; set; }
-    public string? Language { get; set; }
+
+    public Guid RecordId { get; set; }
+
+    public string Language { get; set; } = null!;
+
+    public string Label { get; set; } = null!;
+
+    public string FileName { get; set; } = null!;
+
     public bool IsDefault { get; set; }
 
-    public MediaTrack MediaMetaDataRecord { get; set; } = null!;
+    public virtual MediaTrack MediaMetaDataRecord { get; set; } = null!;
 }

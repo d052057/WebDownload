@@ -2,21 +2,31 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using WebDownloade.Server.Models;
 
 namespace WebDownload.Server.Models;
 
 public partial class MediaFolder
 {
     public Guid RecordId { get; set; }
+
     public Guid MenuId { get; set; }
+
     public Guid? ParentFolderId { get; set; }
-    public string Name { get; set; } = "";
-    public string? RootPath { get; set; }
+
+    public string Name { get; set; } = null!;
+
     public string? CoverImagePath { get; set; }
+
     public DateTime Datetime { get; set; }
 
-    public MediaMenu Menu { get; set; } = null!;
-    public MediaFolder? ParentFolder { get; set; }
-    public ICollection<MediaFolder> InverseParentFolder { get; set; } = new List<MediaFolder>();
-    public ICollection<MediaTrack> MediaTracks { get; set; } = new List<MediaTrack>();
+    public string? RootPath { get; set; }
+
+    public virtual ICollection<MediaFolder> InverseParentFolder { get; set; } = new List<MediaFolder>();
+
+    public virtual ICollection<MediaTrack> MediaTracks { get; set; } = new List<MediaTrack>();
+
+    public virtual MediaMenu Menu { get; set; } = null!;
+
+    public virtual MediaFolder? ParentFolder { get; set; }
 }

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using WebDownloade.Server.Models;
 namespace WebDownload.Server.Models;
 public partial class DBWebDownload : DbContext
 {
@@ -13,35 +14,49 @@ public partial class DBWebDownload : DbContext
     public virtual DbSet<Rpm> Rpms { get; set; }
 
     public virtual DbSet<RpmTrack> RpmTracks { get; set; }
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<MediaMenu>(e =>
+        modelBuilder.Entity<MediaFolder>(entity =>
         {
-            e.ToTable("MediaMenu");
-            e.HasKey(x => x.RecordId);
-            e.Property(x => x.RecordId).HasColumnName("recordId");
-            e.Property(x => x.Menu).HasMaxLength(50).HasColumnName("menu");
-            e.Property(x => x.Datetime).HasColumnType("datetime").HasColumnName("datetime");
-        });
+            entity.HasKey(e => e.RecordId).HasName("PK_folder");
 
-        modelBuilder.Entity<MediaFolder>(e =>
-        {
-            e.ToTable("MediaFolder");
-            e.HasKey(x => x.RecordId);
-            e.Property(x => x.RecordId).HasColumnName("recordId");
-            e.Property(x => x.MenuId).HasColumnName("menuId");
-            e.Property(x => x.ParentFolderId).HasColumnName("parentFolderId");
-            e.Property(x => x.Name).HasMaxLength(250).HasColumnName("name");
-            e.Property(x => x.RootPath).HasMaxLength(500).HasColumnName("rootPath");
-            e.Property(x => x.CoverImagePath).HasMaxLength(500).HasColumnName("coverImagePath");
-            e.Property(x => x.Datetime).HasColumnType("datetime").HasColumnName("datetime");
+            entity.ToTable("MediaFolder");
 
-            e.HasOne(d => d.Menu).WithMany(p => p.MediaFolders)
+            entity.HasIndex(e => e.ParentFolderId, "IX_folder_parentFolderId");
+
+            entity.HasIndex(e => new { e.MenuId, e.ParentFolderId, e.Name }, "UX_folder_parent_name").IsUnique();
+
+            entity.Property(e => e.RecordId)
+                .HasDefaultValueSql("(newid())")
+                .HasAnnotation("Relational:DefaultConstraintName", "DF_folder_recordId")
+                .HasColumnName("recordId");
+            entity.Property(e => e.CoverImagePath)
+                .HasMaxLength(500)
+                .UseCollation("Latin1_General_100_BIN2")
+                .HasColumnName("coverImagePath");
+            entity.Property(e => e.Datetime)
+                .HasDefaultValueSql("(getdate())")
+                .HasAnnotation("Relational:DefaultConstraintName", "DF_folder_datetime")
+                .HasColumnType("datetime")
+                .HasColumnName("datetime");
+            entity.Property(e => e.MenuId).HasColumnName("menuId");
+            entity.Property(e => e.Name)
+                .HasMaxLength(250)
+                .UseCollation("Latin1_General_100_BIN2")
+                .HasColumnName("name");
+            entity.Property(e => e.ParentFolderId).HasColumnName("parentFolderId");
+            entity.Property(e => e.RootPath)
+                .HasMaxLength(500)
+                .HasColumnName("rootPath");
+
+            entity.HasOne(d => d.Menu).WithMany(p => p.MediaFolders)
                 .HasForeignKey(d => d.MenuId)
-                .OnDelete(DeleteBehavior.ClientSetNull);
-            e.HasOne(d => d.ParentFolder).WithMany(p => p.InverseParentFolder)
-                .HasForeignKey(d => d.ParentFolderId);
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_MediaFolder_MediaMenu");
+
+            entity.HasOne(d => d.ParentFolder).WithMany(p => p.InverseParentFolder)
+                .HasForeignKey(d => d.ParentFolderId)
+                .HasConstraintName("FK_MediaFolder_MediaFolder_Parent");
         });
 
         modelBuilder.Entity<MediaTrack>(e =>
@@ -121,6 +136,25 @@ public partial class DBWebDownload : DbContext
             entity.HasOne(d => d.Rpm).WithMany(p => p.RpmTracks)
                 .HasForeignKey(d => d.RpmId)
                 .HasConstraintName("FK_RpmTrack_rpm");
+        });
+        modelBuilder.Entity<MediaMenu>(entity =>
+        {
+            entity.HasKey(e => e.RecordId);
+
+            entity.ToTable("MediaMenu");
+
+            entity.Property(e => e.RecordId)
+                .HasDefaultValueSql("(newid())")
+                .HasAnnotation("Relational:DefaultConstraintName", "DF_menu_recordId")
+                .HasColumnName("recordId");
+            entity.Property(e => e.Datetime)
+                .HasDefaultValueSql("(getdate())")
+                .HasAnnotation("Relational:DefaultConstraintName", "DF_menu_datetime")
+                .HasColumnType("datetime")
+                .HasColumnName("datetime");
+            entity.Property(e => e.Menu)
+                .HasMaxLength(50)
+                .HasColumnName("menu");
         });
         OnModelCreatingPartial(modelBuilder);
     }

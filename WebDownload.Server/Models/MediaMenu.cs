@@ -2,13 +2,17 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using WebDownload.Server.Models;
 
-namespace WebDownload.Server.Models;
+namespace WebDownloade.Server.Models;
 
 public partial class MediaMenu
 {
     public Guid RecordId { get; set; }
-    public string Menu { get; set; } = "";
+
+    public string Menu { get; set; } = null!;
+
     public DateTime Datetime { get; set; }
-    public ICollection<MediaFolder> MediaFolders { get; set; } = new List<MediaFolder>();
+
+    public virtual ICollection<MediaFolder> MediaFolders { get; set; } = new List<MediaFolder>();
 }
