@@ -1,0 +1,62 @@
+// Search results use Bootstrap's list-group; the folder tree (folder-node) brings its own styles.
+.list-group-item {
+  transition: background-color 0.2s ease, color 0.15s ease;
+  cursor: pointer;
+
+  &.active {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+  }
+
+  &:hover:not(.active):not(:disabled) {
+    background-color: rgba(var(--bs-black-rgb), 0.03);
+  }
+}
+
+.folder-card {
+  border-radius: 0.5rem;
+}
+
+.tree-wrap {
+  max-height: 440px;
+  overflow-y: auto;
+}
+
+.log {
+  max-height: 200px;
+  overflow: auto;
+  font-size: 0.75rem;
+  white-space: pre-wrap;
+  background: rgba(var(--bs-black-rgb), 0.04);
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .list-group-item {
+    transition: none;
+  }
+}
+
+.step-badge {
+  width: 1.75rem;
+  height: 1.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: rgba(var(--bs-black-rgb), 0.08);
+  color: var(--bs-secondary-color);
+
+  &.active {
+    background: var(--bs-primary);
+    color: #fff;
+  }
+
+  &.done {
+    background: var(--bs-success);
+    color: #fff;
+  }
+}

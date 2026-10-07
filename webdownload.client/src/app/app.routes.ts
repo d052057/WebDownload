@@ -15,6 +15,10 @@ export const routes: Routes = [
       .then(mod => mod.Splitter)
   },
   {
+    path: 'voice-swap', loadComponent: () => import('./voice-swap/voice-swap')
+      .then(mod => mod.VoiceSwap)
+  },
+  {
     path: 'voiceover', loadComponent: () => import('./voiceover/voiceover')
       .then(mod => mod.Voiceover)
   },

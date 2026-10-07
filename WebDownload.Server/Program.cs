@@ -33,6 +33,12 @@ builder.Services.AddSingleton<DemucsRunner>();
 builder.Services.AddSingleton<SplitterService>();
 builder.Services.AddSingleton<SplitterJobRunner>();
 builder.Services.AddScoped<MediaTreeService>();
+//voice swap: split (Demucs) -> convert the voice (Applio, outside process) -> mix (ffmpeg)
+builder.Services.Configure<VoiceSwapSettings>(builder.Configuration.GetSection("VoiceSwap"));
+builder.Services.AddSingleton<StemSeparator>();
+builder.Services.AddSingleton<ApplioRunner>();
+builder.Services.AddSingleton<VoiceSwapService>();
+builder.Services.AddSingleton<VoiceSwapJobRunner>();
 //
 // menus (movies, videos, musics, ...) come from the MediaMenu table
 builder.Services.AddMemoryCache();
@@ -124,6 +130,7 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<DownloadHub>(appSettings.DownloadHubPath);
 app.MapHub<SplitterHub>(appSettings.SplitterHubPath);
+app.MapHub<VoiceSwapHub>(appSettings.VoiceSwapHubPath);
 app.MapHub<ConvertHub>(appSettings.ConvertHubPath);
 app.MapFallbackToFile("/index.html");
 

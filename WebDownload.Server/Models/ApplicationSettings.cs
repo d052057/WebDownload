@@ -14,5 +14,6 @@ public class ApplicationSettings
     // Endpoints of the SignalR hubs.
     public string DownloadHubPath { get; set; } = "/downloadHub";
     public string SplitterHubPath { get; set; } = "/splitterHub";
+    public string VoiceSwapHubPath { get; set; } = "/voiceSwapHub";
     public string ConvertHubPath { get; set; } = "/convertHub";
 }

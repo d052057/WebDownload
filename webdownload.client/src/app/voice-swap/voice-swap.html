@@ -1,0 +1,215 @@
+<div class="container-fluid jumbotron fade-in-out py-4 mt-1">
+
+  @if (problems().length > 0) {
+  <div class="alert alert-warning shadow-sm" role="alert">
+    <div class="fw-semibold mb-1"><i class="bi bi-exclamation-triangle-fill me-2"></i>Voice Swap is not set up on the server yet</div>
+    <ul class="mb-0 small">
+      @for (p of problems(); track p) { <li class="text-break">{{ p }}</li> }
+    </ul>
+  </div>
+  }
+
+  <div class="row g-4">
+
+    <!-- Song picker: same folders as the Splitter -->
+    <div class="col-lg-7">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <div>
+          <h5 class="mb-0 text-dark fw-bold">Choose a song</h5>
+          <small class="text-muted text-monospace">{{ folderPath() }}</small>
+        </div>
+        <div class="d-flex gap-2">
+          <div class="btn-group btn-group-sm" role="group" aria-label="Media folder">
+            @for (m of config()?.menus ?? []; track m.name) {
+            <button type="button" class="btn btn-outline-secondary"
+                    [class.active]="menu() === m.name" [attr.aria-pressed]="menu() === m.name"
+                    [disabled]="isRunning()" (click)="setMenu(m.name)">{{ m.title }}</button>
+            }
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-secondary" aria-label="Refresh the list"
+                  [disabled]="isRunning() || treeLoading()" (click)="loadTree()">
+            <i class="bi bi-arrow-clockwise"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="card border shadow-sm folder-card">
+        <div class="card-body pb-2">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="fw-semibold text-secondary">{{ menuTitle() }}</span>
+            @if (tree()) {
+            <span class="badge bg-light text-dark border">{{ countLabel() }}</span>
+            }
+          </div>
+          <app-search-box label="Search the media list" (searchChange)="query.set($event)"></app-search-box>
+        </div>
+
+        <div class="tree-wrap px-3 pb-3" [class.pe-none]="isRunning()" [class.opacity-50]="isRunning()">
+          @if (treeLoading()) {
+          <div class="text-center py-4 text-muted small">
+            <span class="spinner-border spinner-border-sm me-2"></span>Loading...
+          </div>
+          } @else if (searchResults(); as r) {
+          <div class="list-group list-group-flush">
+            @for (h of r.hits; track h.track.id) {
+            <button type="button" class="list-group-item list-group-item-action py-2 text-start"
+                    [class.active]="selected()?.url === h.track.url" (click)="select(h.track)">
+              <span class="d-block small fw-semibold text-truncate">{{ h.track.displayTitle }}</span>
+              @if (h.folder) {
+              <small class="d-block text-truncate opacity-75">{{ h.folder }}</small>
+              }
+            </button>
+            } @empty {
+            <div class="text-center py-4 text-muted small">No matches.</div>
+            }
+          </div>
+          @if (r.total > r.hits.length) {
+          <small class="text-muted d-block mt-2">Showing the first {{ r.hits.length }} of {{ r.total }} matches. Type more to narrow them.</small>
+          }
+          } @else if (tree(); as t) {
+          <app-folder-node
+            [folders]="t.folders"
+            [tracks]="t.tracks"
+            [groupId]="'voiceswap-' + menu()"
+            [playingUrl]="selected()?.url ?? null"
+            (trackSelected)="select($event)">
+          </app-folder-node>
+          } @else {
+          <div class="text-center py-4 text-muted small">The list could not be loaded.</div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Voice, pitch, quality and selection -->
+    <div class="col-lg-5">
+      <div class="card border-0 shadow-sm bg-body-tertiary p-4 rounded-3">
+        <h6 class="fw-bold mb-3">Voice</h6>
+
+        <label class="form-label fw-semibold small" for="voiceSelect">Sing it as</label>
+        <select id="voiceSelect" class="form-select" [disabled]="isRunning()"
+                [ngModel]="modelId()" (ngModelChange)="setModel($event)">
+          @for (m of config()?.models ?? []; track m.id) {
+          <option [value]="m.id">{{ m.name }}</option>
+          }
+        </select>
+
+        <label class="form-label fw-semibold small mt-3" for="pitchInput">Pitch (semitones)</label>
+        <input id="pitchInput" type="number" class="form-control" step="1"
+               [min]="minPitch" [max]="maxPitch" [disabled]="isRunning()"
+               [class.is-invalid]="!pitchValid()"
+               [ngModel]="pitch()" (ngModelChange)="pitch.set($event)" />
+        <small class="text-muted d-block mt-1">
+          0 keeps the singer's range. Use about +12 when a man's song becomes a woman's voice, -12 for the opposite.
+        </small>
+
+        <label class="form-label fw-semibold small mt-3" for="qualitySelect">Split quality</label>
+        <select id="qualitySelect" class="form-select" [disabled]="isRunning()"
+                [ngModel]="quality()" (ngModelChange)="quality.set($event)">
+          @for (q of config()?.qualities ?? []; track q.id) {
+          <option [value]="q.id">{{ q.label }}</option>
+          }
+        </select>
+
+        <hr />
+        <div class="small text-muted">Selected</div>
+        @if (selected(); as s) {
+        <div class="fw-semibold text-break">{{ s.fileName }}</div>
+        @if (s.album) {
+        <small class="text-muted text-break">{{ s.album }}</small>
+        }
+        } @else {
+        <div class="text-muted">Nothing selected</div>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- Action -->
+  <div class="card border-0 shadow-sm bg-body-tertiary p-4 rounded-3 mt-4">
+    <div class="row g-3">
+      <div class="col-12 col-lg-9">
+        <button type="button" class="btn btn-success w-100 py-2 fw-bold" [disabled]="!canRun()" (click)="start()">
+          @if (isRunning()) {
+          <span class="spinner-border spinner-border-sm me-2"></span>Working...
+          } @else {
+          <i class="bi bi-person-lines-fill me-2"></i>Swap the voice
+          }
+        </button>
+      </div>
+      <div class="col-12 col-lg-3">
+        <button type="button" class="btn w-100 py-2 fw-bold"
+                [class.btn-outline-danger]="isRunning()" [class.btn-outline-secondary]="!isRunning()"
+                [disabled]="!canReset()" (click)="cancelOrReset()">
+          {{ isRunning() ? 'Cancel' : 'Reset' }}
+        </button>
+      </div>
+    </div>
+
+    <ul class="small text-muted mt-3 mb-0 ps-3">
+      <li><strong>1. Split:</strong> the song is separated into the singer and the music.</li>
+      <li><strong>2. Convert:</strong> the singer is turned into the chosen voice.</li>
+      <li><strong>3. Mix:</strong> the new voice is mixed back with the music, as an MP3 (and as a video when the song has a picture).</li>
+      <li>It runs on the server and can take several minutes. You can leave this page open and watch the progress.</li>
+    </ul>
+    @if (hint()) {
+    <small class="text-muted d-block mt-2">{{ hint() }}</small>
+    }
+  </div>
+
+  <!-- Progress -->
+  @if (isRunning() || stateText() || logLines().length > 0) {
+  <div class="card border-0 shadow-sm p-4 rounded-3 mt-4" aria-live="polite">
+    <div class="d-flex flex-wrap gap-3 mb-3">
+      @for (s of steps; track s.n) {
+      <div class="d-flex align-items-center small">
+        <span class="step-badge me-2" [class.active]="step() === s.n" [class.done]="step() > s.n">
+          @if (step() > s.n) { <i class="bi bi-check-lg"></i> } @else { {{ s.n }} }
+        </span>
+        <span [class.fw-semibold]="step() === s.n">{{ s.label }}</span>
+      </div>
+      }
+    </div>
+    <div class="d-flex justify-content-between small fw-semibold mb-1">
+      <span>{{ stateText() }}</span>
+      <span>{{ percent() }}%</span>
+    </div>
+    <div class="progress" role="progressbar" aria-label="Job progress"
+         [attr.aria-valuenow]="percent()" aria-valuemin="0" aria-valuemax="100">
+      <div class="progress-bar" [class.bg-success]="stateText() === 'Done'" [style.width.%]="percent()"></div>
+    </div>
+    @if (logLines().length > 0) {
+    <details class="mt-3">
+      <summary class="small text-muted">Details</summary>
+      <pre class="log mt-2 mb-0">{{ logLines().join('\n') }}</pre>
+    </details>
+    }
+  </div>
+  }
+
+  @if (errorMessage()) {
+  <div class="alert alert-danger d-flex align-items-start shadow-sm mt-4 mb-0" role="alert">
+    <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+    <div class="text-break">{{ errorMessage() }}</div>
+  </div>
+  }
+
+  @if (files(); as list) {
+  <div class="alert alert-success shadow-sm mt-4 mb-0" role="alert">
+    <div class="d-flex align-items-center mb-2">
+      <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+      <strong>Finished.</strong>
+    </div>
+    <ul class="list-unstyled mb-0">
+      @for (f of list; track f.name) {
+      <li>
+        {{ f.label }}:
+        @if (f.url) { <a [href]="fileUrl(f.url)" target="_blank" rel="noopener">{{ f.name }}</a> }
+        @else { <strong>{{ f.name }}</strong> }
+      </li>
+      }
+    </ul>
+    <small class="text-muted d-block mt-2">Saved in <strong>{{ config()?.outputFolder }}/</strong></small>
+  </div>
+  }
+</div>
