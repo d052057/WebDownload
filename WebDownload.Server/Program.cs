@@ -34,6 +34,10 @@ builder.Services.AddSingleton<SplitterService>();
 builder.Services.AddSingleton<SplitterJobRunner>();
 builder.Services.AddScoped<MediaTreeService>();
 //
+// menus (movies, videos, musics, ...) come from the MediaMenu table
+builder.Services.AddMemoryCache();
+builder.Services.Configure<MenuSettings>(builder.Configuration.GetSection("MediaMenu"));
+builder.Services.AddScoped<MenuService>();
 
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
@@ -60,6 +64,9 @@ builder.Services.AddSingleton(translationClient);
 builder.Services.AddScoped<ISubtitleTranslationService, SubtitleTranslationService>();
 
 
+// App-level paths (media drive, URL prefixes, hub endpoints) all come from "ApplicationSettings".
+var appSettings = builder.Configuration.GetSection("ApplicationSettings").Get<ApplicationSettings>() ?? new ApplicationSettings();
+
 // 4. FORWARDED HEADERS
 var forwardedHeadersOptions = new ForwardedHeadersOptions
 {
@@ -73,19 +80,22 @@ var app = builder.Build();
 app.UseForwardedHeaders(forwardedHeadersOptions);
 
 // 6. MIDDLEWARE PIPELINE
-app.UsePathBase("/webdownload");
+if (!string.IsNullOrWhiteSpace(appSettings.PathBase))
+{
+    app.UsePathBase("/" + appSettings.PathBase.Trim('/'));
+}
 app.UseStaticFiles();
 
-string MediaDrive = builder.Configuration.GetValue("ApplicationSettings:MediaDrive", "*") ?? @"d:/medias";
+var mediaRequestPath = "/" + appSettings.MediaRequestPath.Trim('/');
 app.UseStaticFiles(new StaticFileOptions
 {
-    FileProvider = new PhysicalFileProvider(MediaDrive),
-    RequestPath = "/medias"
+    FileProvider = new PhysicalFileProvider(appSettings.MediaDrive),
+    RequestPath = mediaRequestPath
 });
 app.UseDirectoryBrowser(new DirectoryBrowserOptions
 {
-    FileProvider = new PhysicalFileProvider(MediaDrive),
-    RequestPath = "/medias"
+    FileProvider = new PhysicalFileProvider(appSettings.MediaDrive),
+    RequestPath = mediaRequestPath
 });
 
 var corsUrls = builder.Configuration.GetSection("CorsUrls:AllowedOrigins").Get<string[]>();
@@ -112,9 +122,9 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
-app.MapHub<DownloadHub>("/downloadHub");
-app.MapHub<SplitterHub>("/splitterHub");
-app.MapHub<ConvertHub>("/convertHub");
+app.MapHub<DownloadHub>(appSettings.DownloadHubPath);
+app.MapHub<SplitterHub>(appSettings.SplitterHubPath);
+app.MapHub<ConvertHub>(appSettings.ConvertHubPath);
 app.MapFallbackToFile("/index.html");
 
 app.Run();

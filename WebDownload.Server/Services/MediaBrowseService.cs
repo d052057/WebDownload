@@ -7,16 +7,17 @@ namespace WebDownload.Server.Services;
 /// <summary>Feeds the two select lists: subtitle files from disk, video files from the media database.</summary>
 public sealed class MediaBrowseService
 {
-    private static readonly HashSet<string> SubtitleExtensions =
-        new(StringComparer.OrdinalIgnoreCase) { ".srt", ".vtt" };
-
     private readonly DBWebDownload _db;
     private readonly VoiceoverSettings _s;
+    private readonly MenuService _menus;
+    private readonly HashSet<string> _subtitleExtensions;
 
-    public MediaBrowseService(DBWebDownload db, IOptions<VoiceoverSettings> settings)
+    public MediaBrowseService(DBWebDownload db, IOptions<VoiceoverSettings> settings, MenuService menus)
     {
         _db = db;
         _s = settings.Value;
+        _menus = menus;
+        _subtitleExtensions = new HashSet<string>(_s.GetSubtitleExtensions(), StringComparer.OrdinalIgnoreCase);
     }
 
     public List<SrtFileItem> GetSrtFiles()
@@ -26,25 +27,25 @@ public sealed class MediaBrowseService
 
         return new DirectoryInfo(_s.SrtFolder)
             .EnumerateFiles()
-            .Where(f => SubtitleExtensions.Contains(f.Extension))
+            .Where(f => _subtitleExtensions.Contains(f.Extension))
             .OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase)
             .Select(f => new SrtFileItem(f.Name, f.Extension.TrimStart('.').ToLowerInvariant(), f.Length, f.LastWriteTimeUtc))
             .ToList();
     }
 
     /// <summary>
-    /// Every video track in one menu ("movies" or "videos"), with its path relative to the media
+    /// Every video track in one MediaMenu menu, with its path relative to the media
     /// drive. Folder paths are rebuilt the same way MediaFolderTreeService does it: a top-level
     /// folder starts at its own RootPath/Name and nested folders extend their parent.
     /// </summary>
     public Task<List<VideoFileItem>> GetVideosAsync(string menu, CancellationToken ct) =>
-        GetVideosAsync(menu, _s.GetMenus(), _s.GetVideoExtensions(), ct);
+        GetVideosAsync(menu, _s.Menus, _s.GetVideoExtensions(), ct);
 
-    /// <summary>The same listing with the allowed menus and file extensions supplied by the caller (used by Splitter).</summary>
+    /// <summary>The same listing with the optional menu allow-list and the file extensions supplied by the caller.</summary>
     public async Task<List<VideoFileItem>> GetVideosAsync(
-        string menu, IReadOnlyList<string> allowedMenus, IReadOnlyList<string> allowedExtensions, CancellationToken ct)
+        string menu, IReadOnlyList<string>? allowList, IReadOnlyList<string> allowedExtensions, CancellationToken ct)
     {
-        var canonical = allowedMenus.FirstOrDefault(m => string.Equals(m, menu, StringComparison.OrdinalIgnoreCase))
+        var canonical = await _menus.ResolveAsync(menu, allowList, ct)
             ?? throw new ArgumentException($"'{menu}' is not a supported menu.");
 
         var menuId = await _db.MediaMenus

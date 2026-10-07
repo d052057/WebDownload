@@ -35,7 +35,7 @@
         <p class="text-muted small mb-2">Or pick one from your computer. A file picked from the list above is used instead of an upload.</p>
         <div class="d-inline-flex justify-content-center mx-auto">
           <input type="file" class="form-control form-control-sm" aria-label="Choose an srt or vtt file"
-                 accept=".srt,.vtt" [disabled]="isRunning()" (change)="onSrtInput($event)" />
+                 [attr.accept]="subtitleAccept()" [disabled]="isRunning()" (change)="onSrtInput($event)" />
         </div>
         @if (uploadedSrt()) {
         <div class="badge bg-success-subtle text-success p-2 mt-2 border border-success-subtle mx-auto fs-6">
@@ -59,10 +59,10 @@
         </div>
         <div class="d-flex gap-2">
           <div class="btn-group btn-group-sm" role="group" aria-label="Video folder">
-            @for (m of config()?.menus ?? []; track m) {
-            <button type="button" class="btn btn-outline-secondary text-capitalize"
-                    [class.active]="videoMenu() === m" [attr.aria-pressed]="videoMenu() === m"
-                    [disabled]="isRunning()" (click)="setMenu(m)">{{ m }}</button>
+            @for (m of config()?.menus ?? []; track m.name) {
+            <button type="button" class="btn btn-outline-secondary"
+                    [class.active]="videoMenu() === m.name" [attr.aria-pressed]="videoMenu() === m.name"
+                    [disabled]="isRunning()" (click)="setMenu(m.name)">{{ m.title }}</button>
             }
           </div>
           <button type="button" class="btn btn-sm btn-outline-secondary" aria-label="Refresh video list"
@@ -169,13 +169,13 @@
       </div>
       <div class="col-lg-2">
         <label class="form-label small fw-semibold mb-0" for="rateRange">Speed {{ ratePercent() > 0 ? '+' : '' }}{{ ratePercent() }}%</label>
-        <input id="rateRange" type="range" class="form-range" min="-25" max="25" step="1"
+        <input id="rateRange" type="range" class="form-range" [min]="-maxAdjust()" [max]="maxAdjust()" step="1"
                [disabled]="isRunning() || matchVoice()"
                [ngModel]="ratePercent()" (ngModelChange)="ratePercent.set($event)" />
       </div>
       <div class="col-lg-2">
         <label class="form-label small fw-semibold mb-0" for="pitchRange">Pitch {{ pitchPercent() > 0 ? '+' : '' }}{{ pitchPercent() }}%</label>
-        <input id="pitchRange" type="range" class="form-range" min="-25" max="25" step="1"
+        <input id="pitchRange" type="range" class="form-range" [min]="-maxAdjust()" [max]="maxAdjust()" step="1"
                [disabled]="isRunning() || matchVoice()"
                [ngModel]="pitchPercent()" (ngModelChange)="pitchPercent.set($event)" />
       </div>

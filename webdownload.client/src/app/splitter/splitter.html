@@ -10,10 +10,10 @@
         </div>
         <div class="d-flex gap-2">
           <div class="btn-group btn-group-sm" role="group" aria-label="Media folder">
-            @for (m of config()?.menus ?? []; track m) {
+            @for (m of config()?.menus ?? []; track m.name) {
             <button type="button" class="btn btn-outline-secondary"
-                    [class.active]="menu() === m" [attr.aria-pressed]="menu() === m"
-                    [disabled]="isRunning()" (click)="setMenu(m)">{{ titleOf(m) }}</button>
+                    [class.active]="menu() === m.name" [attr.aria-pressed]="menu() === m.name"
+                    [disabled]="isRunning()" (click)="setMenu(m.name)">{{ m.title }}</button>
             }
           </div>
           <button type="button" class="btn btn-sm btn-outline-secondary" aria-label="Refresh the list"

@@ -7,8 +7,9 @@ namespace WebDownload.Server.Services;
 
 /// <summary>
 /// Builds the folder tree the Splitter page shows, from SQL:
-///  - "movies" and "videos": the MediaFolder / MediaTrack tables (nested folders, only media files).
-///  - "rpm": the Rpm / RpmTrack tables. Each Rpm row is one album folder, and each RpmTrack row holds the
+///  - any menu in the MediaMenu table (movies, videos, ...): the MediaFolder / MediaTrack tables
+///    (nested folders, only media files).
+///  - the special Splitter:RpmMenu ("rpm"): the Rpm / RpmTrack tables. Each Rpm row is one album folder, and each RpmTrack row holds the
 ///    track's FILE NAME in Title (that is what the rpm scan stores), so the file is
 ///    MediaDrive\RpmFolder\&lt;Rpm.Title&gt;\&lt;RpmTrack.Title&gt;.
 /// Only names and relative paths are returned; the file itself is read from disk when a job runs.
@@ -21,37 +22,39 @@ public sealed class MediaTreeService
     private readonly DBWebDownload _db;
     private readonly SplitterSettings _s;
     private readonly MediaPathResolver _paths;
+    private readonly MenuService _menus;
 
-    public MediaTreeService(DBWebDownload db, IOptions<SplitterSettings> settings, MediaPathResolver paths)
+    public MediaTreeService(DBWebDownload db, IOptions<SplitterSettings> settings, MediaPathResolver paths, MenuService menus)
     {
         _db = db;
         _s = settings.Value;
         _paths = paths;
+        _menus = menus;
     }
 
-    public Task<SplitterTreeDto> GetTreeAsync(string menu, CancellationToken ct)
+    public async Task<SplitterTreeDto> GetTreeAsync(string menu, CancellationToken ct)
     {
-        var canonical = _s.GetMenus().FirstOrDefault(m => string.Equals(m, menu, StringComparison.OrdinalIgnoreCase))
-            ?? throw new ArgumentException($"'{menu}' is not a supported menu.");
+        if (!string.IsNullOrWhiteSpace(_s.RpmMenu) && string.Equals(menu, _s.RpmMenu, StringComparison.OrdinalIgnoreCase))
+            return await GetRpmTreeAsync(_s.RpmMenu, ct);
 
-        return string.Equals(canonical, "rpm", StringComparison.OrdinalIgnoreCase)
-            ? GetRpmTreeAsync(canonical, ct)
-            : GetMediaTreeAsync(canonical, _s.GetMediaExtensions(), ct);
+        var canonical = await _menus.ResolveAsync(menu, _s.Menus, ct)
+            ?? throw new ArgumentException($"'{menu}' is not a supported menu.");
+        return await GetMediaTreeAsync(canonical, _s.GetMediaExtensions(), ct);
     }
 
     /// <summary>
-    /// The movies / videos tree with the caller's own allowed menus and file extensions. Voiceover uses this:
-    /// it has no rpm menu and only lists video files.
+    /// The tree of one MediaMenu menu with the caller's own optional menu allow-list and file extensions.
+    /// Voiceover uses this: it has no rpm menu and only lists video files.
     /// </summary>
-    public Task<SplitterTreeDto> GetMediaTreeAsync(
-        string menu, IReadOnlyList<string> allowedMenus, IReadOnlyList<string> allowedExtensions, CancellationToken ct)
+    public async Task<SplitterTreeDto> GetMediaTreeAsync(
+        string menu, IReadOnlyList<string>? allowList, IReadOnlyList<string> allowedExtensions, CancellationToken ct)
     {
-        var canonical = allowedMenus.FirstOrDefault(m => string.Equals(m, menu, StringComparison.OrdinalIgnoreCase))
+        var canonical = await _menus.ResolveAsync(menu, allowList, ct)
             ?? throw new ArgumentException($"'{menu}' is not a supported menu.");
-        return GetMediaTreeAsync(canonical, allowedExtensions, ct);
+        return await GetMediaTreeAsync(canonical, allowedExtensions, ct);
     }
 
-    // ---- movies / videos ----------------------------------------------------------------------
+    // ---- MediaMenu menus (movies, videos, ...) ----------------------------------------------------------------------
 
     private async Task<SplitterTreeDto> GetMediaTreeAsync(string menu, IReadOnlyList<string> allowedExtensions, CancellationToken ct)
     {
@@ -113,7 +116,7 @@ public sealed class MediaTreeService
         return new SplitterTreeDto(menu, CountFiles(top, new List<SplitterTrackDto>()), top, new List<SplitterTrackDto>());
     }
 
-    // ---- rpm --------------------------------------------------------------------------------------
+    // ---- rpm (Splitter:RpmMenu) --------------------------------------------------------------------------------------
 
     private async Task<SplitterTreeDto> GetRpmTreeAsync(string menu, CancellationToken ct)
     {

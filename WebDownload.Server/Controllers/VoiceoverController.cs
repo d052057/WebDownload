@@ -13,8 +13,8 @@ public class VoiceoverConvertForm
 
     // MatchVoice: detect male/female and pitch from the video instead of using Voice and the sliders.
     public bool MatchVoice { get; set; }
-    public int RatePercent { get; set; }    // -25..25
-    public int PitchPercent { get; set; }   // -25..25
+    public int RatePercent { get; set; }    // -MaxAdjustPercent..MaxAdjustPercent
+    public int PitchPercent { get; set; }   // -MaxAdjustPercent..MaxAdjustPercent
 
     // Exactly one subtitle source: a file from the folder list OR an upload.
     public string? SrtServerName { get; set; }
@@ -30,10 +30,10 @@ public class VoiceoverConvertForm
 [Route("api/[controller]")]
 public class VoiceoverController : ControllerBase
 {
-    private static readonly HashSet<string> SubtitleExtensions =
-        new(StringComparer.OrdinalIgnoreCase) { ".srt", ".vtt" };
+    private readonly HashSet<string> SubtitleExtensions;
 
     private readonly VoiceoverSettings _s;
+    private readonly MenuService _menus;
     private readonly MediaBrowseService _browse;
     private readonly MediaTreeService _tree;
     private readonly MediaPathResolver _paths;
@@ -43,6 +43,7 @@ public class VoiceoverController : ControllerBase
 
     public VoiceoverController(
         IOptions<VoiceoverSettings> settings,
+        MenuService menus,
         MediaBrowseService browse,
         MediaTreeService tree,
         MediaPathResolver paths,
@@ -51,6 +52,8 @@ public class VoiceoverController : ControllerBase
         ILogger<VoiceoverController> logger)
     {
         _s = settings.Value;
+        _menus = menus;
+        SubtitleExtensions = new HashSet<string>(_s.GetSubtitleExtensions(), StringComparer.OrdinalIgnoreCase);
         _browse = browse;
         _tree = tree;
         _paths = paths;
@@ -61,13 +64,16 @@ public class VoiceoverController : ControllerBase
 
     // GET api/voiceover/config
     [HttpGet("config")]
-    public IActionResult GetConfig() => Ok(new VoiceoverConfigDto(
+    public async Task<IActionResult> GetConfig(CancellationToken ct) => Ok(new VoiceoverConfigDto(
         _s.GetVoices(),
         _s.DefaultVoice,
-        _s.GetMenus(),
+        await _menus.GetForFilesAsync(_s.GetVideoExtensions(), _s.Menus, extra: null, ct),
         _s.SrtFolder.Replace('\\', '/'),
         _s.OutputFolder.Replace('\\', '/'),
-        _s.GetVideoExtensions()));
+        _s.GetVideoExtensions(),
+        _s.GetSubtitleExtensions(),
+        _s.MaxAdjustPercent,
+        _s.MatchVoiceByDefault));
 
     // GET api/voiceover/srt
     [HttpGet("srt")]
@@ -106,7 +112,7 @@ public class VoiceoverController : ControllerBase
     {
         try
         {
-            return Ok(await _tree.GetMediaTreeAsync(menu, _s.GetMenus(), _s.GetVideoExtensions(), ct));
+            return Ok(await _tree.GetMediaTreeAsync(menu, _s.Menus, _s.GetVideoExtensions(), ct));
         }
         catch (ArgumentException ex)
         {
@@ -204,8 +210,8 @@ public class VoiceoverController : ControllerBase
         _runner.Start(new VoiceoverJob(
             form.JobId, mode, srtPath!, videoPath, voice, workDir,
             form.MatchVoice,
-            Math.Clamp(form.RatePercent, -25, 25),
-            Math.Clamp(form.PitchPercent, -25, 25)), token);
+            Math.Clamp(form.RatePercent, -_s.MaxAdjustPercent, _s.MaxAdjustPercent),
+            Math.Clamp(form.PitchPercent, -_s.MaxAdjustPercent, _s.MaxAdjustPercent)), token);
         return Accepted(new { jobId = form.JobId });
     }
 
@@ -219,8 +225,7 @@ public class VoiceoverController : ControllerBase
         // The subtitle folder is flat, so only a bare file name is accepted.
         var safe = Path.GetFileName(name);
         if (!SubtitleExtensions.Contains(Path.GetExtension(safe)))
-            throw new ArgumentException("Only .srt and .vtt files are supported.");
-
+            throw new ArgumentException("Only " + string.Join(", ", SubtitleExtensions) + " files are supported.");
         var full = _paths.ResolveUnder(_s.SrtFolder, safe);
         if (!System.IO.File.Exists(full))
             throw new FileNotFoundException($"'{safe}' was not found in the subtitle folder.");

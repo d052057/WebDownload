@@ -7,9 +7,10 @@ import { Urlbase } from '../services/urlbase';
 import { FolderNodeComponent } from '../folder-node/folder-node.component';
 import { SearchBoxComponent } from '../shared/search-box/search-box.component';
 import { MediaFolderTreeDto, MediaTrackDto } from '../models/media-folder-tree.model';
+import { MenuOption } from '../models/menu.model';
 
 interface QualityOption { id: string; label: string; }
-interface SplitterConfig { menus: string[]; qualities: QualityOption[]; outputFolder: string; rpmFolder: string; }
+interface SplitterConfig { menus: MenuOption[]; qualities: QualityOption[]; outputFolder: string; rpmFolder: string; rpmMenu: string; }
 interface SplitterTree { menu: string; fileCount: number; folders: MediaFolderTreeDto[]; tracks: MediaTrackDto[]; }
 interface SearchHit { track: MediaTrackDto; folder: string; }
 interface DeviceInfo { device: 'cuda' | 'cpu'; name: string; note?: string | null; }
@@ -49,7 +50,8 @@ export class Splitter implements OnInit, OnDestroy {
   device = signal<DeviceInfo | null>(null);
   deviceLoading = signal(true);
 
-  menu = signal('movies');
+  // Name of the selected menu; set from the first menu the server offers.
+  menu = signal('');
   tree = signal<SplitterTree | null>(null);
   treeLoading = signal(false);
   // Text from the shared search box. The box keeps its own text, so this is never cleared from here.
@@ -72,15 +74,20 @@ export class Splitter implements OnInit, OnDestroy {
     this.logLines().length > 0 || !!this.stateText() || this.quality() !== 'standard');
   hint = computed(() => (this.selected() ? '' : 'Select a media file to enable the buttons.'));
 
-  // Header of the folder card: "Movies" / "Videos" / "RPM", with a count badge like "86 songs".
+  // Header of the folder card: the menu's title, with a count badge like "86 songs".
   menuTitle = computed(() => this.titleOf(this.menu()));
   countLabel = computed(() => {
     const n = this.tree()?.fileCount ?? 0;
-    const noun = this.menu() === 'rpm' ? 'song' : 'file';
+    const noun = this.isRpm() ? 'song' : 'file';
     return `${n} ${noun}${n === 1 ? '' : 's'}`;
   });
+  // The special menu built from the Rpm tables (its name comes from Splitter:RpmMenu); every other menu is a MediaMenu row.
+  isRpm = computed(() => {
+    const rpm = this.config()?.rpmMenu;
+    return !!rpm && this.menu().toLowerCase() === rpm.toLowerCase();
+  });
   folderPath = computed(() =>
-    this.menu() === 'rpm' ? `//medias/${this.config()?.rpmFolder ?? 'rpm'}` : `//medias/${this.menu()}`);
+    this.isRpm() ? `//medias/${this.config()?.rpmFolder ?? ''}` : `//medias/${this.menu()}`);
 
   // While something is typed in the search box, matches are shown as one flat list (with their folder
   // path) instead of the collapsed tree, so a hit is never hidden inside a closed folder.
@@ -125,8 +132,10 @@ export class Splitter implements OnInit, OnDestroy {
     this.http.get<SplitterConfig>(`${this.apiBase}/config`).subscribe({
       next: (cfg) => {
         this.config.set(cfg);
-        if (cfg.menus.length > 0) this.menu.set(cfg.menus[0]);
-        this.loadTree();
+        if (cfg.menus.length > 0) {
+          this.menu.set(cfg.menus[0].name);
+          this.loadTree();
+        }
       },
       error: (err) => console.error('Failed to load Splitter settings:', err)
     });
@@ -138,7 +147,7 @@ export class Splitter implements OnInit, OnDestroy {
   }
 
   titleOf(menu: string): string {
-    return menu === 'rpm' ? 'RPM' : menu.charAt(0).toUpperCase() + menu.slice(1);
+    return this.config()?.menus.find(m => m.name === menu)?.title ?? menu;
   }
 
   // ---- tree and hardware -------------------------------------------------------------------

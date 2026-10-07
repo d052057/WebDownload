@@ -10,6 +10,7 @@ namespace WebDownload.Server.Controllers;
 public class SplitterController : ControllerBase
 {
     private readonly SplitterSettings _s;
+    private readonly MenuService _menus;
     private readonly MediaTreeService _tree;
     private readonly MediaPathResolver _paths;
     private readonly DeviceDetector _device;
@@ -19,6 +20,7 @@ public class SplitterController : ControllerBase
 
     public SplitterController(
         IOptions<SplitterSettings> settings,
+        MenuService menus,
         MediaTreeService tree,
         MediaPathResolver paths,
         DeviceDetector device,
@@ -27,6 +29,7 @@ public class SplitterController : ControllerBase
         ILogger<SplitterController> logger)
     {
         _s = settings.Value;
+        _menus = menus;
         _tree = tree;
         _paths = paths;
         _device = device;
@@ -37,15 +40,16 @@ public class SplitterController : ControllerBase
 
     // GET api/splitter/config
     [HttpGet("config")]
-    public IActionResult GetConfig() => Ok(new SplitterConfigDto(
-        _s.GetMenus(),
+    public async Task<IActionResult> GetConfig(CancellationToken ct) => Ok(new SplitterConfigDto(
+        await _menus.GetForFilesAsync(_s.GetMediaExtensions(), _s.Menus, extra: _s.RpmMenu, ct),
         new[]
         {
-            new SplitterQualityDto("standard", "Standard (faster)"),
-            new SplitterQualityDto("high", "High (about 4 times slower)")
+            new SplitterQualityDto("standard", _s.StandardQualityLabel),
+            new SplitterQualityDto("high", _s.HighQualityLabel)
         },
         _s.OutputFolder.Replace('\\', '/'),
-        (_s.RpmFolder ?? "").Replace('\\', '/').Trim('/')));
+        (_s.RpmFolder ?? "").Replace('\\', '/').Trim('/'),
+        _s.RpmMenu ?? ""));
 
     // GET api/splitter/hardware?refresh=true
     // The first call can take a few seconds (PyTorch is loaded to ask it); the answer is then cached.
@@ -53,7 +57,7 @@ public class SplitterController : ControllerBase
     public async Task<IActionResult> GetHardware([FromQuery] bool refresh, CancellationToken ct) =>
         Ok(await _device.GetAsync(refresh, ct));
 
-    // GET api/splitter/tree?menu=movies   (menu: movies | videos | rpm)
+    // GET api/splitter/tree?menu=movies   (menu: any MediaMenu name, or the Splitter:RpmMenu name)
     // Folder names and file lists only, shaped for the folder-node component.
     [HttpGet("tree")]
     public async Task<IActionResult> GetTree([FromQuery] string menu, CancellationToken ct)

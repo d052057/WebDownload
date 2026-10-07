@@ -8,6 +8,7 @@ import { BehaviorSubject } from 'rxjs';
 import { LinebreakPipe } from '../pipes/linebreak.pipe';
 import { signal } from '@angular/core';
 import { Urlbase } from '../services/urlbase';
+import { MenuOption } from '../models/menu.model';
 @Component({
   imports: [FormsModule, LinebreakPipe, AsyncPipe],
   selector: 'app-ytdlp',
@@ -21,6 +22,7 @@ export class Ytdlp {
   private http = inject(HttpClient);
   private urlbase = inject(Urlbase);
   private apiBase!: string;
+  private basePrefix = '';
 
   private outputSubject = new BehaviorSubject<string[]>([]);
   output$ = this.outputSubject.asObservable();
@@ -37,7 +39,9 @@ export class Ytdlp {
   chkAudio: boolean = false;
   checkAudioChapter: boolean = true;
   selectedAudioFormat: string = 'flac';
-  selectedMenuValue: string = "MOVIES";
+  // The folder choices come from the MediaMenu table (GET api/Menus); the first one is selected once loaded.
+  menus: MenuOption[] = [];
+  selectedMenuValue: string = "";
   chkVideo: boolean = true;
   chKSubTitleInclude: boolean = true;
   chapter = signal<string[]>([]);
@@ -277,7 +281,21 @@ export class Ytdlp {
 
   constructor() {
     const segment = this.urlbase.baseUrl();
-    this.apiBase = segment ? `/${segment}/api/YtDlpConfig` : '/api/YtDlpConfig';
+    this.basePrefix = segment ? `/${segment}` : '';
+    this.apiBase = `${this.basePrefix}/api/YtDlpConfig`;
+  }
+
+  private loadMenus(): void {
+    this.http.get<MenuOption[]>(`${this.basePrefix}/api/Menus`).subscribe({
+      next: (menus) => {
+        this.menus = menus;
+        if (!menus.some(m => m.name === this.selectedMenuValue)) {
+          this.selectedMenuValue = menus[0]?.name ?? '';
+        }
+        this.cdr.detectChanges();
+      },
+      error: (err) => console.error('Failed to load the menu list:', err)
+    });
   }
 
   private loadDragDropArgs(): void {
@@ -318,6 +336,7 @@ export class Ytdlp {
 
   ngOnInit(): void {
     this.loadDragDropArgs();
+    this.loadMenus();
 
     // Initialize SignalR connection
     this.signalRService.startConnection().then(() => {

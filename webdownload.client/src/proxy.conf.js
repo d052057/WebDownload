@@ -5,10 +5,15 @@ const target = env.ASPNETCORE_HTTPS_PORT ? `https://127.0.0.1:${env.ASPNETCORE_H
 
 const PROXY_CONFIG = [
   {
+    // The app is served under baseHref "/webdownload/", so the client calls the hubs as
+    // /webdownload/downloadHub etc. Both forms are listed; pathRewrite strips the prefix.
     context: [
       "/downloadHub",
       "/convertHub",
       "/splitterHub",
+      "/webdownload/downloadHub",
+      "/webdownload/convertHub",
+      "/webdownload/splitterHub",
     ],
     target,
     secure: false,
@@ -20,6 +25,14 @@ const PROXY_CONFIG = [
     target,
     secure: false,
     changeOrigin: true
+  },
+  {
+    // Finished voiceover / splitter files and downloads are served by the server at /medias.
+    context: ["/webdownload/medias"],
+    target,
+    secure: false,
+    changeOrigin: true,
+    pathRewrite: { "^/webdownload": "" },
   },
   {
     context: ["/webdownload/api"],

@@ -2,9 +2,8 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
-using WebDownload.Server.Models;
 
-namespace WebDownloade.Server.Models;
+namespace WebDownload.Server.Models;
 
 public partial class MediaMenu
 {

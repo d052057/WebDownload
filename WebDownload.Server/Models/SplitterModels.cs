@@ -32,10 +32,11 @@ public record DeviceInfo(string Device, string Name, string? Note);
 public record SplitterQualityDto(string Id, string Label);
 
 public record SplitterConfigDto(
-    IReadOnlyList<string> Menus,
+    IReadOnlyList<WebDownload.Server.Services.MenuItemDto> Menus,
     IReadOnlyList<SplitterQualityDto> Qualities,
     string OutputFolder,
-    string RpmFolder);
+    string RpmFolder,
+    string RpmMenu);
 
 // The folder tree the page shows. These serialize to exactly the shape of the Angular
 // MediaFolderTreeDto / MediaTrackDto (media-folder-tree.model.ts), so the existing

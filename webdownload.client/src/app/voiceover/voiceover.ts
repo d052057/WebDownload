@@ -9,6 +9,7 @@ import { Urlbase } from '../services/urlbase';
 import { FolderNodeComponent } from '../folder-node/folder-node.component';
 import { SearchBoxComponent } from '../shared/search-box/search-box.component';
 import { MediaFolderTreeDto, MediaTrackDto } from '../models/media-folder-tree.model';
+import { MenuOption } from '../models/menu.model';
 
 interface SrtFile { name: string; type: string; sizeBytes: number; modifiedUtc: string; }
 interface VideoTree { menu: string; fileCount: number; folders: MediaFolderTreeDto[]; tracks: MediaTrackDto[]; }
@@ -17,10 +18,13 @@ interface VoiceOption { id: string; label: string; }
 interface VoiceoverConfig {
   voices: VoiceOption[];
   defaultVoice: string;
-  menus: string[];
+  menus: MenuOption[];
   srtFolder: string;
   outputFolder: string;
   videoExtensions: string[];
+  subtitleExtensions: string[];
+  maxAdjustPercent: number;
+  matchVoiceByDefault: boolean;
 }
 interface JobUpdate {
   jobId: string;
@@ -64,7 +68,8 @@ export class Voiceover implements OnInit, OnDestroy {
   selectedSrt = signal<SrtFile | null>(null);
   uploadedSrt = signal<File | null>(null);
 
-  videoMenu = signal('movies');
+  // Name of the selected MediaMenu menu; set from the first menu the server offers.
+  videoMenu = signal('');
   tree = signal<VideoTree | null>(null);
   treeLoading = signal(false);
   // Text from the shared search box. The box keeps its own text, so it is never cleared from here.
@@ -96,7 +101,7 @@ export class Voiceover implements OnInit, OnDestroy {
   canReset = computed(() =>
     this.isRunning() || this.hasSrt() || this.hasVideo() || !!this.result() ||
     !!this.errorMessage() || this.logLines().length > 0 || !!this.stateText() ||
-    !this.matchVoice() || this.ratePercent() !== 0 || this.pitchPercent() !== 0);
+    this.matchVoice() !== (this.config()?.matchVoiceByDefault ?? true) || this.ratePercent() !== 0 || this.pitchPercent() !== 0);
 
   hint = computed(() => {
     if (!this.hasSrt() && !this.hasVideo()) return 'Select a subtitle file and a video file to enable conversion.';
@@ -105,9 +110,13 @@ export class Voiceover implements OnInit, OnDestroy {
     return '';
   });
 
+  subtitleAllowed = computed(() => this.config()?.subtitleExtensions ?? ['.srt', '.vtt']);
+  subtitleAccept = computed(() => this.subtitleAllowed().join(','));
+  maxAdjust = computed(() => this.config()?.maxAdjustPercent ?? 25);
+
   videoAccept = computed(() => (this.config()?.videoExtensions ?? ['.mp4']).join(','));
 
-  // Header of the folder card: "Movies" / "Videos" with a count badge.
+  // Header of the folder card: the menu's title with a count badge.
   menuTitle = computed(() => this.titleOf(this.videoMenu()));
   countLabel = computed(() => {
     const n = this.tree()?.fileCount ?? 0;
@@ -158,8 +167,11 @@ export class Voiceover implements OnInit, OnDestroy {
       next: (cfg) => {
         this.config.set(cfg);
         this.voice.set(cfg.defaultVoice);
-        if (cfg.menus.length > 0) this.videoMenu.set(cfg.menus[0]);
-        this.loadTree();
+        this.matchVoice.set(cfg.matchVoiceByDefault);
+        if (cfg.menus.length > 0) {
+          this.videoMenu.set(cfg.menus[0].name);
+          this.loadTree();
+        }
       },
       error: (err) => console.error('Failed to load Voiceover settings:', err)
     });
@@ -193,7 +205,7 @@ export class Voiceover implements OnInit, OnDestroy {
   }
 
   titleOf(menu: string): string {
-    return menu.charAt(0).toUpperCase() + menu.slice(1);
+    return this.config()?.menus.find(m => m.name === menu)?.title ?? menu;
   }
 
   setMenu(menu: string): void {
@@ -242,9 +254,9 @@ export class Voiceover implements OnInit, OnDestroy {
   }
 
   private acceptSrt(file: File): void {
-    const ext = this.extensionOf(file.name);
-    if (ext !== '.srt' && ext !== '.vtt') {
-      this.inputError.set('Subtitle files must be .srt or .vtt.');
+    const allowed = this.subtitleAllowed();
+    if (!allowed.includes(this.extensionOf(file.name))) {
+      this.inputError.set(`Subtitle files must be ${allowed.join(' or ')}.`);
       return;
     }
     this.uploadedSrt.set(file);
@@ -441,11 +453,11 @@ export class Voiceover implements OnInit, OnDestroy {
     this.uploadedVideo.set(null);
     this.jobId = null;
 
-    // Back to the defaults: voice matching on, sliders centred, default voice.
-    this.matchVoice.set(true);
+    // Back to the defaults: voice matching as configured, sliders centred, default voice.
+    const cfg = this.config();
+    this.matchVoice.set(cfg?.matchVoiceByDefault ?? true);
     this.ratePercent.set(0);
     this.pitchPercent.set(0);
-    const cfg = this.config();
     if (cfg) this.voice.set(cfg.defaultVoice);
   }
 

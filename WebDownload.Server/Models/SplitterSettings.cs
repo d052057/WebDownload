@@ -33,8 +33,18 @@ public class SplitterSettings
     // and holds its track files; the Rpm / RpmTrack tables store the album folder name and the file names.
     public string RpmFolder { get; set; } = @"musics\rpm";
 
-    // Menus shown in the list: MediaMenu.Menu values ("movies", "videos") plus the special "rpm".
+    // OPTIONAL allow-list of MediaMenu.Menu names. Leave empty and the page offers every menu in the
+    // MediaMenu table that holds files with one of VideoExtensions / AudioExtensions.
     public List<string>? Menus { get; set; }
+
+    // The extra, special menu that is built from the Rpm / RpmTrack tables rather than MediaMenu.
+    // It is added to the menu list under this name. Set it to "" to turn the rpm menu off.
+    public string RpmMenu { get; set; } = "rpm";
+
+    // The two choices of the quality select. The ids are fixed ("standard" and "high" map to
+    // StandardModel and HighQualityModel); only the labels are settings.
+    public string StandardQualityLabel { get; set; } = "Standard (faster)";
+    public string HighQualityLabel { get; set; } = "High (about 4 times slower)";
     public List<string>? VideoExtensions { get; set; }   // files that have a picture
     public List<string>? AudioExtensions { get; set; }   // audio-only files (no video is built for these)
 
@@ -55,11 +65,9 @@ public class SplitterSettings
     public int MaxConcurrentJobs { get; set; } = 1;
     public int HardwareCheckTimeoutSeconds { get; set; } = 60;
 
-    private static readonly string[] DefaultMenus = { "movies", "videos", "rpm" };
     private static readonly string[] DefaultVideoExtensions = { ".mp4", ".m4v", ".mov", ".mkv", ".webm" };
     private static readonly string[] DefaultAudioExtensions = { ".mp3", ".flac", ".wav", ".m4a", ".aac", ".ogg", ".wma", ".aiff" };
 
-    public IReadOnlyList<string> GetMenus() => Menus is { Count: > 0 } ? Menus : DefaultMenus;
     public IReadOnlyList<string> GetVideoExtensions() => VideoExtensions is { Count: > 0 } ? VideoExtensions : DefaultVideoExtensions;
     public IReadOnlyList<string> GetAudioExtensions() => AudioExtensions is { Count: > 0 } ? AudioExtensions : DefaultAudioExtensions;
 

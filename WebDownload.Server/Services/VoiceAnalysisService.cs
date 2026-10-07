@@ -122,7 +122,7 @@ public sealed class VoiceAnalysisService
             isMale[i] = carry;
         }
 
-        // Pitch offset per voice, relative to 120 Hz (male) or 210 Hz (female): the WPF formula.
+        // Pitch offset per voice, relative to Voiceover:MaleBaselineHz / FemaleBaselineHz (120 / 210 Hz by default).
         var maleHz = Average(cuePitch, isMale, wantMale: true);
         var femaleHz = Average(cuePitch, isMale, wantMale: false);
 
@@ -133,8 +133,8 @@ public sealed class VoiceAnalysisService
             unclear,
             maleHz,
             femaleHz,
-            maleHz is { } m ? OffsetPercent(m, 120) : 0,
-            femaleHz is { } f ? OffsetPercent(f, 210) : 0);
+            maleHz is { } m ? OffsetPercent(m, _s.MaleBaselineHz) : 0,
+            femaleHz is { } f ? OffsetPercent(f, _s.FemaleBaselineHz) : 0);
     }
 
     private static double? Average(double?[] cuePitch, bool[] isMale, bool wantMale)
@@ -145,8 +145,8 @@ public sealed class VoiceAnalysisService
         return values.Count == 0 ? null : values.Average();
     }
 
-    private static int OffsetPercent(double hz, double baseHz) =>
-        Math.Clamp((int)((hz - baseHz) / baseHz * 100), -25, 25);
+    private int OffsetPercent(double hz, double baseHz) =>
+        Math.Clamp((int)((hz - baseHz) / baseHz * 100), -_s.MaxAdjustPercent, _s.MaxAdjustPercent);
 
     private static double? MedianPitch(byte[] bytes, int count, CancellationToken ct)
     {
@@ -213,8 +213,8 @@ public sealed class VoiceAnalysisService
         if (pitches.Count == 0) return null;
 
         var average = pitches.Average();
-        var male = average < 165;
-        var offsetPercent = male ? (average - 120) / 120 * 100 : (average - 210) / 210 * 100;
-        return new VoiceAnalysis(male, average, Math.Clamp((int)offsetPercent, -25, 25));
+        var male = average < _s.GenderThresholdHz;
+        var baseline = male ? _s.MaleBaselineHz : _s.FemaleBaselineHz;
+        return new VoiceAnalysis(male, average, OffsetPercent(average, baseline));
     }
 }

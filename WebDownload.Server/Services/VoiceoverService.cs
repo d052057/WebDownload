@@ -28,9 +28,6 @@ public sealed class VoiceoverService
     private static readonly Regex LangSuffix =
         new(@"\.[a-z]{2,3}(-[a-z]{2,4})?$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-    // Edge TTS returns 24 kHz mono audio (the WPF app assumed the same).
-    private const int TtsSampleRate = 24000;
-
     private readonly VoiceoverSettings _s;
     private readonly FfmpegRunner _ffmpeg;
     private readonly VoiceAnalysisService _analysis;
@@ -220,7 +217,7 @@ public sealed class VoiceoverService
 
                 var afterRate = natural / rateFactor;
                 var fit = afterRate > slot * 1.02 ? afterRate / slot : 1.0;
-                var tempo = Math.Clamp(rateFactor * fit, 0.5, _s.MaxSpeedUp);
+                var tempo = Math.Clamp(rateFactor * fit, _s.MinClipTempo, _s.MaxSpeedUp);
 
                 if (Math.Abs(tempo - 1.0) > 0.005 || Math.Abs(cuePitch - 1.0) > 0.001)
                 {
@@ -341,13 +338,13 @@ public sealed class VoiceoverService
         if (Math.Abs(pitch - 1.0) > 0.001)
         {
             // Relabelling the sample rate shifts pitch, but speeds the clip up by the same factor.
-            parts.Add($"aresample={TtsSampleRate}");
-            parts.Add($"asetrate={F(TtsSampleRate * pitch)}");
+            parts.Add($"aresample={_s.TtsSampleRate}");
+            parts.Add($"asetrate={F(_s.TtsSampleRate * pitch)}");
             parts.Add($"aresample={_s.SampleRate}");
             tempo /= pitch; // take that side effect back out, so the clip keeps its fitted length
         }
 
-        tempo = Math.Clamp(tempo, 0.25, 4.0);
+        tempo = Math.Clamp(tempo, _s.MinFilterTempo, _s.MaxFilterTempo);
         if (Math.Abs(tempo - 1.0) > 0.005)
             parts.Add(TempoFilter(tempo));
 

@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using WebDownloade.Server.Models;
 namespace WebDownload.Server.Models;
 public partial class DBWebDownload : DbContext
 {

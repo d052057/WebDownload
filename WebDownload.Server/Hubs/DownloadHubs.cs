@@ -17,8 +17,7 @@ namespace WebDownload.Server.Hubs
         private readonly Regex rgxFilePostProc = new Regex(@"\[download\] Destination:\s+(?<downloadFileName>.+)");
         private readonly Regex rgxExtractAudio = new Regex(@"\[ExtractAudio\] Destination:\s+(?<downloadFileName>.+)");
         private readonly Regex rgxChapterAudio = new Regex(@"\[SplitChapters\] Chapter 0*\d{1,3};\s+Destination:\s+(?<ChapterFileName>.+)");
-        private static readonly HashSet<string> SubtitleFileExtensions =
-            new(StringComparer.OrdinalIgnoreCase) { ".srt", ".vtt", ".ass", ".ssa", ".sbv", ".ttml" };
+        private readonly HashSet<string> SubtitleFileExtensions;
 
         private readonly Regex rgxMerger = new Regex(@"\[Merger\] Merging formats into ""(?<downloadFileName>.+)""");
         private readonly Regex regex = new Regex(@"\[download\]\s+(?<progress>[\d.]+%) of\s+~?\s*(?<totalSize>[\d.\w]+) at\s+(?<speed>[\d.\w/]+)\s+ETA\s+(?<eta>[\w\d:]+)(\s\(frag (?<fragNumber>\d{1,3}/\d{1,3})\))?");
@@ -29,8 +28,7 @@ namespace WebDownload.Server.Hubs
         private readonly IOptions<ApplicationSettings> _appSettings;
         private readonly YtDlpSettings _ytDlpSettings;
 
-        private static readonly HashSet<string> VideoFileExtensions =
-            new(StringComparer.OrdinalIgnoreCase) { ".mp4", ".mkv", ".webm", ".mov", ".avi", ".flv", ".m4v" };
+        private readonly HashSet<string> VideoFileExtensions;
 
         public DownloadHub(
             IHttpClientFactory httpClientFactory,
@@ -48,6 +46,8 @@ namespace WebDownload.Server.Hubs
             _subtitleSettings = subtitleSettings;
             _appSettings = appSettings;
             _ytDlpSettings = ytDlpSettings.Value;
+            SubtitleFileExtensions = new HashSet<string>(_ytDlpSettings.GetSubtitleFileExtensions(), StringComparer.OrdinalIgnoreCase);
+            VideoFileExtensions = new HashSet<string>(_ytDlpSettings.GetVideoFileExtensions(), StringComparer.OrdinalIgnoreCase);
         }
 
         public string GetConnectionId() => Context.ConnectionId;

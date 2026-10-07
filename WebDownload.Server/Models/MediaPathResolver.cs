@@ -11,9 +11,11 @@ namespace WebDownload.Server.Services;
 public sealed class MediaPathResolver
 {
     public string MediaRoot { get; }
+    public string RequestPath { get; }
 
     public MediaPathResolver(IOptions<ApplicationSettings> app)
     {
+        RequestPath = "/" + (app.Value.MediaRequestPath ?? "/medias").Trim('/');
         var drive = app.Value.MediaDrive;
         if (string.IsNullOrWhiteSpace(drive))
             throw new InvalidOperationException("ApplicationSettings:MediaDrive is not configured.");
@@ -44,11 +46,11 @@ public sealed class MediaPathResolver
         return path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase);
     }
 
-    // "/medias/..." URL (before the app's path base) for a file under the media drive, or null.
+    // "<MediaRequestPath>/..." URL (before the app's path base) for a file under the media drive, or null.
     public string? ToMediaUrl(string fullPath)
     {
         if (!IsUnder(MediaRoot, fullPath)) return null;
         var relative = Path.GetRelativePath(MediaRoot, fullPath).Replace('\\', '/');
-        return "/medias/" + string.Join('/', relative.Split('/').Select(Uri.EscapeDataString));
+        return RequestPath + "/" + string.Join('/', relative.Split('/').Select(Uri.EscapeDataString));
     }
 }

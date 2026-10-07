@@ -14,10 +14,13 @@ public record VideoFileItem(Guid Id, string FileName, string Folder, string Rela
 public record VoiceoverConfigDto(
     IReadOnlyList<VoiceoverVoice> Voices,
     string DefaultVoice,
-    IReadOnlyList<string> Menus,
+    IReadOnlyList<WebDownload.Server.Services.MenuItemDto> Menus,
     string SrtFolder,
     string OutputFolder,
-    IReadOnlyList<string> VideoExtensions);
+    IReadOnlyList<string> VideoExtensions,
+    IReadOnlyList<string> SubtitleExtensions,
+    int MaxAdjustPercent,
+    bool MatchVoiceByDefault);
 
 // Everything the background job needs. Paths are already resolved and checked by the controller.
 public record VoiceoverJob(

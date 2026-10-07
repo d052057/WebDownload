@@ -139,5 +139,19 @@ namespace WebDownload.Server.Models
 
         // Used for any output container not listed in EmbedSubtitleCodecByExtension.
         public string EmbedSubtitleDefaultCodec { get; set; } = "srt";
+
+        // Subtitle files DownloadHub moves / translates after a download.
+        // List-valued, so null by default and read through the Get*() methods: configuration binding
+        // appends to a list that already has items.
+        public List<string>? SubtitleFileExtensions { get; set; }
+
+        // Video containers DownloadHub looks for when it embeds subtitles.
+        public List<string>? VideoFileExtensions { get; set; }
+
+        public IReadOnlyList<string> GetSubtitleFileExtensions() =>
+            SubtitleFileExtensions is { Count: > 0 } ? SubtitleFileExtensions : new[] { ".srt", ".vtt", ".ass", ".ssa", ".sbv", ".ttml" };
+
+        public IReadOnlyList<string> GetVideoFileExtensions() =>
+            VideoFileExtensions is { Count: > 0 } ? VideoFileExtensions : new[] { ".mp4", ".mkv", ".webm", ".mov", ".avi", ".flv", ".m4v" };
     }
 }

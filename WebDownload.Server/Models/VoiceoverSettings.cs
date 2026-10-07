@@ -26,7 +26,8 @@ public class VoiceoverSettings
     // Scratch space for uploads and the in-progress audio. Empty = system temp folder.
     public string TempFolder { get; set; } = "";
 
-    // MediaMenu.Menu values shown in the mp4 list.
+    // OPTIONAL allow-list of MediaMenu.Menu names. Leave empty and the page offers every menu in the
+    // MediaMenu table that actually holds files with one of VideoExtensions.
     public List<string>? Menus { get; set; }
     public List<string>? VideoExtensions { get; set; }
     public List<VoiceoverVoice>? Voices { get; set; }
@@ -64,12 +65,33 @@ public class VoiceoverSettings
     public int MaxSynthesisRetries { get; set; } = 3;
     public int MaxConcurrentJobs { get; set; } = 1;
 
+    // Subtitle files the srt list and the upload box accept.
+    public List<string>? SubtitleExtensions { get; set; }
+
+    // Rate / pitch sliders and the automatic voice matching are all limited to +/- this many percent.
+    public int MaxAdjustPercent { get; set; } = 25;
+
+    // The sample rate Edge TTS returns. Only used when pitch is shifted by relabelling the rate.
+    public int TtsSampleRate { get; set; } = 24000;
+
+    // Voice matching: the pitch (Hz) each detected voice is measured against to work out its pitch offset.
+    public int MaleBaselineHz { get; set; } = 120;
+    public int FemaleBaselineHz { get; set; } = 210;
+
+    // Starting state of the "Match the voice to the video" checkbox.
+    public bool MatchVoiceByDefault { get; set; } = true;
+
+    // Limits for the tempo (speed) factor applied to a single clip.
+    public double MinClipTempo { get; set; } = 0.5;
+    public double MaxFilterTempo { get; set; } = 4.0;
+    public double MinFilterTempo { get; set; } = 0.25;
+
     public string VoiceTrackTitle { get; set; } = "Khmer";
     public string OriginalTrackTitle { get; set; } = "Original";
     public string VoiceLanguageCode { get; set; } = "khm";
     public bool MakeVoiceTrackDefault { get; set; } = true;
 
-    private static readonly string[] DefaultMenus = { "movies", "videos" };
+    private static readonly string[] DefaultSubtitleExtensions = { ".srt", ".vtt" };
     private static readonly string[] DefaultVideoExtensions = { ".mp4", ".m4v", ".mov", ".mkv", ".webm" };
     private static readonly VoiceoverVoice[] DefaultVoices =
     {
@@ -84,7 +106,7 @@ public class VoiceoverSettings
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-    public IReadOnlyList<string> GetMenus() => Menus is { Count: > 0 } ? Menus : DefaultMenus;
+    public IReadOnlyList<string> GetSubtitleExtensions() => SubtitleExtensions is { Count: > 0 } ? SubtitleExtensions : DefaultSubtitleExtensions;
     public IReadOnlyList<string> GetVideoExtensions() => VideoExtensions is { Count: > 0 } ? VideoExtensions : DefaultVideoExtensions;
     public IReadOnlyList<VoiceoverVoice> GetVoices() => Voices is { Count: > 0 } ? Voices : DefaultVoices;
 
