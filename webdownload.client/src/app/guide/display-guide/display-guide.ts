@@ -78,16 +78,17 @@ export class DisplayGuide implements OnInit {
     });
   }
   loadJs(feature: string) {
-    let jsFile = feature + '.js';
-    const scriptSrc = 'assets/guide/' + feature + '/' + jsFile;
-    for (const c of this.js) {
-      if (c === jsFile) {
+    const encodedFeature = encodeURIComponent(feature);
+    let jsFile = encodedFeature + '.js';
+    const scriptSrc = 'assets/guide/' + encodedFeature + '/' + jsFile;
+    //for (const c of this.js) {
+    //  if (c === jsFile) {
         const script = this.document.createElement('script');
         script.type = 'text/javascript';
         script.src = scriptSrc;
         script.async = true;
         this.document.head.appendChild(script);
       }
-    }
-  }
+  //  }
+  //}
 }

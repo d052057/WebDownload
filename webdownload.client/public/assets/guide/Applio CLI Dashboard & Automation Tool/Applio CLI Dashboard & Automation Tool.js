@@ -1,15 +1,19 @@
-function copyToClipboard(id, element) {
+// Attach to window so dynamically injected HTML 'onclick' attributes can find it
+window.copyToClipboard = function (id, element) {
+  // If element wasn't passed directly, find it via event context or fallback
+  const targetElement = element || window.event.target;
   const textToCopy = document.getElementById(id).innerText;
+
   navigator.clipboard.writeText(textToCopy).then(() => {
-    const originalText = element.innerText;
-    element.innerText = "✓ Copied!";
-    element.classList.remove('btn-success');
-    element.classList.add('btn-light', 'text-dark');
+    const originalText = targetElement.innerText;
+    targetElement.innerText = "✓ Copied!";
+    targetElement.classList.remove('btn-success');
+    targetElement.classList.add('btn-light', 'text-dark');
 
     setTimeout(() => {
-      element.innerText = originalText;
-      element.classList.remove('btn-light', 'text-dark');
-      element.classList.add('btn-success');
+      targetElement.innerText = originalText;
+      targetElement.classList.remove('btn-light', 'text-dark');
+      targetElement.classList.add('btn-success');
     }, 1800);
   }).catch(err => {
     console.error('Copy execution script failed: ', err);
