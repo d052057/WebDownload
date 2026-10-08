@@ -1,0 +1,142 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Applio MP4 Voice Swap Dashboard (Keep Music)</title>
+    <!-- Bootstrap 5 dark theme CSS CDN -->
+    <link href="https://jsdelivr.net" rel="stylesheet">
+    <style>
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        .card {
+            background-color: #1e1e1e;
+            border: 1px solid #2d2d2d;
+        }
+
+        code {
+            font-family: 'Consolas', 'Courier New', monospace;
+            color: #f8f9fa;
+            font-size: 0.9rem;
+        }
+
+        .code-block-wrapper {
+            background-color: #0b0b0b;
+            border-left: 4px solid #198754;
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container my-5">
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col">
+                <h1 class="text-success fw-bold">Applio MP4 Voice Swap Dashboard (Keep Music)</h1>
+                <p class="text-muted">Extracts vocals from an existing MP4, replaces them with your AI model voice, and mixes it back with the original background audio track.</p>
+            </div>
+        </div>
+
+        <!-- MAIN PIPELINE SCRIPT -->
+        <div class="row mb-5">
+            <div class="col-12">
+                <div class="card shadow">
+                    <div class="card-header bg-success text-white fw-bold d-flex align-items-center">
+                        <span class="fs-5">🎵 Full Split-Inference-Merge Pipeline Script</span>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text text-muted">Place your <code>original.mp4</code> inside Applio's <code>assets\audios</code> folder. Fine-tune your paths and volume variables below, copy the batch script, and execute it in your terminal window.</p>
+
+                        <div class="code-block-wrapper p-3 rounded d-flex align-items-center justify-content-between">
+                            <code id="pipelineCode">
+                                @echo off
+                                :: =========================================================
+                                ::             PATHS, VOLUMES & VIDEO VARIABLES
+                                :: =========================================================
+                                set APPLIO_DIR=c:\tools\applio
+                                set MODEL_NAME=MyCustomVoice
+
+                                :: --- Audio & Video Configuration ---
+                                set ORIGINAL_VIDEO=assets\audios\original.mp4
+                                set EXTRACTED_VOCALS=assets\audios\extracted_vocals.wav
+                                set CONVERTED_AI_VOCALS=assets\audios\temp_boosted_ai_vocals.wav
+                                set FINAL_OUTPUT_VIDEO=assets\audios\final_replaced_cover.mp4
+
+                                :: --- Voice Tuning Parameters ---
+                                set PITCH_CHANGE=0
+                                set PITCH_ALGO=rmvpe
+                                set INDEX_RATE=0.75
+
+                                :: --- Volume Boost Control ---
+                                :: (Increase this number to make your AI voice stand out more over the music)
+                                set VOLUME_BOOST=6.0
+
+                                :: =========================================================
+                                ::                    EXECUTE PIPELINE
+                                :: =========================================================
+                                echo [Processing] Navigating to Applio directory...
+                                cd /d "%APPLIO_DIR%"
+
+                                echo [Processing] Step 1: Isolating original vocals from MP4 audio stream...
+                                :: Uses FFmpeg's built-in pan-pass filters to isolate center-channel vocals
+                                ffmpeg -i "%ORIGINAL_VIDEO%" -af "pan=mono|c0=c0-c1" "%EXTRACTED_VOCALS%" -y
+
+                                echo [Processing] Step 2: Passing extracted vocals through Applio AI Voice Model...
+                                env\python.exe core.py infer --model_name "%MODEL_NAME%.pth" --index_path "logs\%MODEL_NAME%\added_index.index" --input_path "%EXTRACTED_VOCALS%" --output_path "%CONVERTED_AI_VOCALS%" --output_gain %VOLUME_BOOST% --pitch_change %PITCH_CHANGE% --pitch_algorithm "%PITCH_ALGO%" --index_rate %INDEX_RATE%
+
+                                echo [Processing] Step 3: Merging new AI voice back into MP4 with original audio beds...
+                                :: Strips original center voice frequencies from the source video audio channel, then layers in the boosted AI voice
+                                ffmpeg -i "%ORIGINAL_VIDEO%" -i "%CONVERTED_AI_VOCALS%" -filter_complex "[0:a]pan=stereo|c0=c0|c1=c1[bg]; [bg][1:a]amix=inputs=2:duration=first:dropout_transition=2[audio_out]" -map 0:v:0 -map "[audio_out]" -c:v copy -c:a aac -b:a 192k "%FINAL_OUTPUT_VIDEO%" -y
+
+                                echo.
+                                echo =======================================================
+                                echo Success! Your final video track with replaced vocals is ready:
+                                echo "%APPLIO_DIR%\%FINAL_OUTPUT_VIDEO%"
+                                echo =======================================================
+                                pause
+                            </code>
+                            <button class="btn btn-success btn-sm ms-3 flex-shrink-0 fw-bold" onclick="copyToClipboard('pipelineCode', this)">Copy Full Script</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Troubleshooting Information -->
+        <div class="row">
+            <div class="col">
+                <div class="card bg-dark text-light border-secondary">
+                    <div class="card-body">
+                        <h5 class="card-title fw-semibold text-warning">💡 Expert Separation Note</h5>
+                        <p class="card-text small text-muted mb-0">The FFmpeg command uses standard phase inversion math (Step 1) to drop center frequencies to isolate the voice. For studio-grade separation, consider processing your video first through Applio's internal <strong>UVR (Ultimate Vocal Remover) / KaraFan</strong> tab to split the acapella and instrumental tracks down cleanly before performing the final audio remuxing step!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    function copyToClipboard(id, element) {
+            const textToCopy = document.getElementById(id).innerText;
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                const originalText = element.innerText;
+                element.innerText = "✓ Copied!";
+                element.classList.remove('btn-success');
+                element.classList.add('btn-light', 'text-dark');
+
+                setTimeout(() => {
+                    element.innerText = originalText;
+                    element.classList.remove('btn-light');
+                    element.classList.add('btn-success');
+                }, 1800);
+            }).catch(err => {
+                console.error('Copy script execution failed: ', err);
+            });
+        }</script>
+</body>
+</html>

@@ -1,0 +1,155 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Applio Windows Batch CLI Helper</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+            padding: 30px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #5cafff;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+        }
+
+        h2 {
+            color: #4ade80;
+            margin-top: 30px;
+        }
+
+        p {
+            line-height: 1.6;
+            color: #b3b3b3;
+        }
+
+        .step-container {
+            background-color: #262626;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        .code-box {
+            display: flex;
+            align-items: center;
+            background-color: #0d0d0d;
+            border-left: 4px solid #5cafff;
+            padding: 12px;
+            border-radius: 4px;
+            margin-top: 10px;
+            position: relative;
+        }
+
+        code {
+            font-family: 'Consolas', 'Courier New', Courier, monospace;
+            color: #f1f1f1;
+            font-size: 14px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            flex-grow: 1;
+        }
+
+        .copy-btn {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            padding: 8px 14px;
+            font-size: 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+            margin-left: 15px;
+            white-space: nowrap;
+        }
+
+            .copy-btn:hover {
+                background-color: #2563eb;
+            }
+
+            .copy-btn:active {
+                background-color: #1d4ed8;
+            }
+
+        .note {
+            font-size: 13px;
+            color: #ffa94d;
+            margin-top: 5px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Applio CLI Steps & Volume Controls (.BAT Native)</h1>
+    <p>Use these backend commands if the web UI goes offline, freezes, or fails to render. Open a standard command prompt (CMD) inside your Applio folder before running them.</p>
+
+    <!-- STEP 1 -->
+    <div class="step-container">
+        <h2>Step 1: Pre-process Dataset</h2>
+        <p>Pre-processes your clean voice recordings located in your dataset folder, matching them to a target sample rate.</p>
+        <div class="code-box">
+            <code id="code1">env\python.exe core.py preprocess --model_name "MyVoice" --dataset_path "assets\datasets\MyVoice" --sampling_rate 40000</code>
+            <button class="copy-btn" onclick="copyToClipboard('code1')">Copy Command</button>
+        </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="step-container">
+        <h2>Step 2: Extract Features & Pitch</h2>
+        <p>Extracts essential pitch information using the highly recommended RMVPE algorithm.</p>
+        <div class="code-box">
+            <code id="code2">env\python.exe core.py extract --model_name "MyVoice" --rvc_version "v2" --pitch_algorithm "rmvpe"</code>
+            <button class="copy-btn" onclick="copyToClipboard('code2')">Copy Command</button>
+        </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="step-container">
+        <h2>Step 3: Run Model Training</h2>
+        <p>Launches core backend training. Set total epochs (e.g., 200) and batch size according to your graphics card capability.</p>
+        <div class="code-box">
+            <code id="code3">env\python.exe core.py train --model_name "MyVoice" --total_epochs 200 --batch_size 4 --save_every_epoch 10</code>
+            <button class="copy-btn" onclick="copyToClipboard('code3')">Copy Command</button>
+        </div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="step-container">
+        <h2>Step 4: Inference with Output Volume Boost</h2>
+        <p>Applies voice conversion onto a target source file while bypassing UI limits to apply a hard <strong>+6.0 dB output gain boost</strong>.</p>
+        <div class="code-box">
+            <code id="code4">env\python.exe core.py infer --model_name "MyVoice.pth" --index_path "logs\MyVoice\added_index.index" --input_path "assets\audios\input_song.wav" --output_path "assets\audios\output_voice_boosted.wav" --output_gain 6.0 --pitch_change 0</code>
+            <button class="copy-btn" onclick="copyToClipboard('code4')">Copy Command</button>
+        </div>
+        <p class="note">Note: Increase '--output_gain' further (e.g., 8.5) if the volume is still too quiet.</p>
+    </div>
+
+    <script>
+        function copyToClipboard(id) {
+            const textToCopy = document.getElementById(id).innerText;
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                const btn = document.querySelector(`[onclick="copyToClipboard('${id}')"]`);
+                const originalText = btn.innerText;
+                btn.innerText = "Copied!";
+                btn.style.backgroundColor = "#4ade80";
+                setTimeout(() => {
+                    btn.innerText = originalText;
+                    btn.style.backgroundColor = "#3b82f6";
+                }, 1500);
+            }).catch(err => {
+                console.error('Failed to copy text: ', err);
+            });
+        }
+    </script>
+</body>
+</html>

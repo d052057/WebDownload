@@ -1,0 +1,137 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Applio Inference & Volume Dashboard</title>
+    <!-- Bootstrap 5 dark theme CSS CDN -->
+    <link href="https://jsdelivr.net" rel="stylesheet">
+    <style>
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        .card {
+            background-color: #1e1e1e;
+            border: 1px solid #2d2d2d;
+        }
+
+        code {
+            font-family: 'Consolas', 'Courier New', monospace;
+            color: #f8f9fa;
+            font-size: 0.9rem;
+        }
+
+        .code-block-wrapper {
+            background-color: #0b0b0b;
+            border-left: 4px solid #0d6efd;
+            position: relative;
+        }
+
+        .inference-wrapper {
+            border-left-color: #0d6efd !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container my-5">
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col">
+                <h1 class="text-primary fw-bold">Applio Voice-to-Music Inference Dashboard</h1>
+                <p class="text-muted">Final Step: Apply your trained voice model onto any music vocals with customizable volume amplification.</p>
+            </div>
+        </div>
+
+        <!-- MAIN INFERENCE & VOLUME CONTROL SCRIPT -->
+        <div class="row mb-5">
+            <div class="col-12">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white fw-bold d-flex align-items-center">
+                        <span class="fs-5">🎵 Voice Cover Inference Script</span>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text text-muted">Adjust your paths, pitch shift (e.g., use <code>12</code> to raise an octave for female keys, <code>-12</code> to drop an octave for male keys), and configure your <code>VOLUME_BOOST</code> level before copying this batch code into your command line.</p>
+
+                        <div class="code-block-wrapper inference-wrapper p-3 rounded d-flex align-items-center justify-content-between">
+                            <code id="inferenceCode">
+                                @echo off
+                                :: ==========================================
+                                ::     INFERENCE PATHS & VOLUME VARIABLES
+                                :: ==========================================
+                                set APPLIO_DIR=c:\tools\applio
+                                set MODEL_NAME=MyCustomVoice
+
+                                :: --- Audio File Setup ---
+                                set INPUT_AUDIO=assets\audios\input_song_vocals.wav
+                                set OUTPUT_AUDIO=assets\audios\final_voice_cover.wav
+
+                                :: --- Voice Tuning Parameters ---
+                                set PITCH_CHANGE=0
+                                set PITCH_ALGO=rmvpe
+                                set INDEX_RATE=0.75
+
+                                :: --- Volume Amplification Control ---
+                                :: (Increase this number to turn up your custom voice volume)
+                                set VOLUME_BOOST=6.0
+
+                                :: ==========================================
+                                ::             EXECUTE INFERENCE
+                                :: ==========================================
+                                echo [Processing] Navigating to Applio folder...
+                                cd /d "%APPLIO_DIR%"
+
+                                echo [Processing] Applying %MODEL_NAME% voice model onto audio track...
+                                env\python.exe core.py infer --model_name "%MODEL_NAME%.pth" --index_path "logs\%MODEL_NAME%\added_index.index" --input_path "%INPUT_AUDIO%" --output_path "%OUTPUT_AUDIO%" --output_gain %VOLUME_BOOST% --pitch_change %PITCH_CHANGE% --pitch_algorithm "%PITCH_ALGO%" --index_rate %INDEX_RATE%
+
+                                echo.
+                                echo =======================================================
+                                echo Success! Your volume-boosted voice file is ready at:
+                                echo "%APPLIO_DIR%\%OUTPUT_AUDIO%"
+                                echo =======================================================
+                                pause
+                            </code>
+                            <button class="btn btn-primary btn-sm ms-3 flex-shrink-0 fw-bold" onclick="copyToClipboard('inferenceCode', this)">Copy Inference Script</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Tips -->
+        <div class="row">
+            <div class="col">
+                <div class="card bg-dark text-light border-secondary">
+                    <div class="card-body">
+                        <h5 class="card-title fw-semibold text-warning">💡 Audio Separation Tip</h5>
+                        <p class="card-text small text-muted">For the best results, make sure your <code>INPUT_AUDIO</code> points strictly to an <strong>isolated vocal track</strong> (acapella) rather than a full track with background instruments. You can use Applio's built-in vocal separation tab first if you need to split the music from the voice!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function copyToClipboard(id, element) {
+            const textToCopy = document.getElementById(id).innerText;
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                const originalText = element.innerText;
+                element.innerText = "✓ Copied!";
+                element.classList.remove('btn-primary');
+                element.classList.add('btn-light', 'text-dark');
+
+                setTimeout(() => {
+                    element.innerText = originalText;
+                    element.classList.remove('btn-light', 'text-dark');
+                    element.classList.add('btn-primary');
+                }, 1800);
+            }).catch(err => {
+                console.error('Copy execution script failed: ', err);
+            });
+        }
+    </script>
+</body>
+</html>

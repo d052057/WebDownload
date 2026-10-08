@@ -22,7 +22,12 @@ export class Guide {
     'FFmpeg',
     'FFmpeg-Embed',
     'create App',
-    'Fix-Https-Cert'
+    'Fix-Https-Cert',
+    'Applio CLI Dashboard & Automation Tool',
+    'Applio High-Fidelity Voice Swap (Keep Background Music)',
+    'Applio Inference & Volume Dashboard',
+    'Applio MP4 Voice Swap Dashboard (Keep Music)',
+    'Applio Windows Batch CLI Helper'
   ]
 
   constructor() { }
