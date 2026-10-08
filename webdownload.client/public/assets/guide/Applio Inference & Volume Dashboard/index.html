@@ -1,42 +1,3 @@
-﻿<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Applio Inference & Volume Dashboard</title>
-    <!-- Bootstrap 5 dark theme CSS CDN -->
-    <link href="https://jsdelivr.net" rel="stylesheet">
-    <style>
-        body {
-            background-color: #121212;
-            color: #e0e0e0;
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-        }
-
-        .card {
-            background-color: #1e1e1e;
-            border: 1px solid #2d2d2d;
-        }
-
-        code {
-            font-family: 'Consolas', 'Courier New', monospace;
-            color: #f8f9fa;
-            font-size: 0.9rem;
-        }
-
-        .code-block-wrapper {
-            background-color: #0b0b0b;
-            border-left: 4px solid #0d6efd;
-            position: relative;
-        }
-
-        .inference-wrapper {
-            border-left-color: #0d6efd !important;
-        }
-    </style>
-</head>
-<body>
-
     <div class="container my-5">
         <!-- Header -->
         <div class="row mb-4">
@@ -57,7 +18,7 @@
                         <p class="card-text text-muted">Adjust your paths, pitch shift (e.g., use <code>12</code> to raise an octave for female keys, <code>-12</code> to drop an octave for male keys), and configure your <code>VOLUME_BOOST</code> level before copying this batch code into your command line.</p>
 
                         <div class="code-block-wrapper inference-wrapper p-3 rounded d-flex align-items-center justify-content-between">
-                            <code id="inferenceCode">
+                            <code id="inferenceCode"><pre>
                                 @echo off
                                 :: ==========================================
                                 ::     INFERENCE PATHS & VOLUME VARIABLES
@@ -93,7 +54,7 @@
                                 echo "%APPLIO_DIR%\%OUTPUT_AUDIO%"
                                 echo =======================================================
                                 pause
-                            </code>
+                            </pre></code>
                             <button class="btn btn-primary btn-sm ms-3 flex-shrink-0 fw-bold" onclick="copyToClipboard('inferenceCode', this)">Copy Inference Script</button>
                         </div>
                     </div>
@@ -113,25 +74,3 @@
             </div>
         </div>
     </div>
-
-    <script>
-        function copyToClipboard(id, element) {
-            const textToCopy = document.getElementById(id).innerText;
-            navigator.clipboard.writeText(textToCopy).then(() => {
-                const originalText = element.innerText;
-                element.innerText = "✓ Copied!";
-                element.classList.remove('btn-primary');
-                element.classList.add('btn-light', 'text-dark');
-
-                setTimeout(() => {
-                    element.innerText = originalText;
-                    element.classList.remove('btn-light', 'text-dark');
-                    element.classList.add('btn-primary');
-                }, 1800);
-            }).catch(err => {
-                console.error('Copy execution script failed: ', err);
-            });
-        }
-    </script>
-</body>
-</html>
