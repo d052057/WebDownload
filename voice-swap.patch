@@ -1816,3 +1816,19 @@ index 0000000..a905eb6
 +    return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 +  }
 +}
+diff --git a/webdownload.client/src/proxy.conf.js b/webdownload.client/src/proxy.conf.js
+index f346ffd..c8596bc 100644
+--- a/webdownload.client/src/proxy.conf.js
++++ b/webdownload.client/src/proxy.conf.js
+@@ -11,9 +11,11 @@ const PROXY_CONFIG = [
+       "/downloadHub",
+       "/convertHub",
+       "/splitterHub",
++      "/voiceSwapHub",
+       "/webdownload/downloadHub",
+       "/webdownload/convertHub",
+       "/webdownload/splitterHub",
++      "/webdownload/voiceSwapHub",
+     ],
+     target,
+     secure: false,
