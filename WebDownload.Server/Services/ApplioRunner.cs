@@ -49,8 +49,10 @@ public sealed class ApplioRunner
         foreach (var m in models)
         {
             if (!File.Exists(m.PthPath)) problems.Add($"Voice '{m.Name}': the .pth file was not found: {m.PthPath}");
-            if (string.IsNullOrWhiteSpace(m.IndexPath)) problems.Add($"Voice '{m.Name}': IndexPath is empty.");
-            else if (!File.Exists(m.IndexPath)) problems.Add($"Voice '{m.Name}': the .index file was not found: {m.IndexPath}");
+            // An empty IndexPath is allowed: the voice then runs without the index (a little less like the
+            // trained voice, but it works). A path that is set but wrong is an error, never silently ignored.
+            if (!string.IsNullOrWhiteSpace(m.IndexPath) && !File.Exists(m.IndexPath))
+                problems.Add($"Voice '{m.Name}': the .index file was not found: {m.IndexPath}");
         }
         return problems;
     }
@@ -61,7 +63,7 @@ public sealed class ApplioRunner
     public static string PrepareIndex(string indexPath, string workDir, out string? note)
     {
         note = null;
-        if (!indexPath.Contains("trained", StringComparison.Ordinal)) return indexPath;
+        if (string.IsNullOrEmpty(indexPath) || !indexPath.Contains("trained", StringComparison.Ordinal)) return indexPath;
 
         Directory.CreateDirectory(workDir);
         var copy = Path.Combine(workDir, "voice.index");
@@ -83,7 +85,7 @@ public sealed class ApplioRunner
             "--pth-path", pthPath,
             "--index-path", indexPath,
             "--pitch", pitch.ToString(CultureInfo.InvariantCulture),
-            "--index-rate", N(_s.IndexRate),
+            "--index-rate", N(string.IsNullOrEmpty(indexPath) ? 0 : _s.IndexRate),
             "--volume-envelope", N(_s.VolumeEnvelope),
             "--protect", N(_s.Protect),
             "--f0-method", _s.F0Method,

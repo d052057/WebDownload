@@ -10,6 +10,8 @@ public class VoiceModelSettings
     public string? Name { get; set; }
 
     // Full path of the model (.pth) and of its index (.index) on the machine that runs the app.
+    // Current Applio names the index <model name>.index (for example myvoice.index) in logs\<model name>.
+    // IndexPath may be left empty: the voice then runs without the index.
     public string PthPath { get; set; } = "";
     public string IndexPath { get; set; } = "";
 
