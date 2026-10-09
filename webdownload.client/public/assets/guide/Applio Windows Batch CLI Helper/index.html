@@ -1,43 +1,72 @@
-    <h1>Applio CLI Steps & Volume Controls (.BAT Native)</h1>
-    <p>Use these backend commands if the web UI goes offline, freezes, or fails to render. Open a standard command prompt (CMD) inside your Applio folder before running them.</p>
+<div class="guide-applio accent-blue" data-bs-theme="dark">
 
-    <!-- STEP 1 -->
-    <div class="step-container">
-        <h2>Step 1: Pre-process Dataset</h2>
-        <p>Pre-processes your clean voice recordings located in your dataset folder, matching them to a target sample rate.</p>
-        <div class="code-box">
-            <code id="code1">env\python.exe core.py preprocess --model_name "MyVoice" --dataset_path "assets\datasets\MyVoice" --sampling_rate 40000</code>
-            <button class="copy-btn" onclick="copyToClipboard('code1')">Copy Command</button>
-        </div>
-    </div>
+  <h1>Applio Command-Line Steps</h1>
+  <p class="intro">Run these in Command Prompt, one at a time, when you want control of each step, or when the web interface will not start. Each box has a Copy button. Applio's option names use hyphens (<code>--model-name</code>), not underscores.</p>
+  <p class="intro">For the same steps in one file, see the <strong>Applio CLI Dashboard &amp; Automation Tool</strong> guide.</p>
 
-    <!-- STEP 2 -->
-    <div class="step-container">
-        <h2>Step 2: Extract Features & Pitch</h2>
-        <p>Extracts essential pitch information using the highly recommended RMVPE algorithm.</p>
-        <div class="code-box">
-            <code id="code2">env\python.exe core.py extract --model_name "MyVoice" --rvc_version "v2" --pitch_algorithm "rmvpe"</code>
-            <button class="copy-btn" onclick="copyToClipboard('code2')">Copy Command</button>
-        </div>
-    </div>
+  <div class="step-title"><span class="badge rounded-pill">0</span>Set the folder and the voice name</div>
+  <div class="guide-code compact">
+  <div class="guide-code-bar"><span class="guide-code-title">Command Prompt</span><span class="guide-code-actions"><button type="button" class="btn btn-sm btn-success" data-copy="applio-cli-0">Copy</button></span></div>
+  <pre id="applio-cli-0"><code>cd /d C:\Tools\Applio
+set MODEL=myvoice
+set DATASET=C:\voice-data</code></pre>
+</div>
+  <p class="small text-secondary">Change <code>MODEL</code> once and every step below uses it. Press Enter after pasting if the last line does not run. These settings last until you close the window.</p>
 
-    <!-- STEP 3 -->
-    <div class="step-container">
-        <h2>Step 3: Run Model Training</h2>
-        <p>Launches core backend training. Set total epochs (e.g., 200) and batch size according to your graphics card capability.</p>
-        <div class="code-box">
-            <code id="code3">env\python.exe core.py train --model_name "MyVoice" --total_epochs 200 --batch_size 4 --save_every_epoch 10</code>
-            <button class="copy-btn" onclick="copyToClipboard('code3')">Copy Command</button>
-        </div>
-    </div>
+  <div class="step-title"><span class="badge rounded-pill">1</span>Preprocess the recordings</div>
+  <div class="guide-code compact">
+  <div class="guide-code-bar"><span class="guide-code-title">Command Prompt</span><span class="guide-code-actions"><button type="button" class="btn btn-sm btn-success" data-copy="applio-cli-1">Copy</button></span></div>
+  <pre id="applio-cli-1"><code>env\python.exe core.py preprocess --model-name "%MODEL%" --dataset-path "%DATASET%" --sample-rate 40000</code></pre>
+</div>
+  <p class="small text-secondary">The folder must hold <code>.wav</code>, <code>.mp3</code>, <code>.flac</code> or <code>.ogg</code> files (not <code>.m4a</code>). You should see <code>Model myvoice preprocessed successfully.</code></p>
 
-    <!-- STEP 4 -->
-    <div class="step-container">
-        <h2>Step 4: Inference with Output Volume Boost</h2>
-        <p>Applies voice conversion onto a target source file while bypassing UI limits to apply a hard <strong>+6.0 dB output gain boost</strong>.</p>
-        <div class="code-box">
-            <code id="code4">env\python.exe core.py infer --model_name "MyVoice.pth" --index_path "logs\MyVoice\added_index.index" --input_path "assets\audios\input_song.wav" --output_path "assets\audios\output_voice_boosted.wav" --output_gain 6.0 --pitch_change 0</code>
-            <button class="copy-btn" onclick="copyToClipboard('code4')">Copy Command</button>
-        </div>
-        <p class="note">Note: Increase '--output_gain' further (e.g., 8.5) if the volume is still too quiet.</p>
-    </div>
+  <div class="step-title"><span class="badge rounded-pill">2</span>Extract the features</div>
+  <div class="guide-code compact">
+  <div class="guide-code-bar"><span class="guide-code-title">Command Prompt</span><span class="guide-code-actions"><button type="button" class="btn btn-sm btn-success" data-copy="applio-cli-2">Copy</button></span></div>
+  <pre id="applio-cli-2"><code>env\python.exe core.py extract --model-name "%MODEL%" --sample-rate 40000</code></pre>
+</div>
+  <p class="small text-secondary">This runs on the CPU, which always works. Add <code>--gpu 0</code> only if step 8 prints <code>True</code>. With a broken GPU driver Applio still says "extracted successfully" but writes nothing, so check: <code>dir logs\%MODEL%\extracted</code> must list <code>.npy</code> files.</p>
+
+  <div class="step-title"><span class="badge rounded-pill">3</span>Train the voice</div>
+  <div class="guide-code compact">
+  <div class="guide-code-bar"><span class="guide-code-title">Command Prompt</span><span class="guide-code-actions"><button type="button" class="btn btn-sm btn-success" data-copy="applio-cli-3">Copy</button></span></div>
+  <pre id="applio-cli-3"><code>env\python.exe core.py train --model-name "%MODEL%" --sample-rate 40000 --save-every-epoch 10 --total-epoch 150 --batch-size 4</code></pre>
+</div>
+  <p class="small text-secondary">Applio&#39;s default is 1000 epochs; 150 is a starting point. Lower <code>--batch-size</code> if you run out of memory. Training also creates the index at the end. Do not close the window.</p>
+
+  <div class="step-title"><span class="badge rounded-pill">4</span>Make the index (only if it is missing)</div>
+  <div class="guide-code compact">
+  <div class="guide-code-bar"><span class="guide-code-title">Command Prompt</span><span class="guide-code-actions"><button type="button" class="btn btn-sm btn-success" data-copy="applio-cli-4">Copy</button></span></div>
+  <pre id="applio-cli-4"><code>env\python.exe core.py index --model-name "%MODEL%"</code></pre>
+</div>
+  <p class="small text-secondary">Skip this when <code>logs\%MODEL%\%MODEL%.index</code> already exists. Applio keeps an existing index and does not rebuild it.</p>
+
+  <div class="step-title"><span class="badge rounded-pill">5</span>See what you got</div>
+  <div class="guide-code compact">
+  <div class="guide-code-bar"><span class="guide-code-title">Command Prompt</span><span class="guide-code-actions"><button type="button" class="btn btn-sm btn-success" data-copy="applio-cli-5">Copy</button></span></div>
+  <pre id="applio-cli-5"><code>dir logs\%MODEL%</code></pre>
+</div>
+  <p class="small text-secondary">Look for <code>myvoice_150e_&lt;number&gt;s.pth</code>, the finished voice, and <code>myvoice.index</code>. The large <code>G_*.pth</code> and <code>D_*.pth</code> files are training checkpoints, not voices.</p>
+
+  <div class="step-title"><span class="badge rounded-pill">6</span>Try the voice on a recording</div>
+  <div class="guide-code compact">
+  <div class="guide-code-bar"><span class="guide-code-title">Command Prompt</span><span class="guide-code-actions"><button type="button" class="btn btn-sm btn-success" data-copy="applio-cli-6">Copy</button></span></div>
+  <pre id="applio-cli-6"><code>set PTH=myvoice_150e_900s.pth
+env\python.exe core.py infer --input-path "C:\test\in.wav" --output-path "C:\test\out.wav" --pth-path "logs\%MODEL%\%PTH%" --index-path "logs\%MODEL%\%MODEL%.index"</code></pre>
+</div>
+  <p class="small text-secondary">Replace <code>myvoice_150e_900s.pth</code> with the real file name from step 5. Without an index, use <code>--index-path ""</code>. Add <code>--pitch 12</code> (or <code>-12</code>) to move the voice up or down an octave.</p>
+
+  <div class="step-title"><span class="badge rounded-pill">7</span>Make the voice louder or quieter</div>
+  <div class="guide-code compact">
+  <div class="guide-code-bar"><span class="guide-code-title">Command Prompt</span><span class="guide-code-actions"><button type="button" class="btn btn-sm btn-success" data-copy="applio-cli-7">Copy</button></span></div>
+  <pre id="applio-cli-7"><code>env\python.exe core.py infer --input-path "C:\test\in.wav" --output-path "C:\test\out.wav" --pth-path "logs\%MODEL%\%PTH%" --index-path "logs\%MODEL%\%MODEL%.index" --post-process --gain --gain-db 6.0</code></pre>
+</div>
+  <p class="small text-secondary">Same as step 6 plus the gain options. Both <code>--post-process</code> and <code>--gain</code> are needed. A negative number makes it quieter. If the result sounds distorted, use a smaller number.</p>
+
+  <div class="step-title"><span class="badge rounded-pill">8</span>Is the graphics card usable?</div>
+  <div class="guide-code compact">
+  <div class="guide-code-bar"><span class="guide-code-title">Command Prompt</span><span class="guide-code-actions"><button type="button" class="btn btn-sm btn-success" data-copy="applio-cli-8">Copy</button></span></div>
+  <pre id="applio-cli-8"><code>env\python.exe -c "import torch; print(torch.cuda.is_available())"</code></pre>
+</div>
+  <p class="small text-secondary"><code>True</code> means Applio can use the GPU. <code>False</code> means it will use the CPU, usually because the NVIDIA driver is too old for the CUDA 12.8 build of PyTorch that Applio installs.</p>
+</div>

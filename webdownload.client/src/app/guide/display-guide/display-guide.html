@@ -1,1 +1,4 @@
-<div [innerHTML]="htmlContent()"></div>
+@if (error()) {
+<div class="alert alert-warning m-3" role="alert">{{ error() }}</div>
+}
+<div class="guide-host" [innerHTML]="htmlContent()" (click)="onGuideClick($event)"></div>

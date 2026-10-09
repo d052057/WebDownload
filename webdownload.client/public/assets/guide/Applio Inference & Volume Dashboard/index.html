@@ -1,76 +1,133 @@
-    <div class="container my-5">
-        <!-- Header -->
-        <div class="row mb-4">
-            <div class="col">
-                <h1 class="text-primary fw-bold">Applio Voice-to-Music Inference Dashboard</h1>
-                <p class="text-muted">Final Step: Apply your trained voice model onto any music vocals with customizable volume amplification.</p>
-            </div>
-        </div>
+<div class="guide-applio accent-blue" data-bs-theme="dark">
 
-        <!-- MAIN INFERENCE & VOLUME CONTROL SCRIPT -->
-        <div class="row mb-5">
-            <div class="col-12">
-                <div class="card shadow">
-                    <div class="card-header bg-primary text-white fw-bold d-flex align-items-center">
-                        <span class="fs-5">🎵 Voice Cover Inference Script</span>
-                    </div>
-                    <div class="card-body">
-                        <p class="card-text text-muted">Adjust your paths, pitch shift (e.g., use <code>12</code> to raise an octave for female keys, <code>-12</code> to drop an octave for male keys), and configure your <code>VOLUME_BOOST</code> level before copying this batch code into your command line.</p>
+  <h1>🎵 Applio Voice Inference with Volume Control</h1>
+  <p class="intro">Turn a vocal recording into your trained voice, with pitch and volume settings. Run it from anywhere; it finds the newest model of the voice by itself.</p>
 
-                        <div class="code-block-wrapper inference-wrapper p-3 rounded d-flex align-items-center justify-content-between">
-                            <code id="inferenceCode"><pre>
-                                @echo off
-                                :: ==========================================
-                                ::     INFERENCE PATHS & VOLUME VARIABLES
-                                :: ==========================================
-                                set APPLIO_DIR=c:\tools\applio
-                                set MODEL_NAME=MyCustomVoice
+  <h2>The script</h2>
+  <div class="guide-code">
+  <div class="guide-code-bar"><span class="guide-code-title">infer_voice.bat</span><span class="guide-code-actions"><button type="button" class="btn btn-sm btn-success" data-copy="applio-infer-script">Copy</button><button type="button" class="btn btn-sm btn-outline-light" data-download="applio-infer-script" data-filename="infer_voice.bat">Download infer_voice.bat</button></span></div>
+  <pre id="applio-infer-script"><code>@echo off
+setlocal EnableExtensions
 
-                                :: --- Audio File Setup ---
-                                set INPUT_AUDIO=assets\audios\input_song_vocals.wav
-                                set OUTPUT_AUDIO=assets\audios\final_voice_cover.wav
+rem ==========================================================================
+rem  infer_voice.bat  -  turn a vocal recording into your Applio voice
+rem
+rem  Usage:   infer_voice.bat "C:\vocals\acapella.wav" [MODEL_NAME]
+rem           (or drag the audio file onto this .bat)
+rem
+rem  The input should be a vocals-only recording, not a full song. To split a
+rem  song first, use swap_voice.bat or the Splitter page.
+rem  The result is saved next to the input file as: name [MODEL].wav
+rem ==========================================================================
 
-                                :: --- Voice Tuning Parameters ---
-                                set PITCH_CHANGE=0
-                                set PITCH_ALGO=rmvpe
-                                set INDEX_RATE=0.75
+rem ---------------------------- SETTINGS ------------------------------------
+set "APPLIO_DIR=C:\Tools\Applio"
+rem Voice name = the folder name under Applio\logs
+set "MODEL=myvoice"
+rem Semitones, -24 to 24. About +12 for a man's song to a woman's voice, -12 for the opposite.
+set "PITCH=0"
+rem 0 to 1. Higher = closer to the trained voice but can sound rougher.
+set "INDEX_RATE=0.5"
+rem Make the converted voice louder or quieter, in dB. 0 = leave as is.
+rem If the result sounds distorted, lower this number.
+set "GAIN_DB=0"
+rem --------------------------------------------------------------------------
 
-                                :: --- Volume Amplification Control ---
-                                :: (Increase this number to turn up your custom voice volume)
-                                set VOLUME_BOOST=6.0
+if "%~1"=="" (
+    echo Usage: infer_voice.bat "C:\vocals\acapella.wav" [MODEL_NAME]
+    goto :fail
+)
+set "INPUT=%~f1"
+if not "%~2"=="" set "MODEL=%~2"
+set "OUTPUT=%~dpn1 [%MODEL%].wav"
 
-                                :: ==========================================
-                                ::             EXECUTE INFERENCE
-                                :: ==========================================
-                                echo [Processing] Navigating to Applio folder...
-                                cd /d "%APPLIO_DIR%"
+if not exist "%INPUT%" (
+    echo ERROR: input file not found: %INPUT%
+    goto :fail
+)
+if not exist "%APPLIO_DIR%\env\python.exe" (
+    echo ERROR: Applio not found in %APPLIO_DIR%. Edit APPLIO_DIR at the top of this file.
+    goto :fail
+)
 
-                                echo [Processing] Applying %MODEL_NAME% voice model onto audio track...
-                                env\python.exe core.py infer --model_name "%MODEL_NAME%.pth" --index_path "logs\%MODEL_NAME%\added_index.index" --input_path "%INPUT_AUDIO%" --output_path "%OUTPUT_AUDIO%" --output_gain %VOLUME_BOOST% --pitch_change %PITCH_CHANGE% --pitch_algorithm "%PITCH_ALGO%" --index_rate %INDEX_RATE%
+rem Newest model file of this voice, for example myvoice_150e_900s.pth
+set "LATEST="
+for /f "delims=" %%F in ('dir /b /o:d "%APPLIO_DIR%\logs\%MODEL%\%MODEL%_*e_*s.pth" 2^&gt;nul') do set "LATEST=%%F"
+if not defined LATEST (
+    echo ERROR: no %MODEL%_*e_*s.pth found in %APPLIO_DIR%\logs\%MODEL%
+    echo        Train the voice first, or check MODEL.
+    goto :fail
+)
 
-                                echo.
-                                echo =======================================================
-                                echo Success! Your volume-boosted voice file is ready at:
-                                echo "%APPLIO_DIR%\%OUTPUT_AUDIO%"
-                                echo =======================================================
-                                pause
-                            </pre></code>
-                            <button class="btn btn-primary btn-sm ms-3 flex-shrink-0 fw-bold" onclick="copyToClipboard('inferenceCode', this)">Copy Inference Script</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+rem The index is optional. Without it the voice still works, a little less like you.
+set "IDX=%APPLIO_DIR%\logs\%MODEL%\%MODEL%.index"
+set "IDX_RATE=%INDEX_RATE%"
+if not exist "%IDX%" (
+    echo Note: no index file found, converting without it.
+    set "IDX="
+    set "IDX_RATE=0"
+)
 
-        <!-- Quick Tips -->
-        <div class="row">
-            <div class="col">
-                <div class="card bg-dark text-light border-secondary">
-                    <div class="card-body">
-                        <h5 class="card-title fw-semibold text-warning">💡 Audio Separation Tip</h5>
-                        <p class="card-text small text-muted">For the best results, make sure your <code>INPUT_AUDIO</code> points strictly to an <strong>isolated vocal track</strong> (acapella) rather than a full track with background instruments. You can use Applio's built-in vocal separation tab first if you need to split the music from the voice!</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+set "GAINARGS="
+if not "%GAIN_DB%"=="0" set "GAINARGS=--post-process --gain --gain-db %GAIN_DB%"
+
+echo.
+echo Voice : %MODEL%  [%LATEST%]
+echo Input : %INPUT%
+echo Pitch : %PITCH%   Index rate: %IDX_RATE%   Gain: %GAIN_DB% dB
+echo.
+
+if exist "%OUTPUT%" del /q "%OUTPUT%"
+pushd "%APPLIO_DIR%"
+env\python.exe core.py infer --input-path "%INPUT%" --output-path "%OUTPUT%" --pth-path "logs\%MODEL%\%LATEST%" --index-path "%IDX%" --pitch %PITCH% --index-rate %IDX_RATE% --f0-method rmvpe --split-audio %GAINARGS%
+popd
+
+rem Applio can end without an error and still write nothing, so check the file.
+if not exist "%OUTPUT%" (
+    echo ERROR: Applio did not create the output file. Read its messages above.
+    goto :fail
+)
+
+echo.
+echo ==========================================================
+echo  DONE. Saved: %OUTPUT%
+echo ==========================================================
+echo.
+pause
+exit /b 0
+
+:fail
+echo.
+echo ==========================================================
+echo  STOPPED. Fix the problem shown above, then run this again.
+echo ==========================================================
+echo.
+pause
+exit /b 1</code></pre>
+</div>
+
+  <h2>How to use it</h2>
+  <ol>
+    <li>Press <strong>Download infer_voice.bat</strong> and save it anywhere. If Applio is not in <code>C:\Tools\Applio</code>, edit <code>APPLIO_DIR</code> at the top.</li>
+    <li>Have a <strong>vocals-only</strong> recording, such as a WAV file of just the singing.</li>
+    <li>Run it with the file and the voice name, or drag the file onto the script:
+      <div class="guide-code compact">
+  <div class="guide-code-bar"><span class="guide-code-title">Command Prompt</span><span class="guide-code-actions"><button type="button" class="btn btn-sm btn-success" data-copy="applio-infer-run">Copy</button></span></div>
+  <pre id="applio-infer-run"><code>infer_voice.bat "C:\vocals\acapella.wav" myvoice</code></pre>
+</div>
+    </li>
+    <li>The result is saved next to the input as <code>acapella [myvoice].wav</code>.</li>
+  </ol>
+
+  <h2>Settings at the top of the script</h2>
+  <table class="table table-sm table-borderless align-middle">
+    <tbody>
+      <tr><td><code>MODEL</code></td><td>The voice name, the folder under <code>Applio\logs</code>.</td></tr>
+      <tr><td><code>PITCH</code></td><td>Semitones from -24 to 24. About <code>12</code> moves a man&#39;s song to a woman&#39;s voice, <code>-12</code> the opposite, <code>0</code> keeps the range.</td></tr>
+      <tr><td><code>INDEX_RATE</code></td><td>0 to 1. Higher is closer to the trained voice but can sound rougher. It is set to 0 automatically when there is no index file.</td></tr>
+      <tr><td><code>GAIN_DB</code></td><td>Volume of the converted voice in dB. <code>0</code> leaves it alone. Try <code>6</code> for louder; if it sounds distorted, lower it.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="note"><strong>Tip.</strong> The input must be the voice alone. A full song with instruments gives poor results. To split a song first, use the Splitter page, or use the <strong>Voice Swap</strong> guides, which do the splitting, the conversion and the mixing for you.</div>
+</div>

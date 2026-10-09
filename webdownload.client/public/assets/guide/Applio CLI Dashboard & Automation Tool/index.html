@@ -1,71 +1,271 @@
-    <div class="container my-5">
-        <!-- Header -->
-        <div class="row mb-4">
-            <div class="col">
-                <h1 class="text-success fw-bold">Applio Custom Variable CLI Dashboard</h1>
-                <p class="text-muted">A flexible fallback script configured for your specific installation directory at <code>c:\tools\applio</code>.</p>
-            </div>
-        </div>
+<div class="guide-applio" data-bs-theme="dark">
 
-        <!-- MAIN ALL-IN-ONE AUTOMATED BLOCK -->
-        <div class="row mb-5">
-            <div class="col-12">
-                <div class="card shadow">
-                    <div class="card-header bg-success text-white fw-bold d-flex align-items-center">
-                        <span class="fs-5">🚀 Full Pipeline Script (Fully Variable-Driven)</span>
-                    </div>
-                    <div class="card-body">
-                        <p class="card-text text-muted">You can adjust any parameter in the variables block below. Copying and pasting this block directly into a single Command Prompt window will jump to your Applio path and safely run every step consecutively.</p>
+  <h1>🚀 Applio Voice Training Script</h1>
+  <p class="intro">One script that turns your recordings into a voice model: preprocess, extract features, train, make the index, and try the new voice on a test file. The voice name is a variable, so you change it in one place.</p>
 
-                        <div class="code-block-wrapper all-in-one-wrapper p-3 rounded d-flex align-items-center justify-content-between">
-                            <code id="allInOneCode"><pre>
-                                @echo off
-                                :: ==========================================
-                                ::        CUSTOM VARIABLES BLOCK
-                                :: ==========================================
-                                set APPLIO_DIR=c:\tools\applio
-                                set MODEL_NAME=MyCustomVoice
-                                set DATASET_PATH=assets\datasets\MyCustomVoice
-                                set INPUT_AUDIO=assets\audios\input_song.wav
-                                set OUTPUT_AUDIO=assets\audios\output_voice_boosted.wav
+  <h2>The script</h2>
+  <div class="guide-code">
+  <div class="guide-code-bar"><span class="guide-code-title">train_voice.bat</span><span class="guide-code-actions"><button type="button" class="btn btn-sm btn-success" data-copy="applio-train-script">Copy</button><button type="button" class="btn btn-sm btn-outline-light" data-download="applio-train-script" data-filename="train_voice.bat">Download train_voice.bat</button></span></div>
+  <pre id="applio-train-script"><code>@echo off
+setlocal EnableExtensions
 
-                                :: --- Training Parameters ---
-                                set SAMPLE_RATE=40000
-                                set RVC_VERSION=v2
-                                set PITCH_ALGO=rmvpe
-                                set TOTAL_EPOCHS=200
-                                set BATCH_SIZE=4
-                                set SAVE_FREQUENCY=10
+rem ==========================================================================
+rem  train_voice.bat  -  make an Applio voice model, from recordings to a .pth
+rem
+rem  Put this file in the Applio folder (for example C:\Tools\Applio) and
+rem  double-click it, or run it from Command Prompt:
+rem
+rem      train_voice.bat [MODEL_NAME] [DATASET_FOLDER] [TOTAL_EPOCHS]
+rem
+rem  Examples:
+rem      train_voice.bat
+rem      train_voice.bat john C:\john-recordings
+rem      train_voice.bat john C:\john-recordings 150
+rem
+rem  Anything you do not type uses the SETTINGS below.
+rem  Steps: 1 preprocess, 2 extract, 3 train (also writes the index), 4 check.
+rem  Each step is checked by looking for the files it should have made,
+rem  because Applio can print "success" and still produce nothing.
+rem ==========================================================================
 
-                                :: --- Volume & Pitch Adjustments ---
-                                set VOLUME_BOOST=6.0
-                                set PITCH_CHANGE=0
+rem ---------------------------- SETTINGS ------------------------------------
+rem Voice name. Use letters, numbers, _ and - (no spaces).
+set "MODEL=myvoice"
+rem Folder with your recordings (.wav .mp3 .flac .ogg) directly inside it.
+set "DATASET=C:\voice-data"
+rem 5 = quick test only (rough voice). Try 150 or more for a real voice.
+set "EPOCHS=5"
+rem Save a checkpoint every N epochs.
+set "SAVE_EVERY=1"
+rem Lower this (4, 2) if you get "out of memory".
+set "BATCH=4"
+rem Must be the same in every step. Applio accepts 32000, 40000 or 48000.
+set "SAMPLE_RATE=40000"
+rem 1 = delete logs\MODEL first (starts this voice from zero, asks to confirm).
+set "FRESH=0"
+rem Optional: a short WAV to try the finished voice on. Leave empty to skip.
+set "TEST_WAV=C:\test\in.wav"
+set "TEST_OUT=C:\test\out.wav"
+rem --------------------------------------------------------------------------
 
-                                :: ==========================================
-                                ::        AUTOMATED PIPELINE EXECUTION
-                                :: ==========================================
-                                echo [0/5] Changing directory to Applio...
-                                cd /d "%APPLIO_DIR%"
+if not "%~1"=="" set "MODEL=%~1"
+if not "%~2"=="" set "DATASET=%~2"
+if not "%~3"=="" set "EPOCHS=%~3"
+rem A trailing backslash would break the quoted path, so remove it.
+if "%DATASET:~-1%"=="\" set "DATASET=%DATASET:~0,-1%"
 
-                                echo [1/5] Pre-processing Dataset...
-                                env\python.exe core.py preprocess --model_name "%MODEL_NAME%" --dataset_path "%DATASET_PATH%" --sampling_rate %SAMPLE_RATE%
+rem Always work from the folder this file is in.
+cd /d "%~dp0"
+set "PY=env\python.exe"
+set "LOGS=logs\%MODEL%"
 
-                                echo [2/5] Extracting Pitch Features (%PITCH_ALGO%)...
-                                env\python.exe core.py extract --model_name "%MODEL_NAME%" --rvc_version "%RVC_VERSION%" --pitch_algorithm "%PITCH_ALGO%"
+echo.
+echo ===== Applio voice training =====
+echo Applio folder : %CD%
+echo Voice name    : %MODEL%
+echo Recordings    : %DATASET%
+echo Epochs        : %EPOCHS%   Batch size: %BATCH%   Sample rate: %SAMPLE_RATE%
+echo.
 
-                                echo [3/5] Launching Model Training...
-                                env\python.exe core.py train --model_name "%MODEL_NAME%" --total_epochs %TOTAL_EPOCHS% --batch_size %BATCH_SIZE% --save_every_epoch %SAVE_FREQUENCY%
+rem ---- Checks before starting ----
+if not exist "%PY%" (
+    echo ERROR: %PY% not found. Put this file in the Applio folder.
+    goto :fail
+)
+if not exist "core.py" (
+    echo ERROR: core.py not found. Put this file in the Applio folder.
+    goto :fail
+)
+if not exist "%DATASET%\" (
+    echo ERROR: the recordings folder does not exist: %DATASET%
+    goto :fail
+)
+set "FOUND="
+for %%e in (wav mp3 flac ogg) do if exist "%DATASET%\*.%%e" set "FOUND=1"
+if not defined FOUND (
+    echo ERROR: no .wav .mp3 .flac or .ogg files directly inside %DATASET%
+    echo        Applio ignores .m4a. Convert it first, for example:
+    echo        ffmpeg -i clip.m4a -ar 44100 -ac 1 clip.wav
+    goto :fail
+)
 
-                                echo [4/5] Executing Inference with Voice Volume Boost (+%VOLUME_BOOST% dB)...
-                                env\python.exe core.py infer --model_name "%MODEL_NAME%.pth" --index_path "logs\%MODEL_NAME%\added_index.index" --input_path "%INPUT_AUDIO%" --output_path "%OUTPUT_AUDIO%" --output_gain %VOLUME_BOOST% --pitch_change %PITCH_CHANGE%
+rem ---- Is a working NVIDIA GPU available? ----
+set "HASGPU=0"
+for /f %%i in ('%PY% -c "import torch;print(int(torch.cuda.is_available()))" 2^&gt;nul') do set "HASGPU=%%i"
+set "GPUARG="
+if "%HASGPU%"=="1" (
+    set "GPUARG=--gpu 0"
+    echo GPU          : found, will be used
+) else (
+    echo GPU          : none usable, using the CPU - this is slow
+)
+echo.
+echo Starting in 5 seconds. Press Ctrl+C to cancel.
+timeout /t 5 &gt;nul
 
-                                echo [5/5] Pipeline Finished! Check your output file: "%APPLIO_DIR%\%OUTPUT_AUDIO%"
-                                pause
-                            </pre></code>
-                            <button class="btn btn-success btn-sm ms-3 flex-shrink-0 fw-bold" onclick="copyToClipboard('allInOneCode', this)">Copy Script</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+if "%FRESH%"=="1" (
+    if exist "%LOGS%" (
+        echo.
+        echo WARNING: FRESH=1 will delete everything in %LOGS%
+        echo          including earlier checkpoints and models of this voice.
+        set "ANS="
+        set /p "ANS=Type YES to delete it, anything else cancels: "
+        if /i not "%ANS%"=="YES" (
+            echo Cancelled. Nothing was deleted.
+            goto :fail
+        )
+        rmdir /s /q "%LOGS%"
+    )
+)
+
+rem ================= 1. Preprocess =================
+echo.
+echo ===== [1/4] Preprocess recordings =====
+"%PY%" core.py preprocess --model-name "%MODEL%" --dataset-path "%DATASET%" --sample-rate %SAMPLE_RATE%
+if errorlevel 1 goto :fail
+if not exist "%LOGS%\sliced_audios\*.wav" (
+    echo ERROR: preprocess made no audio slices in %LOGS%\sliced_audios
+    goto :fail
+)
+
+rem ================= 2. Extract features =================
+echo.
+echo ===== [2/4] Extract features =====
+rem Remove old results first so nothing stale is reused.
+if exist "%LOGS%\extracted"  rmdir /s /q "%LOGS%\extracted"
+if exist "%LOGS%\f0"         rmdir /s /q "%LOGS%\f0"
+if exist "%LOGS%\f0_voiced"  rmdir /s /q "%LOGS%\f0_voiced"
+if exist "%LOGS%\filelist.txt" del /q "%LOGS%\filelist.txt"
+"%PY%" core.py extract --model-name "%MODEL%" --sample-rate %SAMPLE_RATE% %GPUARG%
+if errorlevel 1 goto :fail
+if not exist "%LOGS%\extracted\*.npy" (
+    echo ERROR: extraction wrote no feature files. Applio said "success" anyway.
+    echo        Read the messages above, especially any CUDA or driver warning.
+    goto :fail
+)
+if not exist "%LOGS%\filelist.txt" (
+    echo ERROR: filelist.txt was not created.
+    goto :fail
+)
+set "FSIZE="
+for %%F in ("%LOGS%\filelist.txt") do set "FSIZE=%%~zF"
+if "%FSIZE%"=="0" (
+    echo ERROR: filelist.txt is empty, so there is nothing to train on.
+    goto :fail
+)
+
+rem ================= 3. Train =================
+echo.
+echo ===== [3/4] Train - this is the long step, do not close the window =====
+rem Applio keeps an existing index and does not rebuild it, so move an old one
+rem aside; training then writes a new index that matches the new data.
+if exist "%LOGS%\%MODEL%.index" (
+    move /y "%LOGS%\%MODEL%.index" "%LOGS%\%MODEL%.index.bak" &gt;nul
+    echo Old index kept as %MODEL%.index.bak
+)
+"%PY%" core.py train --model-name "%MODEL%" --sample-rate %SAMPLE_RATE% --save-every-epoch %SAVE_EVERY% --total-epoch %EPOCHS% --batch-size %BATCH%
+if errorlevel 1 goto :fail
+
+rem ================= 4. Check results =================
+echo.
+echo ===== [4/4] Check the results =====
+set "LATEST="
+for /f "delims=" %%F in ('dir /b /o:d "%LOGS%\%MODEL%_*e_*s.pth" 2^&gt;nul') do set "LATEST=%%F"
+if not defined LATEST (
+    echo ERROR: no %MODEL%_*e_*s.pth model file was written.
+    goto :fail
+)
+rem Training normally writes the index at the end. Make it if it is missing.
+if not exist "%LOGS%\%MODEL%.index" (
+    echo Index missing, creating it now...
+    "%PY%" core.py index --model-name "%MODEL%"
+)
+set "HAVEINDEX=0"
+if exist "%LOGS%\%MODEL%.index" set "HAVEINDEX=1"
+
+set "PTH=%CD%\%LOGS%\%LATEST%"
+set "IDX=%CD%\%LOGS%\%MODEL%.index"
+
+rem ---- Optional quick test ----
+if defined TEST_WAV if exist "%TEST_WAV%" (
+    echo.
+    echo Trying the voice on %TEST_WAV%
+    if exist "%TEST_OUT%" del /q "%TEST_OUT%"
+    if "%HAVEINDEX%"=="1" (
+        "%PY%" core.py infer --input-path "%TEST_WAV%" --output-path "%TEST_OUT%" --pth-path "%PTH%" --index-path "%IDX%"
+    ) else (
+        "%PY%" core.py infer --input-path "%TEST_WAV%" --output-path "%TEST_OUT%" --pth-path "%PTH%" --index-path ""
+    )
+    if exist "%TEST_OUT%" (
+        echo Test result written to %TEST_OUT%
+    ) else (
+        echo WARNING: the test did not produce %TEST_OUT%
+    )
+)
+
+rem ---- Print the lines for appsettings.json (backslashes doubled) ----
+set "PTHJ=%PTH:\=\\%"
+set "IDXJ=%IDX:\=\\%"
+echo.
+echo ==========================================================
+echo  DONE. Voice "%MODEL%" is ready.
+echo  Put these in WebDownload.Server\appsettings.json, VoiceSwap, Models:
+echo.
+echo     "PthPath": "%PTHJ%",
+if "%HAVEINDEX%"=="1" (
+    echo     "IndexPath": "%IDXJ%",
+) else (
+    echo     "IndexPath": "",
+)
+echo ==========================================================
+echo.
+pause
+exit /b 0
+
+:fail
+echo.
+echo ==========================================================
+echo  STOPPED. Fix the problem shown above, then run this again.
+echo ==========================================================
+echo.
+pause
+exit /b 1</code></pre>
+</div>
+
+  <h2>How to use it</h2>
+  <ol>
+    <li>Press <strong>Download train_voice.bat</strong> (or <strong>Copy</strong> and save it as <code>train_voice.bat</code>) and put the file in your Applio folder, for example <code>C:\Tools\Applio</code>.</li>
+    <li>Put your recordings in one folder, for example <code>C:\voice-data</code>. Use <code>.wav</code>, <code>.mp3</code>, <code>.flac</code> or <code>.ogg</code> files directly inside it. Applio ignores <code>.m4a</code>.</li>
+    <li>Double-click the file, or run it in Command Prompt. The three values are the voice name, the recordings folder and the number of epochs; anything you leave out uses the settings at the top of the script:
+      <div class="guide-code compact">
+  <div class="guide-code-bar"><span class="guide-code-title">Command Prompt</span><span class="guide-code-actions"><button type="button" class="btn btn-sm btn-success" data-copy="applio-train-run">Copy</button></span></div>
+  <pre id="applio-train-run"><code>train_voice.bat myvoice C:\voice-data 150</code></pre>
+</div>
+    </li>
+    <li>When it finishes it prints the <code>PthPath</code> and <code>IndexPath</code> lines to paste into the <code>VoiceSwap</code> section of <code>appsettings.json</code>.</li>
+  </ol>
+
+  <h2>Settings at the top of the script</h2>
+  <table class="table table-sm table-borderless align-middle">
+    <tbody>
+      <tr><td><code>MODEL</code></td><td>The voice name. Letters, numbers, <code>_</code> and <code>-</code>, no spaces. Change it here, or type it after the file name.</td></tr>
+      <tr><td><code>DATASET</code></td><td>The folder with your recordings.</td></tr>
+      <tr><td><code>EPOCHS</code></td><td><code>5</code> is a quick test and gives a rough voice. Try <code>150</code> or more for a real one.</td></tr>
+      <tr><td><code>SAVE_EVERY</code></td><td>Save a checkpoint every this many epochs.</td></tr>
+      <tr><td><code>BATCH</code></td><td>Lower it (<code>4</code>, <code>2</code>) if you get an out-of-memory error.</td></tr>
+      <tr><td><code>SAMPLE_RATE</code></td><td>The same value is used in every step. Applio accepts 32000, 40000 or 48000.</td></tr>
+      <tr><td><code>FRESH</code></td><td><code>1</code> deletes the voice&#39;s folder first. It asks you to type YES.</td></tr>
+      <tr><td><code>TEST_WAV</code></td><td>A short WAV to try the finished voice on. Leave it empty to skip.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>What the script protects you from</h2>
+  <div class="note">
+    <ul class="mb-0">
+      <li><strong>"Success" without results.</strong> Applio can report that a step worked and write nothing, for example when the GPU driver is too old. The script checks for the files each step should create and stops with a clear message.</li>
+      <li><strong>No usable GPU.</strong> It checks for one itself and uses the CPU otherwise. Training on the CPU works but is slow.</li>
+      <li><strong>Unsupported recordings.</strong> It stops before Applio runs if the folder holds no <code>.wav</code>, <code>.mp3</code>, <code>.flac</code> or <code>.ogg</code> files.</li>
+      <li><strong>An old index.</strong> Applio does not rebuild an index that already exists, so the script moves it aside as <code>.index.bak</code> and a fresh one is made when you retrain.</li>
+    </ul>
+  </div>
+</div>

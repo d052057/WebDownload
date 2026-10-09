@@ -1,86 +1,241 @@
-    <div class="container my-5">
-        <!-- Header -->
-        <div class="row mb-4">
-            <div class="col">
-                <h1 class="text-success fw-bold">Applio MP4 Voice Swap Dashboard (Keep Music)</h1>
-                <p class="text-muted">Extracts vocals from an existing MP4, replaces them with your AI model voice, and mixes it back with the original background audio track.</p>
-            </div>
-        </div>
+<div class="guide-applio" data-bs-theme="dark">
 
-        <!-- MAIN PIPELINE SCRIPT -->
-        <div class="row mb-5">
-            <div class="col-12">
-                <div class="card shadow">
-                    <div class="card-header bg-success text-white fw-bold d-flex align-items-center">
-                        <span class="fs-5">🎵 Full Split-Inference-Merge Pipeline Script</span>
-                    </div>
-                    <div class="card-body">
-                        <p class="card-text text-muted">Place your <code>original.mp4</code> inside Applio's <code>assets\audios</code> folder. Fine-tune your paths and volume variables below, copy the batch script, and execute it in your terminal window.</p>
+  <h1>Applio MP4 Voice Swap (Keep Music)</h1>
+  <p class="intro">Replaces the singer in a video with your trained voice and keeps the music and the picture. The video itself is copied, not re-encoded.</p>
 
-                        <div class="code-block-wrapper p-3 rounded d-flex align-items-center justify-content-between">
-                            <code id="pipelineCode"><pre>
-                                @echo off
-                                :: =========================================================
-                                ::             PATHS, VOLUMES & VIDEO VARIABLES
-                                :: =========================================================
-                                set APPLIO_DIR=c:\tools\applio
-                                set MODEL_NAME=MyCustomVoice
+  <h2>The script</h2>
+  <div class="guide-code">
+  <div class="guide-code-bar"><span class="guide-code-title">swap_voice_video.bat</span><span class="guide-code-actions"><button type="button" class="btn btn-sm btn-success" data-copy="applio-swap-script">Copy</button><button type="button" class="btn btn-sm btn-outline-light" data-download="applio-swap-script" data-filename="swap_voice_video.bat">Download swap_voice_video.bat</button></span></div>
+  <pre id="applio-swap-script"><code>@echo off
+setlocal EnableExtensions
 
-                                :: --- Audio & Video Configuration ---
-                                set ORIGINAL_VIDEO=assets\audios\original.mp4
-                                set EXTRACTED_VOCALS=assets\audios\extracted_vocals.wav
-                                set CONVERTED_AI_VOCALS=assets\audios\temp_boosted_ai_vocals.wav
-                                set FINAL_OUTPUT_VIDEO=assets\audios\final_replaced_cover.mp4
+rem ==========================================================================
+rem  swap_voice.bat  -  replace the singer with your Applio voice, keep the music
+rem
+rem  Usage:   swap_voice.bat "C:\songs\song.mp4" [MODEL_NAME]
+rem           (or drag the file onto this .bat)
+rem
+rem  1 Extract the audio        (ffmpeg)
+rem  2 Split voice and music    (Demucs, the same tool as the Splitter page)
+rem  3 Convert the voice        (Applio)
+rem  4 Mix new voice + music    (ffmpeg)
+rem  5 Save the new video (or an MP3 if the file has no picture)
+rem ==========================================================================
 
-                                :: --- Voice Tuning Parameters ---
-                                set PITCH_CHANGE=0
-                                set PITCH_ALGO=rmvpe
-                                set INDEX_RATE=0.75
+rem ---------------------------- SETTINGS ------------------------------------
+set "APPLIO_DIR=C:\Tools\Applio"
+set "DEMUCS_EXE=C:\Tools\demucs314\Scripts\demucs.exe"
+set "OUTPUT_DIR=C:\voice-swap"
+rem Voice name = the folder name under Applio\logs
+set "MODEL=myvoice"
+rem video = a new video with the new voice and the original picture. audio = an MP3 only.
+set "OUTPUT=video"
+rem htdemucs = faster.  htdemucs_ft = better separation, much slower.
+set "DEMUCS_MODEL=htdemucs"
+rem cpu, or cuda if a working NVIDIA GPU is installed.
+set "DEVICE=cpu"
+rem Semitones, -24 to 24. About +12 for a man's song to a woman's voice, -12 for the opposite.
+set "PITCH=0"
+rem 0 to 1. Higher = closer to the trained voice but can sound rougher.
+set "INDEX_RATE=0.5"
+rem Loudness of the new voice and of the music in the mix, in dB. 0 = unchanged.
+set "VOICE_DB=0"
+set "MUSIC_DB=0"
+rem Bitrate of the MP3 or of the video's audio.
+set "BITRATE=256k"
+rem --------------------------------------------------------------------------
 
-                                :: --- Volume Boost Control ---
-                                :: (Increase this number to make your AI voice stand out more over the music)
-                                set VOLUME_BOOST=6.0
+if "%~1"=="" (
+    echo Usage: swap_voice.bat "C:\songs\song.mp4" [MODEL_NAME]
+    goto :fail
+)
+set "INPUT=%~f1"
+set "BASENAME=%~n1"
+set "INEXT=%~x1"
+if not "%~2"=="" set "MODEL=%~2"
 
-                                :: =========================================================
-                                ::                    EXECUTE PIPELINE
-                                :: =========================================================
-                                echo [Processing] Navigating to Applio directory...
-                                cd /d "%APPLIO_DIR%"
+rem ---- Checks before starting ----
+if not exist "%INPUT%" (
+    echo ERROR: input file not found: %INPUT%
+    goto :fail
+)
+if not exist "%APPLIO_DIR%\env\python.exe" (
+    echo ERROR: Applio not found in %APPLIO_DIR%. Edit APPLIO_DIR at the top of this file.
+    goto :fail
+)
+if not exist "%DEMUCS_EXE%" (
+    echo ERROR: Demucs not found: %DEMUCS_EXE%. Edit DEMUCS_EXE at the top of this file.
+    goto :fail
+)
+ffmpeg -version &gt;nul 2&gt;&amp;1
+if errorlevel 1 (
+    echo ERROR: ffmpeg was not found. Add the folder with ffmpeg.exe to your PATH.
+    goto :fail
+)
 
-                                echo [Processing] Step 1: Isolating original vocals from MP4 audio stream...
-                                :: Uses FFmpeg's built-in pan-pass filters to isolate center-channel vocals
-                                ffmpeg -i "%ORIGINAL_VIDEO%" -af "pan=mono|c0=c0-c1" "%EXTRACTED_VOCALS%" -y
+set "LATEST="
+for /f "delims=" %%F in ('dir /b /o:d "%APPLIO_DIR%\logs\%MODEL%\%MODEL%_*e_*s.pth" 2^&gt;nul') do set "LATEST=%%F"
+if not defined LATEST (
+    echo ERROR: no %MODEL%_*e_*s.pth found in %APPLIO_DIR%\logs\%MODEL%
+    echo        Train the voice first, or check MODEL.
+    goto :fail
+)
 
-                                echo [Processing] Step 2: Passing extracted vocals through Applio AI Voice Model...
-                                env\python.exe core.py infer --model_name "%MODEL_NAME%.pth" --index_path "logs\%MODEL_NAME%\added_index.index" --input_path "%EXTRACTED_VOCALS%" --output_path "%CONVERTED_AI_VOCALS%" --output_gain %VOLUME_BOOST% --pitch_change %PITCH_CHANGE% --pitch_algorithm "%PITCH_ALGO%" --index_rate %INDEX_RATE%
+rem The index is optional. Without it the voice still works, a little less like you.
+set "IDX=%APPLIO_DIR%\logs\%MODEL%\%MODEL%.index"
+set "IDX_RATE=%INDEX_RATE%"
+if not exist "%IDX%" (
+    echo Note: no index file found, converting without it.
+    set "IDX="
+    set "IDX_RATE=0"
+)
 
-                                echo [Processing] Step 3: Merging new AI voice back into MP4 with original audio beds...
-                                :: Strips original center voice frequencies from the source video audio channel, then layers in the boosted AI voice
-                                ffmpeg -i "%ORIGINAL_VIDEO%" -i "%CONVERTED_AI_VOCALS%" -filter_complex "[0:a]pan=stereo|c0=c0|c1=c1[bg]; [bg][1:a]amix=inputs=2:duration=first:dropout_transition=2[audio_out]" -map 0:v:0 -map "[audio_out]" -c:v copy -c:a aac -b:a 192k "%FINAL_OUTPUT_VIDEO%" -y
+rem Does the input have a picture? Decided by the file type, as the Splitter page does.
+set "HASVIDEO="
+for %%E in (.mp4 .m4v .mov .mkv .webm .avi) do if /i "%INEXT%"=="%%E" set "HASVIDEO=1"
+set "KIND=%OUTPUT%"
+if /i "%KIND%"=="video" if not defined HASVIDEO (
+    echo Note: this file has no picture, so an MP3 is made instead of a video.
+    set "KIND=audio"
+)
+set "OUT_EXT=.mp3"
+if /i "%KIND%"=="video" (
+    set "OUT_EXT=.mp4"
+    if /i "%INEXT%"==".mkv" set "OUT_EXT=.mkv"
+)
 
-                                echo.
-                                echo =======================================================
-                                echo Success! Your final video track with replaced vocals is ready:
-                                echo "%APPLIO_DIR%\%FINAL_OUTPUT_VIDEO%"
-                                echo =======================================================
-                                pause
-                            </pre></code>
-                            <button class="btn btn-success btn-sm ms-3 flex-shrink-0 fw-bold" onclick="copyToClipboard('pipelineCode', this)">Copy Full Script</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+if not exist "%OUTPUT_DIR%" mkdir "%OUTPUT_DIR%"
+set "FINAL=%OUTPUT_DIR%\%BASENAME% [voice swap]%OUT_EXT%"
+set "WORK=%TEMP%\applio_swap_%RANDOM%"
+mkdir "%WORK%"
 
-        <!-- Troubleshooting Information -->
-        <div class="row">
-            <div class="col">
-                <div class="card bg-dark text-light border-secondary">
-                    <div class="card-body">
-                        <h5 class="card-title fw-semibold text-warning">💡 Expert Separation Note</h5>
-                        <p class="card-text small text-muted mb-0">The FFmpeg command uses standard phase inversion math (Step 1) to drop center frequencies to isolate the voice. For studio-grade separation, consider processing your video first through Applio's internal <strong>UVR (Ultimate Vocal Remover) / KaraFan</strong> tab to split the acapella and instrumental tracks down cleanly before performing the final audio remuxing step!</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+echo.
+echo Input  : %INPUT%
+echo Voice  : %MODEL%  [%LATEST%]
+echo Split  : %DEMUCS_MODEL% on %DEVICE%     Pitch: %PITCH%
+echo Output : %FINAL%
+echo.
+echo This can take several minutes, longer without a GPU. Do not close the window.
+
+rem ================= 1. Extract the audio =================
+echo.
+echo ===== [1/5] Extract the audio =====
+ffmpeg -y -v error -i "%INPUT%" -vn -map 0:a:0 -ac 2 -ar 44100 -c:a pcm_s16le "%WORK%\input.wav"
+if not exist "%WORK%\input.wav" (
+    echo ERROR: could not read the audio of this file.
+    goto :fail
+)
+
+rem ================= 2. Split voice and music =================
+echo.
+echo ===== [2/5] Split voice and music =====
+"%DEMUCS_EXE%" -n %DEMUCS_MODEL% --two-stems vocals -d %DEVICE% --filename "{stem}.{ext}" -o "%WORK%\demucs" "%WORK%\input.wav"
+set "VOCALS=%WORK%\demucs\%DEMUCS_MODEL%\vocals.wav"
+set "MUSIC=%WORK%\demucs\%DEMUCS_MODEL%\no_vocals.wav"
+if not exist "%VOCALS%" (
+    echo ERROR: Demucs did not make vocals.wav. Read its messages above.
+    goto :fail
+)
+if not exist "%MUSIC%" (
+    echo ERROR: Demucs did not make no_vocals.wav. Read its messages above.
+    goto :fail
+)
+
+rem ================= 3. Convert the voice =================
+echo.
+echo ===== [3/5] Convert the voice with Applio =====
+pushd "%APPLIO_DIR%"
+env\python.exe core.py infer --input-path "%VOCALS%" --output-path "%WORK%\converted.wav" --pth-path "logs\%MODEL%\%LATEST%" --index-path "%IDX%" --pitch %PITCH% --index-rate %IDX_RATE% --f0-method rmvpe --split-audio
+popd
+if not exist "%WORK%\converted.wav" (
+    echo ERROR: Applio did not create the converted voice. Read its messages above.
+    goto :fail
+)
+
+rem ================= 4. Mix =================
+echo.
+echo ===== [4/5] Mix the new voice with the music =====
+rem amix normalize=0 keeps the levels as set; alimiter stops clipping.
+ffmpeg -y -v error -i "%MUSIC%" -i "%WORK%\converted.wav" -filter_complex "[0:a]aformat=sample_rates=44100:channel_layouts=stereo,volume=%MUSIC_DB%dB[m];[1:a]aformat=sample_rates=44100:channel_layouts=stereo,volume=%VOICE_DB%dB[v];[m][v]amix=inputs=2:duration=first:dropout_transition=0:normalize=0,alimiter=limit=0.95[mix]" -map "[mix]" -c:a pcm_s16le "%WORK%\mix.wav"
+if not exist "%WORK%\mix.wav" (
+    echo ERROR: the mix failed. Read the ffmpeg message above.
+    goto :fail
+)
+
+rem ================= 5. Save =================
+echo.
+echo ===== [5/5] Save =====
+if /i "%KIND%"=="video" (
+    ffmpeg -y -v error -i "%INPUT%" -i "%WORK%\mix.wav" -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -b:a %BITRATE% "%FINAL%"
+) else (
+    ffmpeg -y -v error -i "%WORK%\mix.wav" -vn -c:a libmp3lame -b:a %BITRATE% "%FINAL%"
+)
+if not exist "%FINAL%" (
+    echo ERROR: could not write %FINAL%
+    goto :fail
+)
+
+rmdir /s /q "%WORK%"
+echo.
+echo ==========================================================
+echo  DONE. Saved: %FINAL%
+echo ==========================================================
+echo.
+pause
+exit /b 0
+
+:fail
+echo.
+echo ==========================================================
+echo  STOPPED. Fix the problem shown above, then run this again.
+if defined WORK echo  Temporary files are kept in: %WORK%
+echo ==========================================================
+echo.
+pause
+exit /b 1</code></pre>
+</div>
+
+  <h2>What it needs</h2>
+  <ul>
+    <li><strong>Applio</strong> with a trained voice (see the training guide).</li>
+    <li><strong>Demucs</strong>, the same separator the Splitter page uses. Set <code>DEMUCS_EXE</code> to the same path as <code>Splitter:DemucsExecutablePath</code> in <code>appsettings.json</code>.</li>
+    <li><strong>ffmpeg</strong> in your <code>PATH</code> (a recent version, with the <code>amix</code> filter's <code>normalize</code> option).</li>
+  </ul>
+
+  <h2>How to use it</h2>
+  <ol>
+    <li>Press <strong>Download swap_voice_video.bat</strong>, save it anywhere and check <code>APPLIO_DIR</code> and <code>DEMUCS_EXE</code> at the top.</li>
+    <li>Run it with the file and, if you like, the voice name; or drag the file onto the script:
+      <div class="guide-code compact">
+  <div class="guide-code-bar"><span class="guide-code-title">Command Prompt</span><span class="guide-code-actions"><button type="button" class="btn btn-sm btn-success" data-copy="applio-swap-run">Copy</button></span></div>
+  <pre id="applio-swap-run"><code>swap_voice_video.bat "C:\songs\song.mp4" myvoice</code></pre>
+</div>
+    </li>
+    <li>The new video is saved in <code>C:\voice-swap</code> as <code>song [voice swap].mp4</code> (<code>.mkv</code> stays <code>.mkv</code>). Change <code>OUTPUT_DIR</code> to save elsewhere.</li>
+  </ol>
+  <p class="small text-secondary">It can take several minutes, longer without a GPU. Do not close the window; it says when it is done and stops with a message if a step fails.</p>
+
+  <h2>How it works</h2>
+  <ol>
+    <li><strong>ffmpeg</strong> extracts the audio as a plain stereo WAV.</li>
+    <li><strong>Demucs</strong> splits it into <code>vocals.wav</code> and <code>no_vocals.wav</code> (the music).</li>
+    <li><strong>Applio</strong> converts <code>vocals.wav</code> to your voice.</li>
+    <li><strong>ffmpeg</strong> mixes the new voice with the music, without normalising the levels and with a limiter so it cannot clip.</li>
+    <li>The result is saved as described above.</li>
+  </ol>
+  <p class="small text-secondary">Demucs does the splitting because an ffmpeg phase trick such as <code>pan=c0-c1</code> only cancels sounds panned to the centre; it cannot isolate a voice.</p>
+
+  <h2>Settings at the top of the script</h2>
+  <table class="table table-sm table-borderless align-middle">
+    <tbody>
+      <tr><td><code>MODEL</code></td><td>The voice name, the folder under <code>Applio\logs</code>.</td></tr>
+      <tr><td><code>OUTPUT</code></td><td><code>video</code> (default) makes a new video; <code>audio</code> makes an MP3 only. A file without a picture always gives an MP3.</td></tr>
+      <tr><td><code>DEMUCS_MODEL</code></td><td><code>htdemucs</code>: faster. <code>htdemucs_ft</code>: better separation, much slower.</td></tr>
+      <tr><td><code>DEVICE</code></td><td><code>cpu</code>, or <code>cuda</code> if a working NVIDIA GPU is installed.</td></tr>
+      <tr><td><code>PITCH</code></td><td>Semitones from -24 to 24. About <code>12</code> moves a man&#39;s song to a woman&#39;s voice, <code>-12</code> the opposite.</td></tr>
+      <tr><td><code>VOICE_DB / MUSIC_DB</code></td><td>Loudness of the new voice and of the music in the mix, in dB. Raise <code>VOICE_DB</code> to make the voice stand out.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="note"><strong>Same thing in the browser.</strong> The <strong>Voice Swap</strong> page of WebDownload does these steps for you, with a progress bar.</div>
+</div>

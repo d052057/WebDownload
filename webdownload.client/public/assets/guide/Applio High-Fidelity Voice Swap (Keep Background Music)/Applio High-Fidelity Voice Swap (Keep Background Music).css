@@ -1,22 +1,142 @@
-body {
-  background-color: #121212;
+/*
+  Styles for one Applio guide. Everything lives inside .guide-applio, so nothing here can
+  change the rest of the app (no body, html, p or h1 rules outside that class).
+*/
+.guide-applio {
+  --accent: #198754;
+  background: #121212;
   color: #e0e0e0;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 1rem 0;
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
 
-.card {
-  background-color: #1e1e1e;
+.guide-applio.accent-blue {
+  --accent: #0d6efd;
+}
+
+.guide-applio h1 {
+  color: var(--accent);
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.guide-applio h2 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 2rem 0 0.75rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid #2d2d2d;
+}
+
+.guide-applio p,
+.guide-applio li {
+  line-height: 1.6;
+}
+
+.guide-applio .intro {
+  color: #b5b5b5;
+}
+
+.guide-applio code {
+  color: #ffd479;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 0.9em;
+}
+
+.guide-applio .card {
+  background: #1e1e1e;
   border: 1px solid #2d2d2d;
 }
 
-code {
-  font-family: 'Consolas', 'Courier New', monospace;
-  color: #f8f9fa;
-  font-size: 0.9rem;
+/* A block of code with Copy / Download buttons */
+.guide-applio .guide-code {
+  background: #0b0b0b;
+  border-left: 4px solid var(--accent);
+  border-radius: 6px;
+  margin: 0.75rem 0 1rem;
+  overflow: hidden;
 }
 
-.code-block-wrapper {
-  background-color: #0b0b0b;
-  border-left: 4px solid #198754;
-  position: relative;
+.guide-applio .guide-code-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: #171717;
+  border-bottom: 1px solid #2d2d2d;
+}
+
+.guide-applio .guide-code-title {
+  color: #a8a8a8;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 0.85rem;
+}
+
+.guide-applio .guide-code-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.guide-applio .guide-code pre {
+  margin: 0;
+  padding: 1rem;
+  max-height: 460px;
+  overflow: auto;
+  color: #f1f1f1;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  white-space: pre;
+}
+
+.guide-applio .guide-code pre code {
+  color: inherit;
+  font-size: inherit;
+}
+
+/* Short command boxes (one step each) */
+.guide-applio .guide-code.compact pre {
+  max-height: none;
+  padding: 0.75rem 1rem;
+}
+
+/* Feedback after pressing Copy */
+.guide-applio button.copied {
+  background-color: #198754 !important;
+  border-color: #198754 !important;
+  color: #fff !important;
+}
+
+.guide-applio .step-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 1.5rem 0 0.25rem;
+}
+
+.guide-applio .step-title .badge {
+  background: var(--accent);
+  margin-right: 0.5rem;
+}
+
+.guide-applio .note {
+  border-left: 4px solid #ffc107;
+  background: #1c1a12;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  margin: 1rem 0;
+  font-size: 0.95rem;
+}
+
+.guide-applio .table {
+  --bs-table-bg: transparent;
+  margin-bottom: 0;
+}
+
+.guide-applio .table td:first-child {
+  white-space: nowrap;
 }
