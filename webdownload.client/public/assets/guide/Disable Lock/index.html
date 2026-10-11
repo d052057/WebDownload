@@ -1,0 +1,83 @@
+<div class="container my-5">
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col">
+      <div class="p-5 bg-primary text-white rounded-3 shadow-sm">
+        <h1 class="display-5 fw-bold">IIS Intranet Server Fix</h1>
+        <p class="lead">Eliminate network drops and power-throttling when the Windows 10 screen locks.</p>
+        <span class="badge bg-warning text-dark px-3 py-2 fs-6">Applies to Wired Ethernet Connections</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 1: Command Prompt -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-dark text-white d-flex align-items-center">
+      <span class="badge bg-danger me-2">STEP 1</span>
+      <h5 class="mb-0">Command Prompt (Run as Administrator)</h5>
+    </div>
+    <div class="card-body">
+      <p class="card-text text-muted">These commands stop Windows from putting components or console sessions to sleep while locked.</p>
+      <pre><code><span class="code-comment">:: Disable Console Lock Sleep Timeout</span>
+powercfg.exe /setacvalueindex SCHEME_CURRENT SUB_VIDEO VIDEOCONLOCK 0
+
+<span class="code-comment">:: Disable System Unattended Sleep Timeout</span>
+powercfg.exe /setacvalueindex SCHEME_CURRENT SUB_SLEEP UNATTENDTIMEOUT 0
+
+<span class="code-comment">:: Set all core standby timeouts to Never</span>
+powercfg.exe /change standby-timeout-ac 0
+powercfg.exe /change monitor-timeout-ac 0
+powercfg.exe /change disk-timeout-ac 0
+
+<span class="code-comment">:: Force active power plan to apply changes immediately</span>
+powercfg.exe /setactive SCHEME_CURRENT</code></pre>
+    </div>
+  </div>
+
+  <!-- Section 2: Registry Commands -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-dark text-white d-flex align-items-center">
+      <span class="badge bg-danger me-2">STEP 2</span>
+      <h5 class="mb-0">Registry Tweaks (Run in Admin Command Prompt)</h5>
+    </div>
+    <div class="card-body">
+      <p class="card-text text-muted">Unlocks hidden power settings in Control Panel and stops RDP lock disconnects.</p>
+      <pre><code><span class="code-comment">:: Unhide "System unattended sleep timeout"</span>
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\7516b95f-f776-4464-8c53-06167f40cc99\8ec4b3a5-6868-48c2-be75-4f3044be88a7" /v Attributes /t REG_DWORD /d 2 /f
+
+<span class="code-comment">:: Unhide "Console lock display off timeout"</span>
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\7516b95f-f776-4464-8c53-06167f40cc99\8ec4b3a5-6868-48c2-be75-4f3044be88a7" /v Attributes /t REG_DWORD /d 2 /f
+
+<span class="code-comment">:: Disable Remote Desktop connection termination on lock</span>
+reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services" /v fDisconnectOnLock /t REG_DWORD /d 0 /f</code></pre>
+    </div>
+  </div>
+
+  <!-- Section 3: PowerShell Script -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-dark text-white d-flex align-items-center">
+      <span class="badge bg-danger me-2">STEP 3</span>
+      <h5 class="mb-0">Windows PowerShell (Run as Administrator)</h5>
+    </div>
+    <div class="card-body">
+      <p class="card-text text-muted">Automatically loops through physical network adapters to disable green power saving features.</p>
+      <div class="alert alert-info py-2" role="alert">
+        <strong>Note:</strong> Your network link will briefly drop for 2 seconds while this script applies changes.
+      </div>
+      <pre><code><span class="code-comment"># Disable OS power-down control over physical network hardware</span>
+Get-NetAdapter | Where-Object {$_.HardwareInterface -eq $true} | ForEach-Object {
+    $SysName = $_.InterfaceDescription
+    Get-CimInstance -ClassName MSPowerManagement_DeviceEnable -Namespace root\wmi | Where-Object {$_.InstanceName -match [regex]::Escape($SysName)} | Set-CimInstance -Property @{Enable = $false}
+}
+
+<span class="code-comment"># Disable Energy Efficient Ethernet and Green settings</span>
+Get-NetAdapterAdvancedProperty | Where-Object {$_.DisplayName -like "*Energy*" -or $_.DisplayName -like "*Green*" -or $_.DisplayName -like "*Low Power*"} | Set-NetAdapterAdvancedProperty -RegistryValue "0"</code></pre>
+    </div>
+  </div>
+
+  <!-- Action Banner -->
+  <div class="alert alert-warning text-center shadow-sm" role="alert">
+    <h5 class="alert-heading fw-bold mb-1">🛠️ Final Requirement</h5>
+    Please <strong>restart the computer</strong> after executing these blocks to ensure all network infrastructure layers apply the changes seamlessly.
+  </div>
+</div>

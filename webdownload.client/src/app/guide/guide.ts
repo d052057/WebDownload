@@ -27,7 +27,8 @@ export class Guide {
     'Applio High-Fidelity Voice Swap (Keep Background Music)',
     'Applio Inference & Volume Dashboard',
     'Applio MP4 Voice Swap Dashboard (Keep Music)',
-    'Applio Windows Batch CLI Helper'
+    'Applio Windows Batch CLI Helper',
+    'Disable Lock'
   ]
 
   constructor() { }

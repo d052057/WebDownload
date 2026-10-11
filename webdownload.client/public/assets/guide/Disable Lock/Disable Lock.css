@@ -1,0 +1,11 @@
+pre {
+  background-color: #212529;
+  color: #f8f9fa;
+  padding: 15px;
+  border-radius: 6px;
+  position: relative;
+}
+
+.code-comment {
+  color: #6c757d;
+}
